@@ -196,7 +196,7 @@ export default function ProductDetails() {
 
   // WhatsApp click pre-fill message
   const getWhatsAppLink = () => {
-    const brandName = 'FairQueen Collections';
+    const brandName = 'Dansolam';
     const whatsappNum = '2348000000000';
     const currentUrl = window.location.href;
     const priceText = `${currencySymbol}${parseFloat(selectedVariant?.price || product.sale_price || product.price).toLocaleString()}`;
@@ -263,7 +263,7 @@ export default function ProductDetails() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 flex flex-col gap-12">
-      <SEO title={product.name} description={product.short_description || product.seo_description || `Purchase ${product.name} at FairQueen Collections. High quality designer wear.`} />
+      <SEO title={product.name} description={product.short_description || product.seo_description || `Purchase ${product.name} at Dansolam. High quality designer wear.`} />
       
       {/* Product Details Section */}
       <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-start">

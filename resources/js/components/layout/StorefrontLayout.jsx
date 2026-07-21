@@ -332,22 +332,22 @@ export default function StorefrontLayout() {
     }
   }, [settingsData, setCurrency]);
 
-  const ecommerce = settingsData?.data?.ecommerce || { name: 'FairQueen Collections' };
+  const ecommerce = settingsData?.data?.ecommerce || { name: 'Dansolam' };
   const settings = settingsData?.data?.settings || {
     logo_url: '/images/logo.png',
-    theme_primary_color: '#C5A880',
-    tagline: 'Step Into Style',
-    description: 'Shop elegant designer clothing, shoes, bags and accessories.',
+    theme_primary_color: '#AA8374',
+    tagline: 'Luxury Skincare & Beauty',
+    description: 'Transform your skin with luxury spa routines and premium beauty products.',
     whatsapp_number: '2348000000000',
-    instagram_url: 'https://www.instagram.com/fairqueen_collections/',
-    store_address: 'Plot 1234, Wuse II, Abuja, Nigeria',
+    instagram_url: 'https://dansolam.com/',
+    store_address: 'Abuja, Nigeria',
     opening_hours: 'Monday–Saturday: 9:00 AM - 6:00 PM',
     announcement_show: 'true',
-    announcement_text: '✨ Worldwide Shipping | Monday–Saturday opening hours | WhatsApp contact sales!',
+    announcement_text: '✨ Free shipping on select beauty orders | Dansolam Luxury Sanctuary',
     promo_popup_show: 'false',
-    promo_popup_title: 'Join the Queen Club',
-    promo_popup_body: 'Save 10% off your first purchase and receive notifications on lookbook arrivals.',
-    promo_popup_image: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=350',
+    promo_popup_title: 'Welcome to Dansolam',
+    promo_popup_body: 'Save 10% off your first beauty purchase.',
+    promo_popup_image: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=350',
     promo_popup_delay: '3000'
   };
   const allowOverselling = settings.allow_overselling === 'true' || settings.allow_overselling === true || settings.allow_overselling === '1' || settings.allow_overselling === 1;
@@ -546,365 +546,220 @@ export default function StorefrontLayout() {
         <AnimatedAnnouncementBar text={settings.announcement_text} />
       )}
 
-      {/* 1. Header (Desktop/Tablet) */}
-      <header
-        className={`luxury-nav ${scrolled ? 'luxury-nav--scrolled' : 'luxury-nav--overlay'} sticky top-0 z-50 px-3 md:px-6 transition-all duration-350 flex items-center justify-between gap-3 lg:gap-5 bg-transparent ${scrolled
-            ? 'py-2.5'
-            : 'py-4.5'
-          }`}
-      >
-        {/* Brand Logo */}
-        <Link
-          to="/"
-          className={`flex items-center gap-2.5 shrink-0 rounded-2xl transition-all duration-300 ${scrolled
-              ? 'bg-white/72 dark:bg-black/80 backdrop-blur-xl border border-white/70 dark:border-transparent shadow-sm px-3 py-1.5'
-              : 'px-0 py-0'
-            }`}
-        >
-          {settings.logo_url ? (
-            <img loading="eager" decoding="async" fetchPriority="high"
-              src={settings.logo_url}
-              alt={ecommerce.name}
-              className={`max-w-[300px] object-contain transition-all duration-300 ${scrolled ? 'h-11 md:h-12' : 'h-15 md:h-18'
-                }`}
-            />
-          ) : (
-            <>
-              <div className={`rounded-full bg-primary flex items-center justify-center text-white font-serif font-bold transition-all duration-300 ${scrolled ? 'w-10 h-10 text-lg' : 'w-13 h-13 text-xl'
-                }`}>
-                F
-              </div>
-              <span className={`font-serif font-semibold tracking-tight text-gray-900 transition-all duration-300 ${scrolled ? 'text-xl md:text-2xl' : 'text-2xl md:text-3xl'
-                }`}>
-                {ecommerce.name}
-              </span>
-            </>
-          )}
-        </Link>
-
-        {/* Desktop Navigation Linkages with Mega Menu */}
-        <nav className="hidden md:flex items-center gap-0.5 lg:gap-1 bg-white/80 dark:bg-black/90 backdrop-blur-xl rounded-full p-1.5 lg:p-2 shadow-sm max-w-full shrink-0">
-          <Link
-            to="/"
-            className={`px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-bold rounded-full transition-all duration-300 shrink-0 ${isActive('/')
-                ? 'bg-primary text-white font-bold'
-                : 'text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-amber-300 hover:bg-yellow-100/60 dark:hover:bg-amber-950/40'
-              }`}
+      {/* 1. Header Navigation Pill (BeautyCenter Design for secondary pages / scrolled state) */}
+      {(!isHome || scrolled) && (
+        <header className="sticky top-3 z-50 px-3 sm:px-6 max-w-7xl mx-auto w-full transition-all duration-300">
+        <div className="bg-white/85 dark:bg-[#1a1817]/90 backdrop-blur-xl border border-white/80 dark:border-white/10 rounded-full px-3.5 py-2 shadow-lg shadow-black/5 flex items-center justify-between gap-3">
+          
+          {/* Mobile Menu Hamburger Trigger */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            className="md:hidden p-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-all cursor-pointer"
+            aria-label="Open Mobile Menu"
           >
-            Home
-          </Link>
+            <Menu className="w-5 h-5" />
+          </button>
 
-          {/* Shop with Mega Menu dropdown */}
-          <div
-            ref={megaMenuTriggerRef}
-            className="static shrink-0"
-            onMouseEnter={openMegaMenu}
-            onMouseLeave={scheduleMegaMenuClose}
-          >
-            <Link
-              to="/shop"
-              className={`px-3.5 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-bold rounded-full transition-all duration-300 flex items-center gap-1 ${isActive('/shop')
-                  ? 'bg-primary text-white font-bold'
-                  : 'text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-amber-300 hover:bg-yellow-100/60 dark:hover:bg-amber-950/40'
-                }`}
-            >
-              Shop
-              <span className={`text-[9px] opacity-70 transition-transform duration-300 ${megaMenuOpen ? 'rotate-180' : ''}`}>▼</span>
+          {/* Desktop Left Nav Pill Links */}
+          <nav className="hidden lg:flex items-center gap-1 bg-[#f5ebe6]/80 dark:bg-neutral-800/80 p-1 rounded-full border border-gray-100 dark:border-neutral-700/50">
+            {/* Logo on far left before Home */}
+            <Link to="/" className="px-3.5 py-1.5 text-sm font-extrabold tracking-tight text-[#1a1a1a] dark:text-white font-sans shrink-0 flex items-center gap-1 hover:opacity-90 transition-opacity">
+              {settings?.logo_url ? (
+                <img src={settings.logo_url} alt={ecommerce.name} className="h-5 object-contain" />
+              ) : (
+                <span>Beauty<span className="font-sans italic text-[#b86b53] font-medium">Center</span></span>
+              )}
             </Link>
 
-            {/* Mega Dropdown Panel */}
-            {typeof document !== 'undefined' && createPortal(<div
+            <Link
+              to="/"
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
+                isActive('/') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
+              }`}
+            >
+              Home
+            </Link>
+
+            {/* Shop with Mega Dropdown */}
+            <div
+              ref={megaMenuTriggerRef}
+              className="static"
               onMouseEnter={openMegaMenu}
               onMouseLeave={scheduleMegaMenuClose}
-              style={{ top: `${megaMenuTop}px` }}
-              className={`luxury-mega-menu fixed left-1/2 -translate-x-1/2 w-[min(1200px,calc(100vw-2rem))] max-h-[calc(100dvh-8rem)] overflow-y-auto overscroll-contain bg-white/95 backdrop-blur-md border border-gray-100 rounded-3xl shadow-xl p-8 grid grid-cols-[minmax(0,4fr)_minmax(180px,1fr)] gap-8 z-[100] transition-all before:absolute before:-top-3 before:left-0 before:right-0 before:h-3 before:content-[''] ${megaMenuOpen ? 'opacity-100 translate-y-0 visible' : 'opacity-0 -translate-y-2 invisible pointer-events-none'
-                }`}>
+            >
+              <Link
+                to="/shop"
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all flex items-center gap-1 ${
+                  isActive('/shop') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
+                }`}
+              >
+                Shop <span className={`text-[9px] opacity-60 transition-transform ${megaMenuOpen ? 'rotate-180' : ''}`}>▼</span>
+              </Link>
 
-              {/* Up to four collection columns per row; additional collections wrap below. */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-start min-w-0">
-                {megaMenuCollections.map((col) => (
-                  <div key={col.id} className="flex min-w-0 flex-col gap-3">
-                    <span className="font-sans font-extrabold text-xs uppercase tracking-wider text-gray-950 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-2.5">
-                      {col.name}
-                    </span>
-                    <div className="flex flex-col gap-2.5 text-xs text-gray-550">
-                      {col.categories && col.categories.length > 0 ? (
-                        col.categories.map((cat) => (
+              {/* Mega Dropdown Panel Portal */}
+              {typeof document !== 'undefined' && createPortal(
+                <div
+                  onMouseEnter={openMegaMenu}
+                  onMouseLeave={scheduleMegaMenuClose}
+                  style={{ top: `${megaMenuTop}px` }}
+                  className={`luxury-mega-menu fixed left-1/2 -translate-x-1/2 w-[min(1200px,calc(100vw-2rem))] max-h-[calc(100dvh-8rem)] overflow-y-auto overscroll-contain bg-white/95 dark:bg-[#1a1817]/95 backdrop-blur-md border border-gray-100 dark:border-neutral-800 rounded-3xl shadow-xl p-8 grid grid-cols-[minmax(0,4fr)_minmax(220px,1fr)] gap-8 z-[100] transition-all ${
+                    megaMenuOpen ? 'opacity-100 translate-y-0 visible' : 'opacity-0 -translate-y-2 invisible pointer-events-none'
+                  }`}
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-start min-w-0">
+                    {megaMenuCollections.map((col) => (
+                      <div key={col.id} className="flex min-w-0 flex-col gap-3">
+                        <span className="font-sans font-extrabold text-xs uppercase tracking-wider text-gray-950 dark:text-white border-b border-gray-200 dark:border-neutral-800 pb-2.5">
+                          {col.name}
+                        </span>
+                        <div className="flex flex-col gap-2.5 text-xs text-gray-600 dark:text-gray-400">
+                          {col.categories && col.categories.length > 0 ? (
+                            col.categories.map((cat) => (
+                              <Link
+                                key={cat.id}
+                                to={`/shop?category=${cat.slug}`}
+                                onClick={closeMegaMenu}
+                                className="hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-neutral-800 px-2 py-1 rounded-lg transition-all block font-bold"
+                              >
+                                {cat.name}
+                              </Link>
+                            ))
+                          ) : (
+                            <span className="text-[10px] text-gray-400 italic">No categories linked</span>
+                          )}
                           <Link
-                            key={cat.id}
-                            to={`/shop?category=${cat.slug}`}
                             onClick={closeMegaMenu}
-                            className="hover:text-gray-950 dark:hover:text-amber-300 hover:bg-yellow-100/60 dark:hover:bg-amber-950/40 px-2 py-1 rounded-lg transition-all block font-bold"
+                            to={`/shop?collection=${col.slug}`}
+                            className="hover:text-black dark:hover:text-white font-bold mt-2 text-[11px] flex items-center gap-0.5 group px-2 py-1 rounded-lg"
                           >
-                            {cat.name}
+                            Shop {col.name}
+                            <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
                           </Link>
-                        ))
-                      ) : (
-                        <span className="text-[10px] text-gray-400 italic">No categories linked</span>
-                      )}
-                      <Link
-                        onClick={closeMegaMenu}
-                        to={`/shop?collection=${col.slug}`}
-                        className="hover:text-gray-950 dark:hover:text-amber-300 font-bold mt-2 text-[11px] flex items-center gap-0.5 group hover:bg-yellow-100/60 dark:hover:bg-amber-950/40 px-2 py-1 rounded-lg"
-                      >
-                        Shop {col.name}
-                        <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
-                      </Link>
-                    </div>
-                    {col.banner_url && (
-                      <div className="h-28 rounded-2xl overflow-hidden bg-gray-50 mt-auto pt-2 border border-gray-100">
-                        <img loading="lazy" decoding="async" src={col.banner_url} alt={col.name} className="w-full h-full object-cover rounded-xl hover:scale-105 transition-transform duration-500" />
+                        </div>
                       </div>
+                    ))}
+                    {megaMenuCollections.length === 0 && (
+                      <div className="col-span-full py-6 text-xs text-gray-400">No collections featured in this menu.</div>
                     )}
                   </div>
-                ))}
-                {megaMenuCollections.length === 0 && (
-                  <div className="col-span-full py-8 text-center text-xs text-gray-400">No collections are currently featured in this menu.</div>
-                )}
-              </div>
 
-              {/* Dedicated Advertisement Banner Column on the Right */}
-              <div className="flex min-w-0 flex-col gap-3 border-l border-gray-100 dark:border-gray-800 pl-8 h-full justify-between">
-                <span className="font-sans font-extrabold text-xs uppercase tracking-wider text-gray-950 dark:text-white border-b border-gray-200 dark:border-gray-800 pb-2.5 flex items-center gap-1.5">
-                  ✨ Featured Offers
-                </span>
-                <MegaMenuAdSlideshow ads={settings.mega_menu_ads} />
-              </div>
+                  <div className="flex min-w-0 flex-col gap-3 border-l border-gray-100 dark:border-neutral-800 pl-8 h-full justify-between">
+                    <span className="font-sans font-extrabold text-xs uppercase tracking-wider text-gray-950 dark:text-white border-b border-gray-200 dark:border-neutral-800 pb-2.5 flex items-center gap-1.5">
+                      ✨ Featured Offers
+                    </span>
+                    <MegaMenuAdSlideshow ads={settings.mega_menu_ads} />
+                  </div>
+                </div>,
+                document.body
+              )}
+            </div>
 
-            </div>, document.body)}
-          </div>
-
-          <Link
-            to="/pages/about-us"
-            className={`px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-bold rounded-full transition-all duration-300 shrink-0 ${isActive('/pages/about-us')
-                ? 'bg-primary text-white font-bold'
-                : 'text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-amber-300 hover:bg-yellow-100/60 dark:hover:bg-amber-950/40'
-              }`}
-          >
-            About Us
-          </Link>
-          <Link
-            to="/pages/size-guide"
-            className={`px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-bold rounded-full transition-all duration-300 shrink-0 ${isActive('/pages/size-guide')
-                ? 'bg-primary text-white font-bold'
-                : 'text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-amber-300 hover:bg-yellow-100/60 dark:hover:bg-amber-950/40'
-              }`}
-          >
-            Size Guide
-          </Link>
-          {settings?.show_gallery_page !== 'false' && (
             <Link
-              to="/gallery"
-              className={`px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-bold rounded-full transition-all duration-300 shrink-0 ${isActive('/gallery')
-                  ? 'bg-primary text-white font-bold'
-                  : 'text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-amber-300 hover:bg-yellow-100/60 dark:hover:bg-amber-950/40'
-                }`}
+              to="/pages/about-us"
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
+                isActive('/pages/about-us') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
+              }`}
             >
-              Gallery
+              About Us
             </Link>
-          )}
-          {settings?.show_blog_page !== 'false' && (
+
+            {settings?.show_gallery_page !== 'false' && (
+              <Link
+                to="/gallery"
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
+                  isActive('/gallery') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
+                }`}
+              >
+                Gallery
+              </Link>
+            )}
+
+            {settings?.show_blog_page !== 'false' && (
+              <Link
+                to="/blog"
+                className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
+                  isActive('/blog') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
+                }`}
+              >
+                Blog
+              </Link>
+            )}
+
             <Link
-              to="/blog"
-              className={`px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-bold rounded-full transition-all duration-300 shrink-0 ${isActive('/blog')
-                  ? 'bg-primary text-white font-bold'
-                  : 'text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-amber-300 hover:bg-yellow-100/60 dark:hover:bg-amber-950/40'
-                }`}
+              to="/reviews"
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
+                isActive('/reviews') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
+              }`}
             >
-              Blog
+              Reviews
             </Link>
-          )}
-          <Link
-            to="/reviews"
-            className={`px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-bold rounded-full transition-all duration-300 shrink-0 ${isActive('/reviews')
-                ? 'bg-primary text-white font-bold'
-                : 'text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-amber-300 hover:bg-yellow-100/60 dark:hover:bg-amber-950/40'
+
+            <Link
+              to="/order-tracking"
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
+                isActive('/order-tracking') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
               }`}
-          >
-            Reviews
-          </Link>
-          <Link
-            to="/order-tracking"
-            className={`px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-bold rounded-full transition-all duration-300 shrink-0 ${isActive('/order-tracking')
-                ? 'bg-primary text-white font-bold'
-                : 'text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-amber-300 hover:bg-yellow-100/60 dark:hover:bg-amber-950/40'
-              }`}
-          >
-            Track Order
-          </Link>
-          {/* Contact Dropdown Menu */}
-          <div
-            className="relative shrink-0"
-            onMouseEnter={openContactMenu}
-            onMouseLeave={scheduleContactMenuClose}
-          >
-            <button
-              type="button"
-              onClick={openContactMenu}
-              onFocus={openContactMenu}
-              className={`px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-bold rounded-full transition-all duration-300 flex items-center gap-1 cursor-pointer shrink-0 ${
-                isActive('/contact')
-                  ? 'text-primary dark:text-amber-300 bg-primary/10 dark:bg-amber-950/30 font-bold'
-                  : 'text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-amber-300 hover:bg-yellow-100/60 dark:hover:bg-amber-950/40'
+            >
+              Track Order
+            </Link>
+
+            <Link
+              to="/contact"
+              className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
+                isActive('/contact') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
               }`}
             >
               Contact
-              <span className={`text-[9px] opacity-70 transition-transform duration-300 ${contactDropdownOpen ? 'rotate-180' : ''}`}>▼</span>
-            </button>
-
-            {contactDropdownOpen && (
-              <div
-                className="absolute right-0 sm:left-0 sm:right-auto top-full mt-1.5 w-64 bg-white/95 dark:bg-[#181818]/95 backdrop-blur-md rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-2 z-[110] animate-fade-in before:absolute before:-top-2 before:left-0 before:right-0 before:h-2 before:content-['']"
-                onMouseEnter={openContactMenu}
-                onMouseLeave={scheduleContactMenuClose}
-              >
-                <Link
-                  to="/contact"
-                  onClick={closeContactMenu}
-                  className="flex items-start gap-3 p-2.5 rounded-xl hover:bg-yellow-100/70 dark:hover:bg-amber-950/40 hover:text-gray-950 dark:hover:text-amber-300 transition-all group"
-                >
-                  <div className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 group-hover:bg-gray-950 group-hover:text-white transition-colors shrink-0 mt-0.5">
-                    <Phone className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-gray-950">Reach Us</div>
-                    <div className="text-[10px] text-gray-500 dark:text-gray-400 group-hover:text-gray-900">Send a message or visit our studio</div>
-                  </div>
-                </Link>
-
-                {settings?.enable_fitting_sessions !== 'false' && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      closeContactMenu();
-                      setBookFittingModalOpen(true);
-                    }}
-                    className="w-full text-left flex items-start gap-3 p-2.5 rounded-xl hover:bg-yellow-100/70 dark:hover:bg-amber-950/40 hover:text-gray-950 dark:hover:text-amber-300 transition-all group cursor-pointer"
-                  >
-                    <div className="p-2 rounded-lg bg-yellow-100 text-yellow-700 dark:bg-yellow-950/60 dark:text-yellow-400 group-hover:bg-gray-950 group-hover:text-yellow-400 transition-colors shrink-0 mt-0.5">
-                      <Sparkles className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-gray-950 flex items-center gap-1.5">
-                        Book Fitting Session
-                        <span className="text-[8px] bg-yellow-400 text-gray-950 font-extrabold px-1.5 py-0.2 rounded-full uppercase shadow-3xs">VIP</span>
-                      </div>
-                      <div className="text-[10px] text-gray-500 dark:text-gray-400 group-hover:text-gray-900">Private session with master stylists</div>
-                    </div>
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </nav>
-
-        {/* Action icons */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => setStorefrontDark(value => !value)}
-            className={`w-10 h-10 rounded-full transition-all flex items-center justify-center cursor-pointer border ${scrolled ? 'bg-white/72 backdrop-blur-xl border-white/70 shadow-sm hover:bg-white' : 'bg-transparent border-transparent hover:bg-white/60'}`}
-            title={storefrontDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            aria-label={storefrontDark ? 'Switch to light mode' : 'Switch to dark mode'}
-            aria-pressed={storefrontDark}
-          >
-            {storefrontDark ? <Sun className="w-4.5 h-4.5 text-amber-400" /> : <Moon className="w-4.5 h-4.5 text-gray-700" />}
-          </button>
-
-          {/* Collapsed Search Icon Trigger Button */}
-          <button
-            onClick={() => setShowSearchModal(true)}
-            className={`w-10 h-10 rounded-full transition-all text-gray-700 flex items-center justify-center cursor-pointer border ${scrolled
-                ? 'bg-white/72 backdrop-blur-xl border-white/70 shadow-sm hover:bg-white'
-                : 'bg-transparent border-transparent hover:bg-white/60'
-              }`}
-            title="Search Catalog"
-            aria-label="Search"
-          >
-            <Search className="w-4.5 h-4.5" />
-          </button>
-
-          {/* Navigation CTA Button - Buy Now */}
-          <Link
-            to="/shop"
-            className={`hidden sm:flex items-center gap-1 px-3 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm font-bold text-white rounded-full transition-all hover:scale-[1.02] active:scale-[0.98] shrink-0 border ${scrolled
-                ? 'bg-primary/95 backdrop-blur-xl border-white/35 shadow-sm hover:bg-primary-hover'
-                : 'bg-primary border-primary shadow-sm hover:bg-primary-hover'
-              }`}
-          >
-            Buy Now
-          </Link>
-
-          {/* Wishlist Icon */}
-          <button
-            onClick={() => setShowWishlistDrawer(true)}
-            className={`relative w-10 h-10 rounded-full transition-all text-gray-700 flex items-center justify-center cursor-pointer border ${scrolled
-                ? 'bg-white/72 backdrop-blur-xl border-white/70 shadow-sm hover:bg-white'
-                : 'bg-transparent border-transparent hover:bg-white/60'
-              }`}
-            title="View Wishlist"
-            aria-label="Wishlist"
-          >
-            <Heart className="w-4.5 h-4.5" />
-            {wishlistCount > 0 && (
-              <span className="absolute top-1 right-1 bg-red-500 text-white text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold">
-                {wishlistCount}
-              </span>
-            )}
-          </button>
-
-          {/* Cart Icon */}
-          <Link
-            to="/cart"
-            id="cart-btn-desktop"
-            className={`relative w-10 h-10 rounded-full transition-all flex items-center justify-center border ${scrolled
-                ? 'bg-white/72 backdrop-blur-xl border-white/70 shadow-sm hover:bg-white'
-                : 'bg-transparent border-transparent hover:bg-white/60'
-              } ${animateCart ? 'animate-spiral-hit' : ''}`}
-          >
-            <ShoppingCart className="w-4.5 h-4.5 text-gray-700" />
-            {cartItemsCount > 0 && (
-              <span className="absolute top-1 right-1 bg-primary text-white text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold">
-                {cartItemsCount}
-              </span>
-            )}
-          </Link>
-
-          {/* Account Icon */}
-          <Link
-            to="/account"
-            className={`w-10 h-10 rounded-full transition-all hidden md:flex items-center justify-center border ${scrolled
-                ? 'bg-white/72 backdrop-blur-xl border-white/70 shadow-sm hover:bg-white'
-                : 'bg-transparent border-transparent hover:bg-white/60'
-              }`}
-          >
-            <User className="w-4.5 h-4.5 text-gray-700" />
-          </Link>
-
-          {/* Admin Dashboard Shortcut */}
-          {!!window.localStorage.getItem('fairqueen_admin_token') && (
-            <Link
-              to="/admin"
-              className="w-8 h-8 bg-indigo-50/50 hover:bg-indigo-55 text-indigo-600 rounded-full transition-all flex items-center justify-center cursor-pointer border border-indigo-100/35 ml-1"
-              title="Admin Dashboard"
-              aria-label="Admin Dashboard"
-            >
-              <LayoutDashboard className="w-4 h-4" />
             </Link>
-          )}
+          </nav>
 
-          {/* Mobile Hamburger */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={`w-10 h-10 rounded-full md:hidden transition-all text-gray-700 flex items-center justify-center cursor-pointer border ${scrolled
-                ? 'bg-white/72 backdrop-blur-xl border-white/70 shadow-sm hover:bg-white'
-                : 'bg-transparent border-transparent hover:bg-white/60'
-              }`}
-          >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          {/* Right Action Icons & Pill Buttons */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowSearchModal(true)}
+              className="w-9 h-9 rounded-full bg-[#f8f5f2] dark:bg-neutral-800 border border-gray-200/60 dark:border-neutral-700 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-white transition-all cursor-pointer shadow-2xs"
+              title="Search store"
+            >
+              <Search className="w-4 h-4" />
+            </button>
+            <Link
+              to="/account"
+              className="w-9 h-9 rounded-full bg-[#f8f5f2] dark:bg-neutral-800 border border-gray-200/60 dark:border-neutral-700 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-white transition-all shadow-2xs"
+              title="Account"
+            >
+              <User className="w-4 h-4" />
+            </Link>
+            <button
+              type="button"
+              onClick={() => setShowWishlistDrawer(true)}
+              className="relative w-9 h-9 rounded-full bg-[#f8f5f2] dark:bg-neutral-800 border border-gray-200/60 dark:border-neutral-700 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-white transition-all cursor-pointer shadow-2xs"
+              title="Wishlist"
+            >
+              <Heart className="w-4 h-4" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-[#b86b53] text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                  {wishlistCount}
+                </span>
+              )}
+            </button>
+            <Link
+              to="/cart"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#1a1a1a] text-white text-xs font-semibold hover:bg-neutral-800 transition-all shadow-md"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              <span className="hidden sm:inline">Cart</span>
+              {cartItemsCount > 0 && (
+                <span className="bg-white/20 px-1.5 py-0.5 rounded-full text-[10px] font-mono">
+                  {cartItemsCount}
+                </span>
+              )}
+            </Link>
+          </div>
         </div>
       </header>
+      )}
 
       {/* Slide-out Mobile Navigation Drawer */}
       <div
@@ -1307,7 +1162,7 @@ export default function StorefrontLayout() {
                         onClick={() => setShowSearchModal(false)}
                         className="px-4 py-2 bg-gray-50 hover:bg-primary/5 hover:text-primary border border-gray-100 rounded-full text-xs text-gray-600 transition-all font-semibold"
                       >
-                        ✨ About FairQueen
+                        ✨ About Dansolam
                       </Link>
                       <Link
                         to="/pages/size-guide"

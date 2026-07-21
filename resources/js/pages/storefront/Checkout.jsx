@@ -66,7 +66,7 @@ export default function Checkout() {
   const settings = settingsRes?.data?.settings || {
     bank_name: 'Access Bank',
     bank_account_number: '1234567890',
-    bank_account_name: 'FairQueen Collections Ltd'
+    bank_account_name: 'Dansolam Ltd'
   };
   const storefrontEnabled = (key) => ['storefront', 'both'].includes(settings[key] || 'both');
 
@@ -260,7 +260,7 @@ export default function Checkout() {
 
   return (
     <div className="checkout-page max-w-6xl mx-auto px-4 md:px-8 pt-6 md:pt-8 pb-16 flex flex-col gap-6">
-      <SEO title="Secure Checkout" description="Secure payment and delivery checkout options for FairQueen Collections." />
+      <SEO title="Secure Checkout" description="Secure payment and delivery checkout options for Dansolam." />
       
       {/* Step Progress Bar */}
       <CheckoutStepper currentStep={2} />
@@ -657,7 +657,7 @@ export default function Checkout() {
             <div className="bg-gray-50 rounded-xl p-4 text-left flex flex-col gap-2 border border-gray-100 text-xs">
               <div className="flex justify-between text-gray-500">
                 <span>Merchant</span>
-                <span className="font-bold text-gray-800">FairQueen Collections</span>
+                <span className="font-bold text-gray-800">Dansolam</span>
               </div>
               <div className="flex justify-between text-gray-500">
                 <span>Email</span>

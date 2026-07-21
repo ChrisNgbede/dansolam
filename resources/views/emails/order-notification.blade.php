@@ -81,7 +81,7 @@
     <div style="padding: 20px 10px;">
         <div class="container">
             <div class="header">
-                <h1>FairQueen Collections</h1>
+                <h1>Dansolam</h1>
             </div>
             
             <div class="content">
@@ -117,7 +117,7 @@
             </div>
 
             <div class="footer">
-                <p>&copy; {{ date('Y') }} FairQueen Collections. All rights reserved.</p>
+                <p>&copy; {{ date('Y') }} Dansolam. All rights reserved.</p>
                 <p>Wuse II, Abuja, Nigeria | Tel: +234 800 000 0000</p>
             </div>
         </div>

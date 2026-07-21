@@ -375,7 +375,7 @@ class PosController extends Controller
                 'customer_id' => $customer ? $customer->id : null,
                 'order_number' => $orderNumber,
                 'customer_name' => $customer ? $customer->name : 'Walk-in Customer',
-                'customer_email' => $customer ? $customer->email : 'walkin@fairqueen.com',
+                'customer_email' => $customer ? $customer->email : 'walkin@dansolam.com',
                 'customer_phone' => $customer ? $customer->phone : '0000000000',
                 'delivery_address' => 'In-Store POS Checkout',
                 'delivery_city' => 'In-Store',

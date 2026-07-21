@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 export default function SEO({ title, description }) {
   useEffect(() => {
     // 1. Update Document Title
-    const baseTitle = 'FairQueen Collections';
+    const baseTitle = 'Dansolam';
     document.title = title ? `${title} | ${baseTitle}` : baseTitle;
 
     // 2. Update Document Meta Description
@@ -15,7 +15,7 @@ export default function SEO({ title, description }) {
     }
     metaDesc.setAttribute(
       'content',
-      description || 'Shop standout designer clothing, elegant shoes, and luxury handbags at FairQueen Collections.'
+      description || 'Experience luxury skincare, beauty treatments, and spa routines at Dansolam.'
     );
   }, [title, description]);
 

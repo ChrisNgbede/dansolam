@@ -68,8 +68,8 @@ export default function ContactUs() {
   return (
     <div className="bg-[#F5F6F8] min-h-screen font-sans">
       <SEO 
-        title="Contact Us - FairQueen Collections"
-        description="Get in touch with FairQueen Collections. Contact us for order queries, size guidance, or custom fashion consultations."
+        title="Contact Us - Dansolam"
+        description="Get in touch with Dansolam. Contact us for order queries, size guidance, or custom fashion consultations."
       />
 
       {/* Hero Banner Section */}
@@ -290,7 +290,7 @@ export default function ContactUs() {
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
               <Map className="w-5 h-5" />
             </div>
-            <h4 className="font-serif font-bold text-gray-900 text-base">FairQueen Abuja Showroom</h4>
+            <h4 className="font-serif font-bold text-gray-900 text-base">Dansolam Showroom</h4>
             <p className="text-xs text-gray-500 max-w-xs leading-relaxed">
               Plot 1234, Wuse II, Abuja, Nigeria. Locate us on Google Maps for step-by-step directions.
             </p>

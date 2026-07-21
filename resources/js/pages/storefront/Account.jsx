@@ -253,7 +253,7 @@ export default function Account() {
                 {settings.auth_title || "Find Your Perfect Style Today"}
               </h2>
               <p className="text-[11px] text-gray-300 font-medium max-w-xs leading-relaxed opacity-90">
-                {settings.auth_subtitle || "Join FairQueen Collections and start exploring the best hand-curated designer outfits."}
+                {settings.auth_subtitle || "Join Dansolam and start exploring the best hand-curated designer outfits."}
               </p>
             </div>
           </div>

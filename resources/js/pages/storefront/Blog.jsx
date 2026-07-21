@@ -7,7 +7,8 @@ import SEO from '../../components/seo/SEO';
 export default function Blog() {
   // Fetch settings to check visibility
   const { data: settingsData } = useQuery({
-    queryKey: ['settings']
+    queryKey: ['settings'],
+    queryFn: () => fetch('/api/settings').then(res => res.json())
   });
 
   const settings = settingsData?.data?.settings || {};
@@ -46,7 +47,7 @@ export default function Blog() {
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 flex flex-col gap-8 font-sans pb-16">
       <SEO
         title="Ecommerce Fashion Blog & Style Guides"
-        description="Discover style trends, lookbook collection guides, and custom sewing fit recommendations from FairQueen Collections."
+        description="Discover style trends, lookbook collection guides, and custom sewing fit recommendations from Dansolam."
       />
 
       {/* Hero Banner Section */}
@@ -54,7 +55,7 @@ export default function Blog() {
         <div className="max-w-2xl mx-auto px-6 flex flex-col items-center">
           <span className="text-[10px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-3.5 py-1.5 rounded-full flex items-center gap-1.5">
             <Compass className="w-3.5 h-3.5 text-primary" />
-            FairQueen Journal
+            Dansolam Journal
           </span>
           <h1 className="font-serif text-3xl md:text-4xl font-bold text-gray-900 mt-4 tracking-tight leading-none">Style Guides & Fashion Stories</h1>
           <p className="text-xs text-gray-500 max-w-md mx-auto mt-3 leading-relaxed">
@@ -89,7 +90,7 @@ export default function Blog() {
                   ) : (
                     <div className="w-full h-full bg-gradient-to-tr from-primary/15 to-primary/5 flex flex-col items-center justify-center text-primary gap-2 opacity-80">
                       <span className="text-3xl">👑</span>
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-primary/70">FairQueen Editorial</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-primary/70">Dansolam Editorial</span>
                     </div>
                   )}
                 </div>
@@ -105,7 +106,7 @@ export default function Blog() {
                       {art.title}
                     </h3>
                     <p className="text-[11px] text-gray-500 leading-relaxed line-clamp-3 mt-1.5">
-                      {excerpt || 'Read the full styling post on the FairQueen Collections journal.'}
+                      {excerpt || 'Read the full styling post on the Dansolam journal.'}
                     </p>
                   </div>
 

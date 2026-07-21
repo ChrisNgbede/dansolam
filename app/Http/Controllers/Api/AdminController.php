@@ -611,7 +611,7 @@ class AdminController extends Controller
             'stock_quantity' => $request->stock_quantity,
             'low_stock_threshold' => $request->low_stock_threshold ?? 5,
             'sales_override' => $request->sales_override ?? 0,
-            'seo_title' => $request->name . ' | FairQueen Collections',
+            'seo_title' => $request->name . ' | Dansolam',
             'seo_description' => $request->short_description,
             'weight' => $request->weight,
             'color_attribute' => $request->color_attribute,
@@ -1361,7 +1361,7 @@ class AdminController extends Controller
         $data = [
             'order' => $order,
             'logoUrl' => $logoUrl,
-            'ecommerceName' => $settings['ecommerce_name'] ?? 'FairQueen Collections',
+            'ecommerceName' => $settings['ecommerce_name'] ?? 'Dansolam',
             'themeColor' => $settings['theme_primary_color'] ?? '#C5A880',
             'storeAddress' => $settings['store_address'] ?? 'Wuse II, Abuja',
             'whatsappNumber' => $settings['whatsapp_number'] ?? '+234 80 0000 0000',
@@ -1399,7 +1399,7 @@ class AdminController extends Controller
         $data = [
             'order' => $order,
             'logoUrl' => $logoUrl,
-            'ecommerceName' => $settings['ecommerce_name'] ?? 'FairQueen Collections',
+            'ecommerceName' => $settings['ecommerce_name'] ?? 'Dansolam',
             'themeColor' => $settings['theme_primary_color'] ?? '#C5A880',
             'storeAddress' => $settings['store_address'] ?? 'Wuse II, Abuja',
             'whatsappNumber' => $settings['whatsapp_number'] ?? '+234 80 0000 0000',
@@ -1465,7 +1465,7 @@ class AdminController extends Controller
         $data = [
             'order' => $order,
             'logoUrl' => $logoUrl,
-            'ecommerceName' => $settings['ecommerce_name'] ?? 'FairQueen Collections',
+            'ecommerceName' => $settings['ecommerce_name'] ?? 'Dansolam',
             'themeColor' => $settings['theme_primary_color'] ?? '#C5A880',
             'storeAddress' => $settings['store_address'] ?? 'Wuse II, Abuja',
             'whatsappNumber' => $settings['whatsapp_number'] ?? '+234 80 0000 0000',
@@ -1504,7 +1504,7 @@ class AdminController extends Controller
         $data = [
             'order' => $order,
             'logoUrl' => $logoUrl,
-            'ecommerceName' => $settings['ecommerce_name'] ?? 'FairQueen Collections',
+            'ecommerceName' => $settings['ecommerce_name'] ?? 'Dansolam',
             'themeColor' => $settings['theme_primary_color'] ?? '#C5A880',
             'storeAddress' => $settings['store_address'] ?? 'Wuse II, Abuja',
             'whatsappNumber' => $settings['whatsapp_number'] ?? '+234 80 0000 0000',

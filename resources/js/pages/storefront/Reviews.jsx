@@ -188,7 +188,7 @@ export default function Reviews() {
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 flex flex-col gap-8 font-sans">
       <SEO
         title="Customer Testimonials & Reviews"
-        description="Read what our clients say about FairQueen Collections. Verified customer experiences, sizing feedback, and fabric quality reviews."
+        description="Read what our clients say about Dansolam. Verified customer experiences, sizing feedback, and fabric quality reviews."
       />
 
       {/* Header Info */}

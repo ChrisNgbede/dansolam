@@ -47,27 +47,31 @@ class DatabaseSeeder extends Seeder
         $storeManagerRoleId = DB::table('roles')->where('slug', 'store-manager')->value('id');
 
         // 1. Admin Users
-        $admin = User::create([
-            'name' => 'FairQueen Admin',
-            'email' => 'admin@fairqueen.com',
-            'password' => Hash::make('password'),
-            'role_id' => $superAdminRoleId,
-        ]);
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@dansolam.com'],
+            [
+                'name' => 'Dansolam Admin',
+                'password' => Hash::make('password'),
+                'role_id' => $superAdminRoleId,
+            ]
+        );
 
-        User::create([
-            'name' => 'Sales Manager',
-            'email' => 'sales@fairqueen.com',
-            'password' => Hash::make('password'),
-            'role_id' => $storeManagerRoleId,
-        ]);
+        User::firstOrCreate(
+            ['email' => 'sales@dansolam.com'],
+            [
+                'name' => 'Sales Manager',
+                'password' => Hash::make('password'),
+                'role_id' => $storeManagerRoleId,
+            ]
+        );
 
 
         // 2. Ecommerce
         $ecommerce = Ecommerce::firstOrCreate(
-            ['slug' => 'fairqueen-collections'],
+            ['slug' => 'dansolam-collections'],
             [
-                'name' => 'FairQueen Collections',
-                'domain' => 'fairqueen.test',
+                'name' => 'Dansolam',
+                'domain' => 'dansolam.com',
                 'status' => 'active',
             ]
         );
@@ -78,10 +82,10 @@ class DatabaseSeeder extends Seeder
             'logo_url' => '/images/logo.png',
             'favicon_url' => '/favicon.ico',
             'theme_primary_color' => '#C5A880',
-            'tagline' => 'Step Into Style',
-            'description' => 'Shop elegant designer clothing, shoes, bags and accessories made for confident women who love standout fashion.',
-            'instagram_url' => 'https://www.instagram.com/fairqueen_collections/',
-            'instagram_handle' => '@fairqueen_collections',
+            'tagline' => 'Revitalize Your Skin and Spirit',
+            'description' => 'Unlock your inner glow at Dansolam Beauty Center. Shop luxury skincare, facials, cleansers, and organic beauty products.',
+            'instagram_url' => 'https://www.instagram.com/dansolam_official/',
+            'instagram_handle' => '@dansolam_official',
             'facebook_url' => '',
             'tiktok_url' => '',
             'youtube_url' => '',
@@ -93,7 +97,7 @@ class DatabaseSeeder extends Seeder
             'delivery_coverage' => 'Abuja, Nationwide, Worldwide delivery',
             'bank_name' => 'Access Bank',
             'bank_account_number' => '1234567890',
-            'bank_account_name' => 'FairQueen Collections Ltd',
+            'bank_account_name' => 'Dansolam Ltd',
             'return_policy' => 'We accept returns within 7 days of delivery for exchanges or store credit.',
             'privacy_policy' => 'We respect your privacy. We collect your name, phone number, email, and address to process your orders securely.',
             'terms_conditions' => 'By shopping with us, you agree to our terms. Payments must be verified before delivery.',
@@ -115,14 +119,14 @@ class DatabaseSeeder extends Seeder
             'announcement_show' => 'true',
             'announcement_text' => 'Free delivery on orders above N100,000! Use code WELCOME10 for 10% off your first order.',
             'promo_popup_show' => 'true',
-            'promo_popup_title' => 'Join the FairQueen Family',
+            'promo_popup_title' => 'Join the Dansolam Family',
             'promo_popup_body' => '<p>Subscribe to our newsletter and get <strong>10% off</strong> your first order!</p>',
             'promo_popup_image' => '/images/popup-banner.jpg',
             'promo_popup_delay' => '5000',
             'show_gallery_page' => 'true',
             'show_blog_page' => 'true',
             'sold_count_enabled' => 'true',
-            'sku_prefix' => 'FQ-',
+            'sku_prefix' => 'DSL-',
             'sku_suffix' => '',
             'system_currency_code' => 'NGN',
             'system_currency_symbol' => 'N',
@@ -130,11 +134,10 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach ($settings as $key => $value) {
-            EcommerceSetting::create([
-                'ecommerce_id' => $ecommerce->id,
-                'key' => $key,
-                'value' => $value,
-            ]);
+            EcommerceSetting::updateOrCreate(
+                ['ecommerce_id' => $ecommerce->id, 'key' => $key],
+                ['value' => $value]
+            );
         }
 
         // 4. Categories
@@ -151,12 +154,10 @@ class DatabaseSeeder extends Seeder
 
         $categories = [];
         foreach ($categoriesData as $c) {
-            $categories[$c['slug']] = Category::create([
-                'name' => $c['name'],
-                'slug' => $c['slug'],
-                'image_url' => $c['image_url'],
-                'is_visible' => true,
-            ]);
+            $categories[$c['slug']] = Category::updateOrCreate(
+                ['slug' => $c['slug']],
+                ['name' => $c['name'], 'image_url' => $c['image_url'], 'is_visible' => true]
+            );
         }
 
         // 5. Collections
@@ -169,12 +170,10 @@ class DatabaseSeeder extends Seeder
 
         $collections = [];
         foreach ($collectionsData as $col) {
-            $collections[$col['slug']] = Collection::create([
-                'name' => $col['name'],
-                'slug' => $col['slug'],
-                'banner_url' => $col['banner_url'],
-                'is_published' => true,
-            ]);
+            $collections[$col['slug']] = Collection::updateOrCreate(
+                ['slug' => $col['slug']],
+                ['name' => $col['name'], 'banner_url' => $col['banner_url'], 'is_published' => true]
+            );
         }
 
         // 6. Delivery Zones
@@ -203,8 +202,8 @@ class DatabaseSeeder extends Seeder
         }
 
         // 8. Taxes
-        Tax::create(['name' => 'VAT (Nigeria)', 'rate' => 7.5, 'type' => 'exclusive', 'applicable_areas' => 'all', 'is_active' => true]);
-        Tax::create(['name' => 'Luxury Goods Tax', 'rate' => 5.0, 'type' => 'exclusive', 'applicable_areas' => json_encode(['Abuja', 'Lagos']), 'is_active' => true]);
+        Tax::updateOrCreate(['name' => 'VAT (Nigeria)'], ['rate' => 7.5, 'type' => 'exclusive', 'applicable_areas' => 'all', 'is_active' => true]);
+        Tax::updateOrCreate(['name' => 'Luxury Goods Tax'], ['rate' => 5.0, 'type' => 'exclusive', 'applicable_areas' => json_encode(['Abuja', 'Lagos']), 'is_active' => true]);
 
         // 9. Coupons
         $coupons = [
@@ -214,7 +213,7 @@ class DatabaseSeeder extends Seeder
             ['code' => 'VIP5000', 'type' => 'fixed_amount', 'value' => 5000, 'min_spend' => 100000, 'start_date' => now()->subDays(20), 'end_date' => now()->addDays(90), 'usage_limit' => 30, 'user_limit' => 1],
         ];
         foreach ($coupons as $coupon) {
-            Coupon::create($coupon);
+            Coupon::updateOrCreate(['code' => $coupon['code']], $coupon);
         }
 
         // 10. Discounts
@@ -223,7 +222,7 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Buy 2 Get 1 Free', 'type' => 'bogo', 'value' => 0, 'min_qty_requirement' => 2, 'free_qty_reward' => 1, 'start_date' => now()->subDays(5), 'end_date' => now()->addDays(25), 'apply_to' => 'all', 'is_active' => true],
         ];
         foreach ($discounts as $discount) {
-            Discount::create($discount);
+            Discount::updateOrCreate(['name' => $discount['name']], $discount);
         }
 
         // 11. Product Tags
@@ -235,180 +234,171 @@ class DatabaseSeeder extends Seeder
         ];
         $tags = [];
         foreach ($productTags as $tag) {
-            $tags[$tag['name']] = ProductTag::create($tag);
+            $tags[$tag['name']] = ProductTag::updateOrCreate(['name' => $tag['name']], $tag);
         }
 
-        // 12. Banners
-        Banner::create(['title' => 'Step Into Style', 'subtitle' => 'Shop elegant designer clothing, shoes, bags and accessories made for confident women.', 'image_url' => '/images/hero-banner.jpg', 'link_url' => '/shop', 'type' => 'hero', 'is_active' => true]);
-        Banner::create(['title' => 'New Season Drop', 'subtitle' => 'Explore premium looks and standout designer pieces.', 'image_url' => '/images/promo-banner.jpg', 'link_url' => '/shop/new-arrivals', 'type' => 'promo', 'is_active' => true]);
-        Banner::create(['title' => 'Free Delivery Weekend', 'subtitle' => 'Enjoy complimentary shipping on all orders above N100,000 this weekend only.', 'image_url' => '/images/promo-banner-2.jpg', 'link_url' => '/shop', 'type' => 'promo', 'is_active' => true]);
+        // 12. Banners (idempotent by title+type)
+        Banner::updateOrCreate(['title' => 'Looking Good Is Our Pride', 'type' => 'hero'], ['subtitle' => 'Discover luxury skincare, organic creams, perfumes, and herbal wellness crafted with 100% organic ingredients.', 'image_url' => '/images/hero-banner.jpg', 'link_url' => '/shop', 'is_active' => true]);
+        Banner::updateOrCreate(['title' => 'New Arrivals', 'type' => 'promo'], ['subtitle' => 'Explore our latest skincare and beauty products, fresh from the lab.', 'image_url' => '/images/promo-banner.jpg', 'link_url' => '/shop/new-arrivals', 'is_active' => true]);
+        Banner::updateOrCreate(['title' => 'Free Delivery Weekend', 'type' => 'promo'], ['subtitle' => 'Enjoy complimentary shipping on all orders above N100,000 this weekend only.', 'image_url' => '/images/promo-banner-2.jpg', 'link_url' => '/shop', 'is_active' => true]);
 
         // 13. Pages
         $pages = [
-            ['title' => 'About Us', 'slug' => 'about-us', 'content' => '<h1>About FairQueen Collections</h1><p>We are a premium ecommerce fashion brand based in Abuja, Nigeria, dedicated to bringing you the finest designer clothing, shoes, and handbags.</p>'],
-            ['title' => 'Size Guide', 'slug' => 'size-guide', 'content' => '<h1>Size Guide</h1><p>Our sizing is standard UK size metrics for dresses and jumpsuits, and standard EU metrics for shoes and sneakers.</p>'],
-            ['title' => 'FAQ', 'slug' => 'faq', 'content' => '<h1>Frequently Asked Questions</h1><p>How do you ship? We ship via local dispatch within Abuja and via trusted national couriers across Nigeria.</p>'],
-            ['title' => 'Shipping & Delivery', 'slug' => 'shipping-delivery', 'content' => '<h1>Shipping & Delivery</h1><p>We offer multiple delivery options: Abuja Local (1-2 days), Nationwide (3-5 days), International (7-10 days).</p>'],
-            ['title' => 'Privacy Policy', 'slug' => 'privacy-policy', 'content' => '<h1>Privacy Policy</h1><p>We respect your privacy. We collect your information to process orders securely.</p>'],
+            ['title' => 'About Us', 'slug' => 'about-us', 'content' => '<h1>About Dansolam</h1><p>Dansolam is a luxury skincare and wellness brand inspired by the purity of soft beach sand and a refreshing sea breeze. Every product is crafted with 100% organic ingredients to nourish, hydrate, and reveal your skin\'s natural glow — because looking good is our pride.</p><p>We believe in simplicity and purity: a single, all-in-one solution for uneven skin tone, dark spots, and common skin concerns, eliminating the need for a complicated routine.</p>'],
+            ['title' => 'Skincare Guide', 'slug' => 'size-guide', 'content' => '<h1>Skincare Guide</h1><p>Find the right Dansolam product for your skin type and concern. From Glowing Moisturizing Cream to Whitening Polish Soap, our lineup covers every complexion and stage of your skincare journey.</p>'],
+            ['title' => 'FAQ', 'slug' => 'faq', 'content' => '<h1>Frequently Asked Questions</h1><p>How do you ship? We ship via trusted couriers across Nigeria and worldwide. Do you ship internationally? Yes, we ship to the UK, US, Canada, and Australia. Are your products organic? Yes — every Dansolam product is 100% organic with no harsh chemicals.</p>'],
+            ['title' => 'Shipping & Delivery', 'slug' => 'shipping-delivery', 'content' => '<h1>Shipping & Delivery</h1><p>We offer multiple delivery options: Abuja Local (1-2 days), Nationwide Nigeria (3-5 days), International (7-10 days), and Store Pickup at our Abuja showroom.</p>'],
+            ['title' => 'Privacy Policy', 'slug' => 'privacy-policy', 'content' => '<h1>Privacy Policy</h1><p>We respect your privacy. We collect your name, phone number, email, and address only to process your orders securely. We never share your data with third parties.</p>'],
         ];
         foreach ($pages as $p) {
-            Page::create($p);
+            Page::updateOrCreate(['slug' => $p['slug']], $p);
         }
 
-        // 14. Products
-        $productsData = $this->getProductsData();
+        // 14. Products — skipped if products already exist (e.g. from WC CSV import)
         $createdProducts = [];
-        foreach ($productsData as $pData) {
-            $cat = $categories[$pData['category_slug']];
-            $totalStock = array_sum(array_column($pData['variants'], 'stock'));
+        if (Product::count() === 0) {
+            $productsData = $this->getProductsData();
+            foreach ($productsData as $pData) {
+                $cat = $categories[$pData['category_slug']] ?? null;
+                $totalStock = array_sum(array_column($pData['variants'], 'stock'));
 
-            $product = Product::create([
-                'ecommerce_id' => $ecommerce->id,
-                'name' => $pData['name'],
-                'slug' => $pData['slug'],
-                'sku' => $pData['sku'],
-                'description' => $pData['description'],
-                'short_description' => $pData['short_description'],
-                'price' => $pData['price'],
-                'sale_price' => null,
-                'cost_price' => $pData['cost_price'],
-                'status' => 'published',
-                'is_featured' => $pData['is_featured'],
-                'is_new_arrival' => $pData['is_new_arrival'],
-                'is_best_seller' => $pData['is_best_seller'],
-                'has_variants' => $pData['has_variants'],
-                'stock_quantity' => $totalStock,
-                'low_stock_threshold' => 3,
-                'seo_title' => $pData['name'] . ' | FairQueen Collections',
-                'seo_description' => $pData['short_description'],
-                'weight' => $pData['weight'] ?? null,
-                'material' => $pData['material'] ?? null,
-                'is_fragile' => $pData['is_fragile'] ?? false,
-            ]);
-
-            $createdProducts[] = $product;
-
-            // Attach category via pivot table (many-to-many)
-            $product->categories()->attach($cat->id);
-
-            foreach ($pData['images'] as $idx => $img) {
-                ProductImage::create(['product_id' => $product->id, 'image_url' => $img, 'color' => $pData['variants'][0]['color'] ?? null, 'sort_order' => $idx]);
-            }
-
-            foreach ($pData['variants'] as $v) {
-                ProductVariant::create([
-                    'product_id' => $product->id,
-                    'sku' => $product->sku . '-' . strtoupper(str_replace(' ', '', $v['size'])) . '-' . strtoupper(str_replace(' ', '', $v['color'])),
-                    'size' => $v['size'],
-                    'color' => $v['color'],
-                    'price' => null,
+                $product = Product::create([
+                    'ecommerce_id' => $ecommerce->id,
+                    'name' => $pData['name'],
+                    'slug' => $pData['slug'],
+                    'sku' => $pData['sku'],
+                    'description' => $pData['description'],
+                    'short_description' => $pData['short_description'],
+                    'price' => $pData['price'],
                     'sale_price' => null,
-                    'stock_quantity' => $v['stock'],
-                    'low_stock_threshold' => 1,
-                    'image_url' => $pData['images'][0],
-                    'status' => 'active',
+                    'cost_price' => $pData['cost_price'],
+                    'status' => 'published',
+                    'is_featured' => $pData['is_featured'],
+                    'is_new_arrival' => $pData['is_new_arrival'],
+                    'is_best_seller' => $pData['is_best_seller'],
+                    'has_variants' => $pData['has_variants'],
+                    'stock_quantity' => $totalStock,
+                    'low_stock_threshold' => 3,
+                    'seo_title' => $pData['name'] . ' | Dansolam',
+                    'seo_description' => $pData['short_description'],
+                    'weight' => $pData['weight'] ?? null,
+                    'material' => $pData['material'] ?? null,
+                    'is_fragile' => $pData['is_fragile'] ?? false,
                 ]);
-            }
 
-            if ($product->is_new_arrival) {
-                $collections['new-arrivals']->products()->attach($product->id);
-            }
-            if ($product->is_featured) {
-                $collections['weekend-looks']->products()->attach($product->id);
-            }
-            if ($product->is_best_seller) {
-                $collections['best-sellers']->products()->attach($product->id);
-            }
+                $createdProducts[] = $product;
 
-            if (!empty($pData['tag']) && isset($tags[$pData['tag']])) {
-                $product->tags()->attach($tags[$pData['tag']]->id);
-            }
+                if ($cat) {
+                    $product->categories()->attach($cat->id);
+                }
 
-            $reviewData = [
-                ['name' => 'Chidi E.', 'rating' => 5, 'comment' => 'Outstanding quality and very fast delivery to Wuse II. Highly recommended!'],
-                ['name' => 'Fatima A.', 'rating' => 4, 'comment' => 'True to size and fits perfectly. Excellent customer service over WhatsApp!'],
-                ['name' => 'Ngozi O.', 'rating' => 5, 'comment' => 'The packaging was beautiful and the product exceeded my expectations.'],
-                ['name' => 'Amina K.', 'rating' => 4, 'comment' => 'Lovely design but shipping took a day longer than expected.'],
-                ['name' => 'Blessing M.', 'rating' => 5, 'comment' => 'This is my third order from FairQueen and they never disappoint.'],
-            ];
-            $numReviews = rand(2, 4);
-            shuffle($reviewData);
-            for ($i = 0; $i < $numReviews; $i++) {
-                Review::create(['product_id' => $product->id, 'customer_name' => $reviewData[$i]['name'], 'rating' => $reviewData[$i]['rating'], 'comment' => $reviewData[$i]['comment'], 'is_approved' => true]);
+                foreach ($pData['images'] as $idx => $img) {
+                    ProductImage::create(['product_id' => $product->id, 'image_url' => $img, 'color' => $pData['variants'][0]['color'] ?? null, 'sort_order' => $idx]);
+                }
+
+                foreach ($pData['variants'] as $v) {
+                    ProductVariant::create([
+                        'product_id' => $product->id,
+                        'sku' => $product->sku . '-' . strtoupper(str_replace(' ', '', $v['size'])) . '-' . strtoupper(str_replace(' ', '', $v['color'])),
+                        'size' => $v['size'],
+                        'color' => $v['color'],
+                        'price' => null,
+                        'sale_price' => null,
+                        'stock_quantity' => $v['stock'],
+                        'low_stock_threshold' => 1,
+                        'image_url' => $pData['images'][0],
+                        'status' => 'active',
+                    ]);
+                }
+
+                if ($product->is_new_arrival && isset($collections['new-arrivals'])) {
+                    $collections['new-arrivals']->products()->attach($product->id);
+                }
+                if ($product->is_featured && isset($collections['weekend-looks'])) {
+                    $collections['weekend-looks']->products()->attach($product->id);
+                }
+                if ($product->is_best_seller && isset($collections['best-sellers'])) {
+                    $collections['best-sellers']->products()->attach($product->id);
+                }
+
+                if (!empty($pData['tag']) && isset($tags[$pData['tag']])) {
+                    $product->tags()->attach($tags[$pData['tag']]->id);
+                }
+
+                $reviewData = [
+                    ['name' => 'Chidi E.', 'rating' => 5, 'comment' => 'Outstanding quality and very fast delivery to Wuse II. Highly recommended!'],
+                    ['name' => 'Fatima A.', 'rating' => 4, 'comment' => 'My skin has never looked better. Excellent customer service over WhatsApp!'],
+                    ['name' => 'Ngozi O.', 'rating' => 5, 'comment' => 'The packaging was beautiful and the product exceeded my expectations.'],
+                    ['name' => 'Amina K.', 'rating' => 4, 'comment' => 'Lovely product, the scent is divine and gentle on my skin.'],
+                    ['name' => 'Blessing M.', 'rating' => 5, 'comment' => 'This is my third order from Dansolam and they never disappoint.'],
+                ];
+                $numReviews = rand(2, 4);
+                shuffle($reviewData);
+                for ($i = 0; $i < $numReviews; $i++) {
+                    Review::create(['product_id' => $product->id, 'customer_name' => $reviewData[$i]['name'], 'rating' => $reviewData[$i]['rating'], 'comment' => $reviewData[$i]['comment'], 'is_approved' => true]);
+                }
             }
+        } else {
+            $createdProducts = Product::with('variants')->get()->all();
         }
 
         // 15. Blog Categories
         $blogCategories = [
-            ['name' => 'Fashion Tips', 'slug' => 'fashion-tips'],
-            ['name' => 'Style Guides', 'slug' => 'style-guides'],
+            ['name' => 'Skincare Tips', 'slug' => 'skincare-tips'],
+            ['name' => 'Beauty Trends', 'slug' => 'beauty-trends'],
             ['name' => 'Behind the Scenes', 'slug' => 'behind-the-scenes'],
             ['name' => 'Customer Stories', 'slug' => 'customer-stories'],
         ];
         $blogCats = [];
         foreach ($blogCategories as $bc) {
-            $blogCats[$bc['slug']] = BlogCategory::create($bc);
+            $blogCats[$bc['slug']] = BlogCategory::updateOrCreate(['slug' => $bc['slug']], $bc);
         }
 
         // 16. Blog Tags
         $blogTags = [
-            ['name' => 'Summer Style', 'slug' => 'summer-style'],
-            ['name' => 'Corporate Wear', 'slug' => 'corporate-wear'],
-            ['name' => 'Accessories', 'slug' => 'accessories'],
-            ['name' => 'Sustainable Fashion', 'slug' => 'sustainable-fashion'],
-            ['name' => 'Nigerian Fashion', 'slug' => 'nigerian-fashion'],
+            ['name' => 'Skincare', 'slug' => 'skincare'],
+            ['name' => 'Glowing Skin', 'slug' => 'glowing-skin'],
+            ['name' => 'Organic Beauty', 'slug' => 'organic-beauty'],
+            ['name' => 'Dansolam', 'slug' => 'dansolam'],
         ];
         $bTags = [];
         foreach ($blogTags as $bt) {
-            $bTags[$bt['slug']] = BlogTag::create($bt);
+            $bTags[$bt['slug']] = BlogTag::updateOrCreate(['slug' => $bt['slug']], $bt);
         }
 
         // 17. Articles
         $articles = [
-            ['title' => '10 Ways to Style Your Jumpsuit for Any Occasion', 'slug' => '10-ways-to-style-your-jumpsuit', 'content' => '<p>Jumpsuits are the ultimate versatile piece in any wardrobe...</p>', 'image_path' => '/images/blog/jumpsuit-style.jpg', 'status' => 'published', 'blog_category_id' => $blogCats['fashion-tips']->id, 'tags' => ['summer-style', 'corporate-wear']],
-            ['title' => 'The Ultimate Guide to Nigerian Wedding Guest Fashion', 'slug' => 'nigerian-wedding-guest-fashion-guide', 'content' => '<p>Nigerian weddings are known for their vibrant celebrations...</p>', 'image_path' => '/images/blog/wedding-fashion.jpg', 'status' => 'published', 'blog_category_id' => $blogCats['style-guides']->id, 'tags' => ['nigerian-fashion', 'accessories']],
-            ['title' => 'Behind the Seams: How FairQueen Sources Premium Fabrics', 'slug' => 'behind-the-seams-fairqueen-fabrics', 'content' => '<p>At FairQueen, we believe quality starts with the fabric...</p>', 'image_path' => '/images/blog/behind-seams.jpg', 'status' => 'published', 'blog_category_id' => $blogCats['behind-the-scenes']->id, 'tags' => ['sustainable-fashion', 'nigerian-fashion']],
-            ['title' => 'Customer Spotlight: How Amanda Built Her Capsule Wardrobe', 'slug' => 'customer-spotlight-amanda-capsule-wardrobe', 'content' => '<p>Meet Amanda, a Lagos-based entrepreneur who transformed her wardrobe...</p>', 'image_path' => '/images/blog/customer-spotlight.jpg', 'status' => 'published', 'blog_category_id' => $blogCats['customer-stories']->id, 'tags' => ['corporate-wear', 'sustainable-fashion']],
-            ['title' => 'Accessory Trends for 2026: What to Watch', 'slug' => 'accessory-trends-2026', 'content' => '<p>From oversized sunglasses to statement necklaces...</p>', 'image_path' => '/images/blog/accessory-trends.jpg', 'status' => 'published', 'blog_category_id' => $blogCats['fashion-tips']->id, 'tags' => ['accessories', 'sustainable-fashion']],
+            ['title' => 'The Ultimate 5-Step Glowing Skin Routine', 'slug' => 'ultimate-glowing-skin-routine', 'content' => '<p>Discover how Dansolam serums and hydration mists revitalize your natural glow...</p>', 'image_path' => '/images/blog/glowing-skin.jpg', 'status' => 'published', 'blog_category_id' => $blogCats['skincare-tips']->id, 'tags' => ['skincare', 'glowing-skin']],
+            ['title' => 'Behind the Scenes: Sourcing Pure Botanical Extracts', 'slug' => 'sourcing-pure-botanical-extracts', 'content' => '<p>At Dansolam, we believe quality starts with pure ingredients...</p>', 'image_path' => '/images/blog/behind-seams.jpg', 'status' => 'published', 'blog_category_id' => $blogCats['behind-the-scenes']->id, 'tags' => ['organic-beauty', 'dansolam']],
         ];
 
-        foreach ($articles as $articleData) {
-            $article = Article::create([
-                'title' => $articleData['title'],
-                'slug' => $articleData['slug'],
-                'content' => $articleData['content'],
-                'image_path' => $articleData['image_path'],
-                'status' => $articleData['status'],
-                'blog_category_id' => $articleData['blog_category_id'],
-            ]);
+        foreach ($articles as $art) {
+            $article = Article::updateOrCreate(
+                ['slug' => $art['slug']],
+                [
+                    'title' => $art['title'],
+                    'content' => $art['content'],
+                    'image_path' => $art['image_path'],
+                    'status' => $art['status'],
+                    'blog_category_id' => $art['blog_category_id'],
+                ]
+            );
 
-            if (!empty($articleData['tags'])) {
+            if (!empty($art['tags'])) {
                 $tagIds = [];
-                foreach ($articleData['tags'] as $tagSlug) {
+                foreach ($art['tags'] as $tagSlug) {
                     if (isset($bTags[$tagSlug])) {
                         $tagIds[] = $bTags[$tagSlug]->id;
                     }
                 }
-                $article->tags()->attach($tagIds);
-            }
-
-            $comments = [
-                ['name' => 'Jane D.', 'email' => 'jane@example.com', 'content' => 'This was so helpful! Love the styling tips.'],
-                ['name' => 'Sarah K.', 'email' => 'sarah@example.com', 'content' => 'Great article! Can you do one on shoe styling next?'],
-                ['name' => 'Peace O.', 'email' => 'peace@example.com', 'content' => 'FairQueen never disappoints with their content.'],
-            ];
-            foreach ($comments as $comment) {
-                BlogComment::create(['article_id' => $article->id, 'name' => $comment['name'], 'email' => $comment['email'], 'content' => $comment['content'], 'is_approved' => true]);
+                $article->tags()->sync($tagIds);
             }
         }
 
         // 18. Gallery Items
         $galleryItems = [
-            ['title' => 'New Arrivals Shoot 2026', 'image_path' => '/images/gallery/shoot-1.jpg', 'description' => 'Behind the scenes from our latest collection photoshoot.', 'is_visible' => true],
-            ['title' => 'Abuja Fashion Week', 'image_path' => '/images/gallery/fashion-week.jpg', 'description' => 'FairQueen showcasing at Abuja Fashion Week 2026.', 'is_visible' => true],
-            ['title' => 'Customer Appreciation Day', 'image_path' => '/images/gallery/customer-day.jpg', 'description' => 'Highlights from our annual customer appreciation event.', 'is_visible' => true],
-            ['title' => 'Atelier Tour', 'image_path' => '/images/gallery/atelier.jpg', 'description' => 'A glimpse into our design studio and production process.', 'is_visible' => true],
-            ['title' => 'Summer Collection Preview', 'image_path' => '/images/gallery/summer-preview.jpg', 'description' => 'Sneak peek of our upcoming summer collection.', 'is_visible' => true],
+            ['title' => 'Dansolam Beauty Sanctuary', 'image_path' => '/images/gallery/spa-1.jpg', 'description' => 'Our luxury treatment room at Dansolam Abuja.', 'is_visible' => true],
+            ['title' => 'Abuja Beauty Expo', 'image_path' => '/images/gallery/fashion-week.jpg', 'description' => 'Dansolam showcasing organic skincare formulations.', 'is_visible' => true],
         ];
         foreach ($galleryItems as $gi) {
             GalleryItem::create($gi);
@@ -425,16 +415,21 @@ class DatabaseSeeder extends Seeder
 
         $createdCustomers = [];
         foreach ($customersData as $cData) {
-            $customer = Customer::create([
-                'name' => $cData['name'],
-                'email' => $cData['email'],
-                'phone' => $cData['phone'],
-                'password' => Hash::make($cData['password']),
-                'measurements' => $cData['measurements'],
-            ]);
+            $customer = Customer::updateOrCreate(
+                ['email' => $cData['email']],
+                [
+                    'name' => $cData['name'],
+                    'phone' => $cData['phone'],
+                    'password' => Hash::make($cData['password']),
+                    'measurements' => $cData['measurements'],
+                ]
+            );
 
             foreach ($cData['addresses'] as $addr) {
-                CustomerAddress::create(array_merge(['customer_id' => $customer->id], $addr));
+                CustomerAddress::updateOrCreate(
+                    ['customer_id' => $customer->id, 'address_line_1' => $addr['address_line_1']],
+                    array_merge($addr, ['customer_id' => $customer->id])
+                );
             }
 
             $createdCustomers[] = $customer;
@@ -466,8 +461,11 @@ class DatabaseSeeder extends Seeder
             $orderItems = [];
 
             foreach ($oData['items'] as $item) {
-                $product = $createdProducts[$item['product_idx']];
-                $variant = $product->variants[$item['variant_idx']] ?? null;
+                $product = $createdProducts[$item['product_idx']] ?? null;
+                if (!$product) {
+                    continue;
+                }
+                $variant = isset($product->variants[$item['variant_idx']]) ? $product->variants[$item['variant_idx']] : null;
                 $price = $variant ? ($variant->price ?? $product->price) : $product->price;
                 $lineTotal = $price * $item['qty'];
                 $subtotal += $lineTotal;
@@ -482,54 +480,54 @@ class DatabaseSeeder extends Seeder
                 ];
             }
 
+            // Skip order creation if no products matched
+            if (empty($orderItems)) {
+                continue;
+            }
+
             $deliveryFee = $subtotal >= 100000 ? 0 : 2000;
             $discountAmount = 0;
             $taxAmount = round($subtotal * 0.075, 2);
             $total = $subtotal + $deliveryFee - $discountAmount + $taxAmount;
 
-            $order = Order::create([
-                'ecommerce_id' => $ecommerce->id,
-                'customer_id' => $customer->id,
-                'order_number' => 'FQ-' . strtoupper(Str::random(8)),
-                'customer_name' => $customer->name,
-                'customer_email' => $customer->email,
-                'customer_phone' => $customer->phone,
-                'delivery_address' => $defaultAddress?->address_line_1 ?? 'N/A',
-                'delivery_city' => $defaultAddress?->city ?? 'N/A',
-                'delivery_state' => $defaultAddress?->state ?? 'N/A',
-                'delivery_country' => $defaultAddress?->country ?? 'Nigeria',
-                'subtotal' => $subtotal,
-                'discount_amount' => $discountAmount,
-                'delivery_fee' => $deliveryFee,
-                'total_amount' => $total,
-                'payment_method' => $oData['payment_method'],
-                'payment_status' => $oData['payment_status'],
-                'order_status' => $oData['status'],
-                'delivery_method' => 'standard',
-                'notes' => $idx % 3 === 0 ? 'Please gift wrap this order.' : null,
-                'paid_at' => in_array($oData['payment_status'], ['paid', 'refunded']) ? now()->subDays(rand(1, 10)) : null,
-                'delivered_at' => $oData['status'] === 'delivered' ? now()->subDays(rand(1, 5)) : null,
-                'tax_amount' => $taxAmount,
-                'tax_details' => ['VAT' => $taxAmount],
-            ]);
+            $orderNumber = 'DS-' . strtoupper(Str::random(8));
+            $order = Order::firstOrCreate(
+                ['order_number' => $orderNumber],
+                [
+                    'ecommerce_id' => $ecommerce->id,
+                    'customer_id' => $customer->id,
+                    'customer_name' => $customer->name,
+                    'customer_email' => $customer->email,
+                    'customer_phone' => $customer->phone,
+                    'delivery_address' => $defaultAddress?->address_line_1 ?? 'N/A',
+                    'delivery_city' => $defaultAddress?->city ?? 'N/A',
+                    'delivery_state' => $defaultAddress?->state ?? 'N/A',
+                    'delivery_country' => $defaultAddress?->country ?? 'Nigeria',
+                    'subtotal' => $subtotal,
+                    'discount_amount' => $discountAmount,
+                    'delivery_fee' => $deliveryFee,
+                    'total_amount' => $total,
+                    'payment_method' => $oData['payment_method'],
+                    'payment_status' => $oData['payment_status'],
+                    'order_status' => $oData['status'],
+                    'delivery_method' => 'standard',
+                    'notes' => $idx % 3 === 0 ? 'Please gift wrap this order.' : null,
+                    'paid_at' => in_array($oData['payment_status'], ['paid', 'refunded']) ? now()->subDays(rand(1, 10)) : null,
+                    'delivered_at' => $oData['status'] === 'delivered' ? now()->subDays(rand(1, 5)) : null,
+                    'tax_amount' => $taxAmount,
+                    'tax_details' => ['VAT' => $taxAmount],
+                ]
+            );
 
             foreach ($orderItems as $oi) {
-                OrderItem::create(array_merge(['order_id' => $order->id], $oi));
-            }
-
-            if (in_array($oData['payment_status'], ['paid', 'refunded'])) {
-                Payment::create([
-                    'order_id' => $order->id,
-                    'transaction_reference' => 'TRX-' . strtoupper(Str::random(12)),
-                    'gateway' => $oData['payment_method'],
-                    'amount' => $total,
-                    'status' => $oData['payment_status'],
-                    'gateway_response' => ['status' => 'success', 'message' => 'Payment processed successfully'],
-                ]);
+                OrderItem::firstOrCreate(
+                    ['order_id' => $order->id, 'product_id' => $oi['product_id'], 'variant_label' => $oi['variant_label']],
+                    $oi
+                );
             }
         }
-
-        // 21. Inventory Logs
+        
+        // 20. Inventory logs
         foreach ($createdProducts as $product) {
             foreach ($product->variants as $variant) {
                 if (rand(0, 1) === 1) {
@@ -546,13 +544,13 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // 22. Contact Inquiries
+        // 21. Contact Inquiries
         $inquiries = [
             ['name' => 'Jennifer A.', 'email' => 'jennifer@example.com', 'subject' => 'Wholesale Inquiry', 'message' => 'I am interested in purchasing your products in bulk for my ecommerce in Ibadan. Do you offer wholesale pricing?', 'is_read' => true],
-            ['name' => 'Michael O.', 'email' => 'michael@example.com', 'subject' => 'Custom Order', 'message' => 'Can you create a custom dress for my wife for our anniversary? I would like it in royal blue.', 'is_read' => false],
-            ['name' => 'Sarah K.', 'email' => 'sarah@example.com', 'subject' => 'Return Request', 'message' => 'I received my order yesterday but the size is too small. How do I initiate a return?', 'is_read' => true],
-            ['name' => 'David M.', 'email' => 'david@example.com', 'subject' => 'Partnership', 'message' => 'I run a fashion blog with 50k followers. Would you be interested in a collaboration?', 'is_read' => false],
-            ['name' => 'Grace L.', 'email' => 'grace@example.com', 'subject' => 'Product Availability', 'message' => 'When will the Emerald Green Velvet Evening Gown be back in stock? I need it for an event next month.', 'is_read' => true],
+            ['name' => 'Michael O.', 'email' => 'michael@example.com', 'subject' => 'Custom Order', 'message' => 'Can you create a custom treatment plan for my wife for our anniversary?', 'is_read' => false],
+            ['name' => 'Sarah K.', 'email' => 'sarah@example.com', 'subject' => 'Return Request', 'message' => 'I received my order yesterday but want to swap the item. How do I initiate a return?', 'is_read' => true],
+            ['name' => 'David M.', 'email' => 'david@example.com', 'subject' => 'Partnership', 'message' => 'I run a beauty blog with 50k followers. Would you be interested in a collaboration?', 'is_read' => false],
+            ['name' => 'Grace L.', 'email' => 'grace@example.com', 'subject' => 'Product Availability', 'message' => 'When will the Signature Serum be back in stock?', 'is_read' => true],
         ];
         foreach ($inquiries as $inquiry) {
             ContactInquiry::create($inquiry);
@@ -567,10 +565,24 @@ class DatabaseSeeder extends Seeder
     {
         return [
             [
+                'name' => 'Dansolam Signature Leather Bag',
+                'slug' => 'dansolam-signature-leather-bag',
+                'sku' => 'DSL-BAG-001',
+                'category_slug' => 'handbags',
+                'description' => 'Crafted from premium full-grain Italian leather.',
+                'short_description' => 'Signature handcrafted leather handbag.',
+                'price' => 125000.00, 'cost_price' => 75000.00,
+                'is_featured' => true, 'is_new_arrival' => true, 'is_best_seller' => false,
+                'has_variants' => false, 'weight' => 1.5, 'material' => 'Genuine Leather', 'is_fragile' => false,
+                'variants' => [['size' => 'One Size', 'color' => 'Nude', 'stock' => 12]],
+                'images' => ['/images/products/bag-nude-1.jpg'],
+                'tag' => 'Premium',
+            ],
+            [
                 'category_slug' => 'jumpsuits',
                 'name' => 'Luxury Black Wide-Leg Jumpsuit',
                 'slug' => 'luxury-black-wide-leg-jumpsuit',
-                'sku' => 'FQ-JMP-BLK',
+                'sku' => 'DNS-JMP-BLK',
                 'description' => 'Exquisite black jumpsuit with a modern wide-leg profile and gold hardware accents. Ideal for corporate dinners, cocktail parties, and luxury weekend outings.',
                 'short_description' => 'Elegant wide-leg jumpsuit with gold buckle belt.',
                 'price' => 45000.00, 'cost_price' => 22500.00,
@@ -588,7 +600,7 @@ class DatabaseSeeder extends Seeder
                 'category_slug' => 'jumpsuits',
                 'name' => 'Champagne Satin Wrap Jumpsuit',
                 'slug' => 'champagne-satin-wrap-jumpsuit',
-                'sku' => 'FQ-JMP-CHM',
+                'sku' => 'DNS-JMP-CHM',
                 'description' => 'Glossy champagne-nude wrap jumpsuit made from premium satin. Features a flattering cinched waist and pleated detail.',
                 'short_description' => 'Premium wrap satin jumpsuit in champagne.',
                 'price' => 55000.00, 'cost_price' => 27500.00,
@@ -606,7 +618,7 @@ class DatabaseSeeder extends Seeder
                 'category_slug' => 'shoes-sneakers',
                 'name' => 'White Platform Designer Sneakers',
                 'slug' => 'white-platform-designer-sneakers',
-                'sku' => 'FQ-SNK-WHT',
+                'sku' => 'DNS-SNK-WHT',
                 'description' => 'Standout chunky platform white sneakers with custom gold lettering details. Made of premium full-grain leather.',
                 'short_description' => 'Premium leather white platform sneakers.',
                 'price' => 35000.00, 'cost_price' => 17500.00,
@@ -622,24 +634,10 @@ class DatabaseSeeder extends Seeder
                 'tag' => 'Premium',
             ],
             [
-                'category_slug' => 'handbags',
-                'name' => 'FairQueen Signature Leather Bag',
-                'slug' => 'fairqueen-signature-leather-bag',
-                'sku' => 'FQ-BAG-SGN',
-                'description' => 'A timeless luxury handbag crafted from genuine embossed leather. Features double structured handles and gold padlock hardware.',
-                'short_description' => 'Structured luxury handbag with gold detailing.',
-                'price' => 85000.00, 'cost_price' => 42500.00,
-                'is_featured' => true, 'is_new_arrival' => true, 'is_best_seller' => true,
-                'has_variants' => false, 'weight' => 1.5, 'material' => 'Genuine Embossed Leather', 'is_fragile' => false,
-                'variants' => [['size' => 'One Size', 'color' => 'Nude Gold', 'stock' => 5]],
-                'images' => ['/images/products/bag-nude-1.jpg', '/images/products/bag-nude-2.jpg'],
-                'tag' => 'Premium',
-            ],
-            [
                 'category_slug' => 'corporate-wear',
                 'name' => 'Navy Blue Double-Breasted Suit Set',
                 'slug' => 'navy-blue-double-breasted-suit-set',
-                'sku' => 'FQ-SUT-NVY',
+                'sku' => 'DNS-SUT-NVY',
                 'description' => 'Fitted corporate double-breasted suit jacket paired with matching straight-leg trousers. Premium polyester blend.',
                 'short_description' => 'Double-breasted blazer and trousers suit set.',
                 'price' => 65000.00, 'cost_price' => 32500.00,
@@ -657,7 +655,7 @@ class DatabaseSeeder extends Seeder
                 'category_slug' => 'dresses',
                 'name' => 'Blush Pink Pleated Midi Dress',
                 'slug' => 'blush-pink-pleated-midi-dress',
-                'sku' => 'FQ-DRS-PNK',
+                'sku' => 'DNS-DRS-PNK',
                 'description' => 'Elegant midi dress featuring a pleated skirt, cinched waist, and self-tie bow neck detail. Perfect for wedding guests.',
                 'short_description' => 'Charming blush pleated midi dress.',
                 'price' => 42000.00, 'cost_price' => 21000.00,
@@ -675,7 +673,7 @@ class DatabaseSeeder extends Seeder
                 'category_slug' => 'dresses',
                 'name' => 'Emerald Green Velvet Evening Gown',
                 'slug' => 'emerald-green-velvet-evening-gown',
-                'sku' => 'FQ-DRS-EMV',
+                'sku' => 'DNS-DRS-EMV',
                 'description' => 'Stunning floor-length velvet gown in rich emerald green. Features deep V-neckline and flowing A-line skirt.',
                 'short_description' => 'Luxurious emerald velvet evening gown.',
                 'price' => 78000.00, 'cost_price' => 39000.00,
@@ -694,7 +692,7 @@ class DatabaseSeeder extends Seeder
                 'category_slug' => 'shoes-sneakers',
                 'name' => 'Rose Gold Strappy Heels',
                 'slug' => 'rose-gold-strappy-heels',
-                'sku' => 'FQ-SHS-RGD',
+                'sku' => 'DNS-SHS-RGD',
                 'description' => 'Elegant rose gold strappy stiletto heels with adjustable ankle straps. Perfect for evening wear.',
                 'short_description' => 'Rose gold strappy stiletto heels.',
                 'price' => 28000.00, 'cost_price' => 14000.00,
@@ -713,7 +711,7 @@ class DatabaseSeeder extends Seeder
                 'category_slug' => 'handbags',
                 'name' => 'Mini Quilted Crossbody Bag',
                 'slug' => 'mini-quilted-crossbody-bag',
-                'sku' => 'FQ-BAG-QCB',
+                'sku' => 'DNS-BAG-QCB',
                 'description' => 'Chic mini quilted crossbody bag with gold chain strap and turn-lock closure.',
                 'short_description' => 'Quilted crossbody with chain strap.',
                 'price' => 32000.00, 'cost_price' => 16000.00,
@@ -731,7 +729,7 @@ class DatabaseSeeder extends Seeder
                 'category_slug' => 'accessories',
                 'name' => 'Gold Plated Statement Necklace',
                 'slug' => 'gold-plated-statement-necklace',
-                'sku' => 'FQ-ACC-NCK',
+                'sku' => 'DNS-ACC-NCK',
                 'description' => 'Bold gold-plated statement necklace with geometric pendant design. Hypoallergenic finish.',
                 'short_description' => 'Bold geometric statement necklace.',
                 'price' => 15000.00, 'cost_price' => 7500.00,
@@ -745,7 +743,7 @@ class DatabaseSeeder extends Seeder
                 'category_slug' => 'corporate-wear',
                 'name' => 'Cream Silk Blouse & Trousers Set',
                 'slug' => 'cream-silk-blouse-trousers-set',
-                'sku' => 'FQ-CRP-CRM',
+                'sku' => 'DNS-CRP-CRM',
                 'description' => 'Sophisticated cream silk blouse with high-waisted wide-leg trousers. Modern corporate elegance.',
                 'short_description' => 'Elegant silk blouse and trousers set.',
                 'price' => 58000.00, 'cost_price' => 29000.00,
@@ -764,7 +762,7 @@ class DatabaseSeeder extends Seeder
                 'category_slug' => 'dresses',
                 'name' => 'African Print Ankara Maxi Dress',
                 'slug' => 'african-print-ankara-maxi-dress',
-                'sku' => 'FQ-DRS-ANK',
+                'sku' => 'DNS-DRS-ANK',
                 'description' => 'Vibrant African print Ankara maxi dress with off-shoulder design and ruffled hem.',
                 'short_description' => 'Vibrant Ankara print maxi dress.',
                 'price' => 38000.00, 'cost_price' => 19000.00,
@@ -782,7 +780,7 @@ class DatabaseSeeder extends Seeder
                 'category_slug' => 'accessories',
                 'name' => 'Oversized Cat-Eye Sunglasses',
                 'slug' => 'oversized-cat-eye-sunglasses',
-                'sku' => 'FQ-ACC-SUN',
+                'sku' => 'DNS-ACC-SUN',
                 'description' => 'Trendy oversized cat-eye sunglasses with UV400 protection and gold metal detailing.',
                 'short_description' => 'Oversized cat-eye sunglasses with UV protection.',
                 'price' => 12000.00, 'cost_price' => 6000.00,
@@ -799,7 +797,7 @@ class DatabaseSeeder extends Seeder
                 'category_slug' => 'shoes-sneakers',
                 'name' => 'Black Patent Leather Pumps',
                 'slug' => 'black-patent-leather-pumps',
-                'sku' => 'FQ-SHS-BPP',
+                'sku' => 'DNS-SHS-BPP',
                 'description' => 'Classic black patent leather pointed-toe pumps with 3-inch heel. A wardrobe essential.',
                 'short_description' => 'Classic pointed-toe patent leather pumps.',
                 'price' => 25000.00, 'cost_price' => 12500.00,
@@ -818,7 +816,7 @@ class DatabaseSeeder extends Seeder
                 'category_slug' => 'handbags',
                 'name' => 'Woven Raffia Tote Bag',
                 'slug' => 'woven-raffia-tote-bag',
-                'sku' => 'FQ-BAG-RAF',
+                'sku' => 'DNS-BAG-RAF',
                 'description' => 'Handwoven raffia tote bag with leather handles and cotton lining. Perfect for beach days.',
                 'short_description' => 'Handwoven raffia tote with leather handles.',
                 'price' => 22000.00, 'cost_price' => 11000.00,

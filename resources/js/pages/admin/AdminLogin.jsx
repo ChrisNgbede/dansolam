@@ -163,7 +163,7 @@ export default function AdminLogin() {
               Admin Portal
             </span>
             <h2 className="font-serif font-bold text-2xl lg:text-3.5xl leading-tight">
-              {settings.auth_title || "FairQueen Control Panel"}
+              {settings.auth_title || "Dansolam Admin Panel"}
             </h2>
             <p className="text-[11px] text-gray-300 font-medium max-w-xs leading-relaxed opacity-90">
               {settings.auth_subtitle || "Sign in with your authorized administrator credentials to manage catalog, orders, and sales reports."}
@@ -418,7 +418,7 @@ export default function AdminLogin() {
           )}
 
           <div className="text-center text-[10px] text-gray-400 leading-relaxed border-t border-gray-100 pt-4 mt-6">
-            <p>© {new Date().getFullYear()} FairQueen Collections Management Panel. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} Dansolam Management Panel. All rights reserved.</p>
           </div>
         </div>
       </div>

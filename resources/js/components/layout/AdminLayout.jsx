@@ -83,7 +83,7 @@ export default function AdminLayout() {
   }, [settingsRes]);
 
   const settings = settingsRes?.data?.settings || {};
-  const ecommerce = settingsRes?.data?.ecommerce || { name: 'FairQueen' };
+  const ecommerce = settingsRes?.data?.ecommerce || { name: 'Dansolam' };
 
   // Handle top bar search effect with debouncing
   useEffect(() => {

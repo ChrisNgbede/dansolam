@@ -13,7 +13,7 @@
     --font-serif: 'Playfair Display', Georgia, serif;
     
     /* Elegant Ecommerce Theme Accent Overrides */
-    --color-primary: #b98800; /* FairQueen signature gold */
+    --color-primary: #b98800; /* Dansolam signature gold */
     --color-primary-hover: #9a7000;
     --color-accent: #FAF3E8; /* Champagne/Blush Nude */
     
@@ -35,7 +35,7 @@
     --color-border-dark: #18181b;
 }
 
-/* FairQueen cinematic luxury storefront */
+/* Dansolam cinematic luxury storefront */
 :root {
   --fq-gold: #b98800;
   --fq-gold-deep: #9a7000;
@@ -1302,3 +1302,72 @@ html.storefront-dark .storefront-brand-strip::after {
   margin-left: auto !important;
   padding: 0 !important;
 }
+
+/* BeautyCenter Luxury Aesthetic Enhancements */
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 24s linear infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 4s ease-in-out infinite;
+}
+
+.bc-hero-bg {
+  background: linear-gradient(135deg, #d8b8ab 0%, #c69d8d 50%, #eade87 100%);
+}
+
+.bc-glass-pill {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.bc-glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.bc-dark-pill {
+  background-color: #1a1a1a;
+  color: #ffffff;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bc-dark-pill:hover {
+  background-color: #333333;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+}
+
+.bc-card-hover {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bc-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
+}
+

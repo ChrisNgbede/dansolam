@@ -197,7 +197,7 @@
 
         <div class="footer">
             <p>Thank you for your business. For exchange terms or support, reach us on WhatsApp at {{ $whatsappNumber }}.</p>
-            <p>FairQueen Collections - Abuja Branch</p>
+            <p>Dansolam - Abuja Branch</p>
         </div>
     </div>
 </body>

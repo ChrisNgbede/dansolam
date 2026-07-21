@@ -92,7 +92,7 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
 
   return (
     <div className="min-h-screen bg-[#0B0B0B] text-white flex flex-col items-center justify-between p-6 relative overflow-hidden font-sans select-none">
-      <SEO title={`Store Under Maintenance - ${settings.ecommerce_name || 'FairQueen Collections'}`} />
+      <SEO title={`Store Under Maintenance - ${settings.ecommerce_name || 'Dansolam'}`} />
 
       {/* Ambient Radial Luxury Glow Background */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
@@ -105,7 +105,7 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
             <img src={settings.logo_url} alt="Logo" className="h-9 w-auto object-contain" />
           ) : (
             <div className="font-serif font-bold text-xl tracking-tight text-amber-400">
-              {settings.ecommerce_name || 'FairQueen Collections'}
+              {settings.ecommerce_name || 'Dansolam'}
             </div>
           )}
         </div>
@@ -226,7 +226,7 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
       {/* Footer Bar */}
       <footer className="w-full max-w-6xl flex flex-col sm:flex-row justify-between items-center gap-3 z-10 py-4 border-t border-white/10 text-xs text-gray-500">
         <div>
-          © {new Date().getFullYear()} {settings.ecommerce_name || 'FairQueen Collections'}. All rights reserved.
+          © {new Date().getFullYear()} {settings.ecommerce_name || 'Dansolam'}. All rights reserved.
         </div>
 
         {/* Secret Admin Preview Trigger */}

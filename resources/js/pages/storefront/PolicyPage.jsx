@@ -103,7 +103,7 @@ export default function PolicyPage() {
             <img loading="eager" decoding="async" fetchPriority="high"
               src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=1200" 
               className="w-full h-full object-cover" 
-              alt="FairQueen Couture Cover"
+              alt="Dansolam Cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent flex flex-col justify-end p-6 md:p-12">
               <span className="text-[10px] font-extrabold text-gray-950 bg-amber-400 backdrop-blur-md px-3.5 py-1 rounded-full uppercase tracking-widest self-start mb-3 border border-amber-300 shadow-md">
@@ -125,7 +125,7 @@ export default function PolicyPage() {
                 Our Heritage & Vision
               </h2>
               <p>
-                Welcome to <strong>FairQueen Collections</strong>. Founded in Abuja, Nigeria, we believe fashion is more than simple garments—it is an direct statement of confidence, character, and grace. Every seam, cut, and finish is chosen with extreme detail to ensure you feel standout, regal, and empowered.
+                Welcome to <strong>Dansolam</strong>. Dansolam is a luxury skincare and wellness brand inspired by the purity of soft beach sand and a refreshing sea breeze. Every product is crafted with 100% organic ingredients to nourish, hydrate, and reveal your skin's natural glow — because looking good is our pride.
               </p>
               <p>
                 We source the finest silk, satin, stretch crepe, and leather catalogs to design wardrobe staples that effortlessly transition from corporate elegance to high-society evening events. Our signature collection features structured wrap jumpsuits, form-fitting corporate sets, bridal lookbooks, and hand-stitched corporate slides.

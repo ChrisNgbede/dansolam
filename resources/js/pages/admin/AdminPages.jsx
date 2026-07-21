@@ -441,7 +441,7 @@ export default function AdminPages() {
                 label="Page Content (HTML/Plain Text) *"
                 value={pageContent}
                 onChange={setPageContent}
-                placeholder="<h1>About Our Ecommerce</h1><p>Welcome to FairQueen Collections...</p>"
+                placeholder="<h1>About Our Ecommerce</h1><p>Welcome to Dansolam...</p>"
               />
 
               <div className="flex justify-end gap-2.5 border-t border-gray-100 pt-4 mt-2 shrink-0">

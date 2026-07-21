@@ -23,8 +23,8 @@ return new class extends Migration
         $ecommerceId = DB::table('ecommerces')->value('id');
         if (!$ecommerceId) {
             $ecommerceId = DB::table('ecommerces')->insertGetId([
-                'name' => 'FairQueen Collections',
-                'slug' => 'fairqueen-collections',
+                'name' => 'Dansolam',
+                'slug' => 'dansolam-collections',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

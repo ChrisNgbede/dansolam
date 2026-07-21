@@ -199,7 +199,7 @@ export default function Shop() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 md:px-8 pt-20 pb-16 flex flex-col gap-8 bg-white">
-      <SEO title={`${catalogHeading} | FairQueen Collections`} description="Explore the full catalog of FairQueen Collections. Browse and order designer outfits, jumpsuits, dresses, heels, bags, and luxury accessories." />
+      <SEO title={`${catalogHeading} | Dansolam`} description="Explore the full catalog of Dansolam. Browse and order designer outfits, jumpsuits, dresses, heels, bags, and luxury accessories." />
 
       {/* Search Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-gray-100 pb-6 text-left">

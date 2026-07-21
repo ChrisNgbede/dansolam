@@ -85,7 +85,7 @@ export default function ArticleDetails() {
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 font-sans">
       <SEO
         title={article.title}
-        description={article.content ? article.content.replace(/<[^>]*>?/gm, '').slice(0, 155) : 'Read this article on FairQueen Collections.'}
+        description={article.content ? article.content.replace(/<[^>]*>?/gm, '').slice(0, 155) : 'Read this article on Dansolam.'}
       />
 
       {/* Breadcrumb */}

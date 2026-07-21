@@ -25,7 +25,7 @@ export default function AdminOrderDetails() {
       return `• ${item.product_name}${label} x ${item.quantity} - ₦${(item.price * item.quantity).toLocaleString()}`;
     }).join('\n');
 
-    const text = `*FAIRQUEEN COLLECTIONS RECEIPT*\n` +
+    const text = `*DANSOLAM RECEIPT*\n` +
       `--------------------------------\n` +
       `*Order Number:* #${order.order_number}\n` +
       `*Customer:* ${order.customer_name}\n` +
@@ -326,7 +326,7 @@ export default function AdminOrderDetails() {
 
           {/* Contact Customer via WhatsApp */}
           <a
-            href={`https://wa.me/${(order.customer_phone || '').replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(order.customer_name || 'Guest')}%2C%20this%20is%20FairQueen%20Collections%20regarding%20your%20order%20%23${order.order_number}.`}
+            href={`https://wa.me/${(order.customer_phone || '').replace(/[^0-9]/g, '')}?text=Hello%20${encodeURIComponent(order.customer_name || 'Guest')}%2C%20this%20is%20Dansolam%20regarding%20your%20order%20%23${order.order_number}.`}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full text-center inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-200 hover:bg-gray-50 rounded-lg text-xs font-semibold text-gray-750"

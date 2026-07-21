@@ -8,7 +8,8 @@ export default function Gallery() {
 
   // Fetch settings to check visibility
   const { data: settingsData } = useQuery({
-    queryKey: ['settings']
+    queryKey: ['settings'],
+    queryFn: () => fetch('/api/settings').then(res => res.json())
   });
 
   const settings = settingsData?.data?.settings || {};
@@ -47,7 +48,7 @@ export default function Gallery() {
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 flex flex-col gap-8 font-sans pb-16">
       <SEO
         title="Fashion Lookbooks & Collections Gallery"
-        description="Browse through FairQueen Collections elegant style lookbooks, custom collections showcases, and designer wear spotlights."
+        description="Browse through Dansolam elegant style lookbooks, custom collections showcases, and designer wear spotlights."
       />
 
       {/* Hero Banner Section */}

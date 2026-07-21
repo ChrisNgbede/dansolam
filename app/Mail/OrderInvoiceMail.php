@@ -54,8 +54,8 @@ class OrderInvoiceMail extends Mailable
                 'mail.mailers.smtp.username' => $settings['smtp_username'] ?? '',
                 'mail.mailers.smtp.password' => $settings['smtp_password'] ?? '',
                 'mail.mailers.smtp.encryption' => $settings['smtp_encryption'] ?? 'tls',
-                'mail.from.address' => $settings['smtp_from_address'] ?? 'noreply@fairqueen.com',
-                'mail.from.name' => $settings['smtp_from_name'] ?? 'FairQueen Collections',
+                'mail.from.address' => $settings['smtp_from_address'] ?? 'noreply@dansolam.com',
+                'mail.from.name' => $settings['smtp_from_name'] ?? 'Dansolam',
             ]);
         }
     }
@@ -75,7 +75,7 @@ class OrderInvoiceMail extends Mailable
         // Subject default vs custom template subjects
         $subject = "Order #{$this->order->order_number} Invoice";
         if ($this->templateType === 'order_placed') {
-            $subject = $settings['email_order_placed_subject'] ?? "Thank you for shopping at FairQueen Collections!";
+            $subject = $settings['email_order_placed_subject'] ?? "Thank you for shopping at Dansolam!";
         } elseif ($this->templateType === 'order_shipped') {
             $subject = $settings['email_order_shipped_subject'] ?? "Your order #{$this->order->order_number} is on the way!";
         } elseif ($this->templateType === 'invoice') {
@@ -105,11 +105,11 @@ class OrderInvoiceMail extends Mailable
 
         $bodyTemplate = '';
         if ($this->templateType === 'order_placed') {
-            $bodyTemplate = $settings['email_order_placed_body'] ?? "Hello {customer_name},\n\nWe have received your order #{order_number} for total {total_amount}. We will start packing it shortly.\n\nThank you,\nFairQueen Collections";
+            $bodyTemplate = $settings['email_order_placed_body'] ?? "Hello {customer_name},\n\nWe have received your order #{order_number} for total {total_amount}. We will start packing it shortly.\n\nThank you,\nDansolam";
         } elseif ($this->templateType === 'order_shipped') {
-            $bodyTemplate = $settings['email_order_shipped_body'] ?? "Hello {customer_name},\n\nGood news! Your order #{order_number} has been shipped via home delivery. Feel free to track it under our portal.\n\nThank you,\nFairQueen Collections";
+            $bodyTemplate = $settings['email_order_shipped_body'] ?? "Hello {customer_name},\n\nGood news! Your order #{order_number} has been shipped via home delivery. Feel free to track it under our portal.\n\nThank you,\nDansolam";
         } else {
-            $bodyTemplate = $settings['email_invoice_body'] ?? "Hello {customer_name},\n\nPlease find attached the official invoice/receipt for your order #{order_number} of total {total_amount}.\n\nThank you for shopping with us,\nFairQueen Collections";
+            $bodyTemplate = $settings['email_invoice_body'] ?? "Hello {customer_name},\n\nPlease find attached the official invoice/receipt for your order #{order_number} of total {total_amount}.\n\nThank you for shopping with us,\nDansolam";
         }
 
         $bodyText = $this->replacePlaceholders($bodyTemplate);

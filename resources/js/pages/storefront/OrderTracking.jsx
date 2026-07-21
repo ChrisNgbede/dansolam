@@ -84,7 +84,7 @@ export default function OrderTracking() {
   // WhatsApp click pre-fill message
   const getWhatsAppInquiryLink = () => {
     if (!order) return '';
-    const brandName = 'FairQueen Collections';
+    const brandName = 'Dansolam';
     const whatsappNum = '2348000000000';
     const message = `Hello ${brandName}, I'm checking on the status of my order #${order.order_number} placed under the name "${order.customer_name}". Can you please update me?`;
     return `https://wa.me/${whatsappNum}?text=${encodeURIComponent(message)}`;
@@ -92,7 +92,7 @@ export default function OrderTracking() {
 
   return (
     <div className="bg-[#F5F6F8] min-h-screen font-sans pb-16">
-      <SEO title="Track Your Order" description="Track the real-time payment and delivery status of your ecommerce order at FairQueen Collections." />
+      <SEO title="Track Your Order" description="Track the real-time payment and delivery status of your ecommerce order at Dansolam." />
 
       {/* Hero Banner Section */}
       <div className="storefront-page-hero bg-gradient-to-br from-[#FAF3E8] to-white pt-8 pb-10 text-center">
@@ -159,7 +159,7 @@ export default function OrderTracking() {
               </div>
               <div>
                 <span className="text-[9px] text-gray-400 font-bold block uppercase tracking-wider">Account Name</span>
-                <strong className="text-gray-800 text-sm">FairQueen Collections Ltd</strong>
+                <strong className="text-gray-800 text-sm">Dansolam Ltd</strong>
               </div>
             </div>
             

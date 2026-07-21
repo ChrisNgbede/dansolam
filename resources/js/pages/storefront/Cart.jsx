@@ -214,7 +214,7 @@ export default function Cart() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-8 py-8 flex flex-col gap-6 font-sans">
-      <SEO title="Shopping Cart" description="Review items in your shopping cart before placing your order at FairQueen Collections." />
+      <SEO title="Shopping Cart" description="Review items in your shopping cart before placing your order at Dansolam." />
 
       {/* Progress Stepper */}
       <CheckoutStepper currentStep={1} />

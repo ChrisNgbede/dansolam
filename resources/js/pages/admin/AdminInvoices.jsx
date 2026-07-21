@@ -799,7 +799,7 @@ export default function AdminInvoices() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 border border-gray-150 p-4 rounded-xl">
                 <div>
                   <span className="text-[10px] text-gray-400 font-bold uppercase block text-left">Billed From</span>
-                  <span className="font-bold text-gray-900 text-sm mt-1 block text-left">FairQueen Collections</span>
+                  <span className="font-bold text-gray-900 text-sm mt-1 block text-left">Dansolam</span>
                   <span className="text-gray-500 block mt-0.5 text-left">Plot 1234, Wuse II, Abuja, Nigeria</span>
                   <span className="text-gray-500 block mt-0.5 text-left">WhatsApp: +234 80 0000 0000</span>
                 </div>

@@ -23,7 +23,7 @@ export default function AdminOrders() {
       return `• ${item.product_name}${label} x ${item.quantity} - ₦${(item.price * item.quantity).toLocaleString()}`;
     }).join('\n');
 
-    const text = `*FAIRQUEEN COLLECTIONS RECEIPT*\n` +
+    const text = `*DANSOLAM RECEIPT*\n` +
       `--------------------------------\n` +
       `*Order Number:* #${order.order_number}\n` +
       `*Customer:* ${order.customer_name}\n` +

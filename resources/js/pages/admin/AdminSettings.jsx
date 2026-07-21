@@ -744,7 +744,7 @@ export default function AdminSettings() {
                     value={authSubtitle}
                     onChange={e => setAuthSubtitle(e.target.value)}
                     className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                    placeholder="Join FairQueen Collections and start exploring..."
+                    placeholder="Join Dansolam and start exploring..."
                   />
                 </div>
               </div>
@@ -1400,7 +1400,7 @@ export default function AdminSettings() {
                   value={smtpFromName}
                   onChange={e => setSmtpFromName(e.target.value)}
                   className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                  placeholder="e.g. FairQueen Collections"
+                  placeholder="e.g. Dansolam"
                 />
               </div>
             </div>
