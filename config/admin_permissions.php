@@ -1,0 +1,35 @@
+<?php
+
+return [
+    // Canonical permission list. Super Admin is always synchronized to this set.
+    'all' => [
+        'dashboard.view',
+        'products.view', 'products.manage', 'categories.manage', 'product_tags.manage',
+        'collections.view', 'collections.manage',
+        'orders.view', 'orders.manage', 'orders.create', 'orders.export', 'orders.send_invoice',
+        'pos.access', 'pos.checkout', 'pos.register', 'pos.logs', 'pos.cash_drawer',
+        'expenses.view', 'expenses.manage', 'expenses.batch',
+        'purchases.view', 'purchases.manage', 'purchases.receive', 'purchases.batch',
+        'suppliers.view', 'suppliers.manage',
+        'coupons.view', 'coupons.manage',
+        'discounts.view', 'discounts.manage',
+        'reports.view', 'reports.export',
+        'customers.view', 'customers.manage',
+        'reviews.view', 'reviews.moderate',
+        'inventory.view', 'inventory.manage',
+        'invoices.view', 'invoices.create', 'invoices.export', 'invoices.send',
+        'newsletter.view', 'newsletter.manage', 'newsletter.export',
+        'gallery.view', 'gallery.manage',
+        'articles.view', 'articles.manage', 'blog_taxonomy.manage', 'blog_comments.moderate',
+        'hero.view', 'hero.manage',
+        'pages.view', 'pages.manage',
+        'faqs.view', 'faqs.manage',
+        'inquiries.view', 'inquiries.manage',
+        'brands.view', 'brands.manage',
+        'users.view', 'users.manage',
+        'settings.view', 'settings.manage', 'settings.modules', 'settings.payments',
+        'settings.email', 'settings.demo_data',
+        'taxes.view', 'taxes.manage',
+        'shipping.view', 'shipping.manage',
+    ],
+];
