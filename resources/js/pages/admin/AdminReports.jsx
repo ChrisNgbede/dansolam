@@ -94,7 +94,7 @@ export default function AdminReports() {
   const handleExportCsv = async () => {
     setExporting(true);
     try {
-      const token = localStorage.getItem('fairqueen_admin_token');
+      const token = localStorage.getItem('dansolam_admin_token');
       const res = await fetch(`/api/admin/reports/csv?${queryParams.toString()}`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'text/csv' },
       });
@@ -110,7 +110,7 @@ export default function AdminReports() {
   };
 
   const handleExportPdf = () => {
-    const token = localStorage.getItem('fairqueen_admin_token');
+    const token = localStorage.getItem('dansolam_admin_token');
     window.open(`/api/admin/reports/pdf?${queryParams.toString()}&token=${token}`, '_blank');
   };
 
@@ -142,22 +142,23 @@ export default function AdminReports() {
             <button
               key={rt.key}
               onClick={() => setReportType(rt.key)}
-              className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
-                isSelected ? 'border-primary bg-primary/5 shadow-sm' : 'border-gray-200 bg-white hover:border-gray-300'
+              style={{ backgroundColor: '#FFFFFF' }}
+              className={`p-4 rounded-xl border text-left transition-all cursor-pointer shadow-xs ${
+                isSelected ? 'border-[#5D3E85] ring-2 ring-[#5D3E85]/20' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
               }`}
             >
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${isSelected ? 'bg-primary/10' : 'bg-gray-50'}`}>
-                <Icon className={`w-4 h-4 ${isSelected ? 'text-primary' : 'text-gray-400'}`} />
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${isSelected ? 'bg-[#5D3E85]/10' : 'bg-gray-100'}`}>
+                <Icon className={`w-4 h-4 ${isSelected ? 'text-[#5D3E85]' : 'text-gray-500'}`} />
               </div>
-              <p className={`text-xs font-bold ${isSelected ? 'text-primary' : 'text-gray-700'}`}>{rt.label}</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">{rt.desc}</p>
+              <p className={`text-xs font-bold ${isSelected ? 'text-[#5D3E85]' : 'text-gray-800'}`}>{rt.label}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">{rt.desc}</p>
             </button>
           );
         })}
       </div>
 
       {/* Date & Additional Filters */}
-      <div className="flex flex-wrap items-end gap-4 bg-white border border-gray-200 rounded-xl p-4">
+      <div style={{ backgroundColor: '#FFFFFF' }} className="flex flex-wrap items-end gap-4 border border-gray-200 rounded-xl p-4 shadow-xs">
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-gray-400" />
           <span className="text-xs font-bold text-gray-600">Filters:</span>
@@ -402,8 +403,8 @@ function SummaryCard({ label, value, color = 'blue' }) {
     red: 'bg-red-50 text-red-700',
   };
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4">
-      <p className="text-[10px] text-gray-400 font-bold uppercase mb-1">{label}</p>
+    <div style={{ backgroundColor: '#FFFFFF' }} className="border border-gray-200 rounded-xl p-4 shadow-xs">
+      <p className="text-[10px] text-gray-500 font-bold uppercase mb-1">{label}</p>
       <p className={`text-lg font-bold ${colorMap[color]?.split(' ')[1] || 'text-gray-900'}`}>{value}</p>
     </div>
   );

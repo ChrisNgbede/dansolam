@@ -75,6 +75,13 @@ export default function AdminOrders() {
   const [errorMsg, setErrorMsg] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
+  // PayPal Refund state
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundingOrder, setRefundingOrder] = useState(null);
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundNote, setRefundNote] = useState('');
+  const [refundLoading, setRefundLoading] = useState(false);
+
   // Fetch all orders
   const { data: ordersRes, isLoading } = useQuery({
     queryKey: ['admin-orders', statusFilter],
@@ -177,10 +184,14 @@ export default function AdminOrders() {
     },
     onSuccess: (data) => {
       if (data.success) {
+        systemToast.success(data.message || 'Order deleted successfully!');
         queryClient.invalidateQueries(['admin-orders']);
       } else {
         systemToast.error(data.message || 'Error deleting order.');
       }
+    },
+    onError: (err) => {
+      systemToast.error('Network error deleting order: ' + err.message);
     }
   });
 
@@ -272,9 +283,44 @@ export default function AdminOrders() {
     setItems(newLines);
   };
 
-  const handleLineUpdate = (idx, key, val) => {
+  const handleOpenRefundModal = (order) => {
+    setRefundingOrder(order);
+    setRefundAmount(order.total_amount);
+    setRefundNote(`Refund for order #${order.order_number}`);
+    setShowRefundModal(true);
+  };
+
+  const handleExecutePaypalRefund = async (e) => {
+    e.preventDefault();
+    if (!refundingOrder) return;
+    setRefundLoading(true);
+    try {
+      const res = await apiFetch('/api/admin/paypal/refund', {
+        method: 'POST',
+        body: JSON.stringify({
+          order_id: refundingOrder.id,
+          amount: refundAmount ? parseFloat(refundAmount) : null,
+          note: refundNote
+        })
+      });
+      const data = await res.json();
+      setRefundLoading(false);
+      if (data.success) {
+        systemToast.success('PayPal refund issued successfully!');
+        setShowRefundModal(false);
+        queryClient.invalidateQueries(['admin-orders']);
+      } else {
+        systemToast.error(data.message || 'PayPal refund failed.');
+      }
+    } catch (err) {
+      setRefundLoading(false);
+      systemToast.error('Error executing PayPal refund.');
+    }
+  };
+
+  const handleLineUpdate = (idx, field, val) => {
     const newLines = [...items];
-    newLines[idx][key] = val;
+    newLines[idx][field] = val;
     setItems(newLines);
   };
 
@@ -484,6 +530,15 @@ export default function AdminOrders() {
                         >
                           <Eye className="w-4 h-4" />
                         </Link>
+                        {ord.payment_method === 'paypal' && ord.payment_status === 'paid' && (
+                          <button
+                            onClick={() => handleOpenRefundModal(ord)}
+                            className="px-2 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 text-[10px] font-bold rounded-md transition-all cursor-pointer flex items-center gap-1"
+                            title="Refund PayPal Payment"
+                          >
+                            <span>PayPal Refund</span>
+                          </button>
+                        )}
                         <button
                           onClick={() => handleOpenEdit(ord)}
                           className="p-1.5 text-gray-550 hover:text-blue-600 hover:bg-blue-50 rounded transition-all cursor-pointer"
@@ -584,7 +639,7 @@ export default function AdminOrders() {
                     value={customerPhone}
                     onChange={e => setCustomerPhone(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                    placeholder="e.g. 2348030000000"
+                    placeholder="e.g. +1 (555) 000-0000"
                   />
                 </div>
               </div>
@@ -610,7 +665,7 @@ export default function AdminOrders() {
                       value={deliveryAddress}
                       onChange={e => setDeliveryAddress(e.target.value)}
                       className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                      placeholder="Street name and plot number"
+                      placeholder="Street name and building number"
                     />
                   </div>
                 )}
@@ -625,7 +680,7 @@ export default function AdminOrders() {
                       value={deliveryCity}
                       onChange={e => setDeliveryCity(e.target.value)}
                       className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                      placeholder="e.g. Abuja"
+                      placeholder="e.g. London"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
@@ -998,11 +1053,17 @@ export default function AdminOrders() {
                   </select>
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-500 font-bold uppercase">Order Status</label>
+                  <label className="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-between">
+                    <span>Order Status</span>
+                    {selectedOrder?.order_status === 'delivered' && (
+                      <span className="text-[9px] text-emerald-600 font-extrabold uppercase">🔒 Delivered (Locked)</span>
+                    )}
+                  </label>
                   <select
                     value={orderStatus}
+                    disabled={selectedOrder?.order_status === 'delivered'}
                     onChange={e => setOrderStatus(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700"
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                   >
                     <option value="pending_payment">Pending Payment</option>
                     <option value="paid">Paid</option>
@@ -1072,6 +1133,90 @@ export default function AdminOrders() {
                       Saving changes...
                     </>
                   ) : 'Save Order details'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* PAYPAL REFUND MODAL */}
+      {showRefundModal && refundingOrder && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 md:p-6">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-5 border border-gray-100 animate-scale-up">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm">
+                  P
+                </div>
+                <h3 className="font-serif font-bold text-gray-900 text-lg">PayPal Payment Refund</h3>
+              </div>
+              <button onClick={() => setShowRefundModal(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-blue-50/70 border border-blue-150 rounded-xl p-3.5 text-xs text-blue-900 flex flex-col gap-1.5">
+              <div className="flex justify-between font-semibold">
+                <span>Order Number:</span>
+                <span className="font-mono text-blue-700">#{refundingOrder.order_number}</span>
+              </div>
+              <div className="flex justify-between font-semibold">
+                <span>Total Order Amount:</span>
+                <span className="font-bold text-gray-900">{currencySymbol}{parseFloat(refundingOrder.total_amount).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-[11px] text-gray-600 pt-1 border-t border-blue-200/50">
+                <span>Customer:</span>
+                <span>{refundingOrder.customer_name} ({refundingOrder.customer_email})</span>
+              </div>
+            </div>
+
+            <form onSubmit={handleExecutePaypalRefund} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-gray-500 font-bold uppercase">Refund Amount ({currencySymbol}) *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  max={refundingOrder.total_amount}
+                  required
+                  value={refundAmount}
+                  onChange={e => setRefundAmount(e.target.value)}
+                  className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-amber-500 text-sm bg-white font-bold text-gray-900"
+                />
+                <span className="text-[10px] text-gray-400">Specify partial or full refund amount to issue via PayPal REST API.</span>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] text-gray-500 font-bold uppercase">Reason / Note to Payer</label>
+                <input
+                  type="text"
+                  value={refundNote}
+                  onChange={e => setRefundNote(e.target.value)}
+                  className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-amber-500 text-xs bg-white"
+                  placeholder="Reason for refund..."
+                />
+              </div>
+
+              <div className="flex justify-end gap-2.5 border-t border-gray-100 pt-4 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRefundModal(false)}
+                  className="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={refundLoading}
+                  className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+                >
+                  {refundLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Executing Refund via PayPal...
+                    </>
+                  ) : 'Process PayPal Refund'}
                 </button>
               </div>
             </form>

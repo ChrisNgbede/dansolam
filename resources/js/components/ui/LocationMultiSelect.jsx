@@ -150,7 +150,7 @@ export default function LocationMultiSelect({
 
           {/* Quick options action bar */}
           <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50 border-b border-gray-100 text-[10px] font-bold text-gray-500 dark:bg-gray-900/50 dark:border-gray-700">
-            <span className="uppercase text-[9px] tracking-wider">Select options</span>
+            <span className=" text-[9px] tracking-wider">Select options</span>
             <div className="flex gap-2">
               <button
                 type="button"

@@ -1,14 +1,18 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { toast as systemToast } from '../ui/ToastProvider';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Home, ShoppingBag, Search, ShoppingCart, Heart, User, MessageCircle, Menu, X, Gift, Mail, ArrowRight, ArrowLeft, FileText, BookOpen, LayoutDashboard, Trash2, ArrowUpRight, Banknote, ShieldCheck, Truck, Sparkles, Megaphone, ChevronLeft, ChevronRight, Sun, Moon, Phone } from 'lucide-react';
+import { Home, ShoppingBag, Search, ShoppingCart, Heart, User, MessageCircle, Menu, X, Gift, Mail, ArrowRight, ArrowLeft, FileText, BookOpen, LayoutDashboard, Trash2, ArrowUpRight, Banknote, ShieldCheck, Truck, Megaphone, ChevronLeft, ChevronRight, Sun, Moon, Phone } from 'lucide-react';
 import { useCartStore } from '../../store/cartStore';
 import { useWishlistStore } from '../../store/wishlistStore';
 import SocialIcon from '../ui/SocialIcon';
 import MaintenancePage from '../../pages/storefront/MaintenancePage';
 import BookFittingSessionModal from '../storefront/BookFittingSessionModal';
+import NotFoundCrossSellSection from '../storefront/NotFoundCrossSellSection';
+import { triggerCartAnimation } from '../../utils/cartAnimation';
+import useScrollReveal from '../../hooks/useScrollReveal';
+import { PaystackLogo, StripeLogo, PayPalLogo, FlutterwaveLogo, VisaLogo, MastercardLogo } from '../storefront/PaymentGatewayLogos';
 
 // Helper slideshow component for dynamic mega menu advertisement banner
 function MegaMenuAdSlideshow({ ads }) {
@@ -63,8 +67,8 @@ function MegaMenuAdSlideshow({ ads }) {
   );
 }
 
-// Helper component for interactive swiping top announcement bar with coupons carousel
-function AnimatedAnnouncementBar({ text }) {
+// Helper component for interactive swiping top announcement bar with customizable styling & coupons carousel
+function AnimatedAnnouncementBar({ text, settings = {} }) {
   const [copiedCode, setCopiedCode] = useState(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -74,8 +78,11 @@ function AnimatedAnnouncementBar({ text }) {
     queryFn: () => fetch('/api/coupons/active').then(res => res.json()),
   });
 
+  const currencySymbol = typeof window !== 'undefined' ? (localStorage.getItem('dansolam_currency_symbol') || '₦') : '₦';
+
   // Prepare list of announcement items
   const activeCoupons = couponsRes?.data || [];
+  const includeCoupons = settings.announcement_include_coupons === undefined || ['true', '1', true, 1].includes(settings.announcement_include_coupons);
 
   // Parse announcement items from text (supports '|' delimiter for multiple messages)
   const rawItems = (text || '').split('|').map(t => t.trim()).filter(Boolean);
@@ -83,26 +90,34 @@ function AnimatedAnnouncementBar({ text }) {
   // Combine custom text items and active coupons into slides
   const slides = [...rawItems];
 
-  activeCoupons.forEach(coupon => {
-    const formattedVal = coupon.type === 'percentage'
-      ? `${parseFloat(coupon.value)}% OFF`
-      : `Save $${parseFloat(coupon.value)}`;
-    const desc = `Special Offer: Get ${formattedVal} on your order! Use code ${coupon.code}`;
-    if (!slides.some(s => s.includes(coupon.code))) {
-      slides.push(desc);
-    }
-  });
+  if (includeCoupons && activeCoupons.length > 0) {
+    activeCoupons.forEach(coupon => {
+      let formattedVal = '';
+      if (coupon.type === 'percentage') {
+        formattedVal = `${parseFloat(coupon.value)}% OFF`;
+      } else if (coupon.type === 'free_delivery') {
+        formattedVal = 'Free Delivery';
+      } else {
+        formattedVal = `${currencySymbol}${parseFloat(coupon.value || 0).toLocaleString()}`;
+      }
+      const desc = `Special Offer: Get ${formattedVal} on your order! Use code ${coupon.code}`;
+      if (!slides.some(s => s.includes(coupon.code))) {
+        slides.push(desc);
+      }
+    });
+  }
 
-  const activeSlides = slides.length > 0 ? slides : [text];
+  const activeSlides = slides.length > 0 ? slides : [text || 'Welcome to Dansolam Beauty Home!'];
+  const autoplaySpeed = parseInt(settings.announcement_autoplay_speed !== undefined ? settings.announcement_autoplay_speed : '4500', 10);
 
   // Auto-swipe timer if there are multiple slides
   useEffect(() => {
-    if (activeSlides.length <= 1) return;
+    if (activeSlides.length <= 1 || autoplaySpeed <= 0) return;
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % activeSlides.length);
-    }, 4500);
+    }, autoplaySpeed);
     return () => clearInterval(interval);
-  }, [activeSlides.length]);
+  }, [activeSlides.length, autoplaySpeed]);
 
   if (!text && activeSlides.length === 0) return null;
 
@@ -112,31 +127,56 @@ function AnimatedAnnouncementBar({ text }) {
   const codeMatch = currentText.match(/(?:code|coupon)\s+([A-Z0-9]{3,15})/i) || currentText.match(/\b([A-Z0-9]{4,12})\b/);
   const code = codeMatch ? codeMatch[1] : null;
 
-  const handleCopyCode = (couponCode) => {
+  const handleCopyCode = (couponCode, e) => {
+    if (e) e.stopPropagation();
     try {
       navigator.clipboard.writeText(couponCode);
       setCopiedCode(couponCode);
       systemToast.success(`Coupon code "${couponCode}" copied to clipboard! ✨`);
       setTimeout(() => setCopiedCode(null), 3000);
-    } catch (e) {
+    } catch (err) {
       systemToast.success(`Coupon code: ${couponCode}`);
     }
   };
 
-  const nextSlide = () => setCurrentIndex((prev) => (prev + 1) % activeSlides.length);
-  const prevSlide = () => setCurrentIndex((prev) => (prev - 1 + activeSlides.length) % activeSlides.length);
+  const nextSlide = (e) => {
+    if (e) e.stopPropagation();
+    setCurrentIndex((prev) => (prev + 1) % activeSlides.length);
+  };
+  const prevSlide = (e) => {
+    if (e) e.stopPropagation();
+    setCurrentIndex((prev) => (prev - 1 + activeSlides.length) % activeSlides.length);
+  };
+
+  const bgColor = settings.announcement_bg_color || '#181120';
+  const textColor = settings.announcement_text_color || '#FFFFFF';
+  const accentColor = settings.announcement_accent_color || '#EC268F';
+  const linkUrl = settings.announcement_link_url;
 
   return (
-    <div className="group bg-[linear-gradient(90deg,#5E4409_0%,#906E20_25%,#B89433_55%,#906E20_80%,#5E4409_100%)] text-white text-[10px] md:text-xs font-bold py-2 px-3 md:px-6 text-center tracking-wide relative shrink-0 z-50 shadow-sm overflow-hidden flex items-center justify-between min-h-[36px] select-none">
+    <div
+      style={{
+        backgroundColor: bgColor,
+        color: textColor,
+        borderBottomColor: `${accentColor}30`
+      }}
+      className="group border-b text-[10px] md:text-xs font-bold py-2.5 px-3 md:px-6 text-center tracking-wide relative shrink-0 z-50 shadow-md overflow-hidden flex items-center justify-between min-h-[38px] select-none transition-colors duration-300"
+    >
       {/* Background shimmer animation */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#D4AF37]/20 to-transparent -translate-x-full animate-shimmer pointer-events-none" />
+      <div
+        style={{
+          background: `linear-gradient(to right, transparent, ${accentColor}25, transparent)`
+        }}
+        className="absolute inset-0 -translate-x-full animate-shimmer pointer-events-none"
+      />
 
       {/* Prev slide button if multiple (only visible on hover) */}
       {activeSlides.length > 1 && (
         <button
           type="button"
           onClick={prevSlide}
-          className="relative z-20 p-1 hover:bg-white/20 rounded-full transition-all duration-300 cursor-pointer text-amber-200 hover:text-white shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
+          style={{ color: accentColor }}
+          className="relative z-20 p-1 hover:bg-white/20 rounded-full transition-all duration-300 cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
           aria-label="Previous Announcement"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -148,24 +188,47 @@ function AnimatedAnnouncementBar({ text }) {
         <div key={currentIndex} className="inline-flex flex-wrap items-center justify-center gap-2 md:gap-3 animate-fade-in transition-all duration-500">
 
           {/* Announcement Megaphone Icon & Text */}
-          <span className="inline-flex items-center gap-2 animate-bulgy-pulse">
-            <Megaphone className="w-4 h-4 text-amber-200 shrink-0" />
-            <span className="font-bold tracking-wide drop-shadow-xs truncate max-w-[280px] sm:max-w-md md:max-w-xl">
-              {currentText}
+          {linkUrl ? (
+            <Link
+              to={linkUrl}
+              style={{ color: textColor }}
+              className="inline-flex items-center gap-2 hover:opacity-90 transition-opacity"
+            >
+              <Megaphone style={{ color: accentColor }} className="w-4 h-4 shrink-0" />
+              <span className="font-bold tracking-wide truncate max-w-[280px] sm:max-w-md md:max-w-xl underline decoration-dotted underline-offset-2">
+                {currentText}
+              </span>
+            </Link>
+          ) : (
+            <span className="inline-flex items-center gap-2 animate-bulgy-pulse">
+              <Megaphone style={{ color: accentColor }} className="w-4 h-4 shrink-0" />
+              <span className="font-bold tracking-wide truncate max-w-[280px] sm:max-w-md md:max-w-xl">
+                {currentText}
+              </span>
             </span>
-          </span>
+          )}
 
-          {/* Copyable Coupon Badge - Moved right with margin to prevent overlap */}
+          {/* Copyable Coupon Badge */}
           {code && (
             <button
               type="button"
-              onClick={() => handleCopyCode(code)}
-              className="inline-flex items-center gap-1.5 px-3 py-0.5 ml-2 md:ml-4 rounded-full bg-white/20 hover:bg-white/35 text-white font-mono font-bold text-[10px] md:text-xs tracking-wider transition-all duration-300 border border-white/40 hover:scale-105 active:scale-95 shadow-xs cursor-pointer group shrink-0"
+              onClick={(e) => handleCopyCode(code, e)}
+              style={{
+                backgroundColor: `${textColor}18`,
+                borderColor: `${textColor}40`,
+                color: textColor
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-0.5 ml-2 md:ml-4 rounded-full font-mono font-bold text-[10px] md:text-xs tracking-wider transition-all duration-300 border hover:scale-105 active:scale-95 shadow-xs cursor-pointer group shrink-0"
               title="Click to copy coupon code"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-200 group-hover:rotate-12 transition-transform" />
               <span>{code}</span>
-              <span className="text-[9px] bg-white text-[#8C6D1F] px-1.5 py-0.2 rounded font-sans font-extrabold uppercase ml-0.5 shadow-2xs">
+              <span
+                style={{
+                  backgroundColor: accentColor,
+                  color: '#FFFFFF'
+                }}
+                className="text-[9px] px-1.5 py-0.2 rounded font-sans font-black ml-0.5 shadow-2xs"
+              >
                 {copiedCode === code ? 'Copied! ✓' : 'COPY'}
               </span>
             </button>
@@ -179,7 +242,8 @@ function AnimatedAnnouncementBar({ text }) {
         <button
           type="button"
           onClick={nextSlide}
-          className="relative z-20 p-1 hover:bg-white/20 rounded-full transition-all duration-300 cursor-pointer text-amber-200 hover:text-white shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
+          style={{ color: accentColor }}
+          className="relative z-20 p-1 hover:bg-white/20 rounded-full transition-all duration-300 cursor-pointer shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
           aria-label="Next Announcement"
         >
           <ChevronRight className="w-4 h-4" />
@@ -194,9 +258,8 @@ export default function StorefrontLayout() {
   const [megaMenuOpen, setMegaMenuOpen] = useState(false);
   const [contactDropdownOpen, setContactDropdownOpen] = useState(false);
   const [bookFittingModalOpen, setBookFittingModalOpen] = useState(false);
-  const [storefrontDark, setStorefrontDark] = useState(() => {
-    const saved = localStorage.getItem('fairqueen_storefront_theme');
-    return saved ? saved === 'dark' : window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  const [userThemePref, setUserThemePref] = useState(() => {
+    return localStorage.getItem('dansolam_storefront_theme');
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchModal, setShowSearchModal] = useState(false);
@@ -208,6 +271,24 @@ export default function StorefrontLayout() {
   const contactMenuCloseTimer = useRef(null);
   const megaMenuTriggerRef = useRef(null);
   const [megaMenuTop, setMegaMenuTop] = useState(0);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const userDropdownRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
+        setShowUserDropdown(false);
+      }
+    }
+    if (showUserDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showUserDropdown]);
 
   const updateMegaMenuPosition = () => {
     const trigger = megaMenuTriggerRef.current;
@@ -254,11 +335,40 @@ export default function StorefrontLayout() {
     if (megaMenuCloseTimer.current) clearTimeout(megaMenuCloseTimer.current);
   }, []);
 
+  // Fetch Settings
+  const { data: settingsData } = useQuery({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      const res = await fetch('/api/settings');
+      return res.json();
+    }
+  });
+
+  const themeMode = settingsData?.data?.settings?.storefront_theme_mode || 'user_choice';
+  const defaultTheme = settingsData?.data?.settings?.storefront_default_theme || 'dark';
+
+  const storefrontDark = useMemo(() => {
+    if (themeMode === 'b_night') return true;
+    if (themeMode === 'light') return false;
+    if (userThemePref === 'dark') return true;
+    if (userThemePref === 'light') return false;
+    return defaultTheme === 'dark';
+  }, [themeMode, defaultTheme, userThemePref]);
+
+  const toggleTheme = () => {
+    if (themeMode !== 'user_choice') return;
+    const nextTheme = storefrontDark ? 'light' : 'dark';
+    setUserThemePref(nextTheme);
+    localStorage.setItem('dansolam_storefront_theme', nextTheme);
+  };
+
   useEffect(() => {
+    document.documentElement.classList.toggle('dark', storefrontDark);
     document.documentElement.classList.toggle('storefront-dark', storefrontDark);
-    localStorage.setItem('fairqueen_storefront_theme', storefrontDark ? 'dark' : 'light');
-    return () => document.documentElement.classList.remove('storefront-dark');
   }, [storefrontDark]);
+
+  // Section reveal animation, re-scanned on every route change.
+  useScrollReveal(location.pathname);
 
   useEffect(() => {
     if (!megaMenuOpen) return undefined;
@@ -304,15 +414,6 @@ export default function StorefrontLayout() {
   const [showWishlistDrawer, setShowWishlistDrawer] = useState(false);
   const [animateCart, setAnimateCart] = useState(false);
 
-  // Fetch Settings
-  const { data: settingsData } = useQuery({
-    queryKey: ['settings'],
-    queryFn: async () => {
-      const res = await fetch('/api/settings');
-      return res.json();
-    }
-  });
-
   // Fetch Collections with Category Relations
   const { data: collectionsData } = useQuery({
     queryKey: ['storefront-collections'],
@@ -329,21 +430,27 @@ export default function StorefrontLayout() {
     if (settingsData?.data?.settings) {
       const s = settingsData.data.settings;
       setCurrency(s.system_currency_symbol, s.system_currency_code);
+      if (s.system_currency_symbol) {
+        localStorage.setItem('dansolam_currency_symbol', s.system_currency_symbol);
+      }
+      if (s.system_currency_code) {
+        localStorage.setItem('dansolam_currency_code', s.system_currency_code);
+      }
     }
   }, [settingsData, setCurrency]);
 
-  const ecommerce = settingsData?.data?.ecommerce || { name: 'Dansolam' };
+  const ecommerce = settingsData?.data?.ecommerce || { name: 'Dansolam Beauty Home' };
   const settings = settingsData?.data?.settings || {
     logo_url: '/images/logo.png',
-    theme_primary_color: '#AA8374',
-    tagline: 'Luxury Skincare & Beauty',
-    description: 'Transform your skin with luxury spa routines and premium beauty products.',
+    theme_primary_color: '#5D3E85',
+    tagline: 'Dansolam Beauty Home',
+    description: 'Transform your skin with luxury spa routines and premium beauty products at Dansolam Beauty Home.',
     whatsapp_number: '2348000000000',
     instagram_url: 'https://dansolam.com/',
-    store_address: 'Abuja, Nigeria',
+    store_address: 'Plot 1234, SHOP Boulevard',
     opening_hours: 'Monday–Saturday: 9:00 AM - 6:00 PM',
     announcement_show: 'true',
-    announcement_text: '✨ Free shipping on select beauty orders | Dansolam Luxury Sanctuary',
+    announcement_text: '✨ Free delivery on orders above ₦100,000! | 🌿 100% Organic Skincare, Whitening Soaps & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF your first beauty order',
     promo_popup_show: 'false',
     promo_popup_title: 'Welcome to Dansolam',
     promo_popup_body: 'Save 10% off your first beauty purchase.',
@@ -354,14 +461,14 @@ export default function StorefrontLayout() {
 
   // Maintenance Mode Guard
   const [maintenanceBypassed, setMaintenanceBypassed] = useState(() => {
-    return sessionStorage.getItem('fairqueen_maintenance_bypass') === 'true';
+    return sessionStorage.getItem('dansolam_maintenance_bypass') === 'true';
   });
 
   const isMaintenanceActive = ['true', '1', true, 1].includes(settings.maintenance_mode_enabled);
   const searchParams = new URLSearchParams(location.search);
   const isUrlBypass = searchParams.get('bypass') === (settings.maintenance_bypass_key || 'admin123') || searchParams.get('preview') === '1';
 
-  if (isMaintenanceActive && !maintenanceBypassed && !isUrlBypass && !localStorage.getItem('fairqueen_token')) {
+  if (isMaintenanceActive && !maintenanceBypassed && !isUrlBypass && !localStorage.getItem('dansolam_token')) {
     return <MaintenancePage settings={settings} onBypass={() => setMaintenanceBypassed(true)} />;
   }
   const whatsappNumber = String(settings.whatsapp_number || '').replace(/[^0-9]/g, '');
@@ -371,6 +478,7 @@ export default function StorefrontLayout() {
     { label: 'TikTok', url: settings.tiktok_url, network: 'tiktok' },
     { label: 'YouTube', url: settings.youtube_url, network: 'youtube' },
     { label: 'X', url: settings.twitter_url, network: 'x' },
+    ...(whatsappNumber ? [{ label: 'WhatsApp', url: `https://wa.me/${whatsappNumber}?text=Hello%20${encodeURIComponent(ecommerce?.name || 'Dansolam')}`, network: 'whatsapp' }] : [])
   ].filter(link => link.url);
 
   const handleSearchSubmit = (e) => {
@@ -397,63 +505,13 @@ export default function StorefrontLayout() {
     }
   }, [settings.theme_primary_color]);
 
-  // 1b. Listen for cart add tracing animations
+  // 1b. Listen for cart add tracing animations with trailing lines & sparks
   useEffect(() => {
     const handleAnimateToCart = (e) => {
-      const { startX, startY, imageUrl } = e.detail;
-
-      const desktopCart = document.getElementById('cart-btn-desktop');
-      const mobileCart = document.getElementById('cart-btn-mobile');
-
-      let targetEl = desktopCart;
-      if (window.innerWidth < 768 && mobileCart) {
-        targetEl = mobileCart;
-      }
-
-      if (!targetEl) return;
-
-      const targetRect = targetEl.getBoundingClientRect();
-      const endX = targetRect.left + targetRect.width / 2;
-      const endY = targetRect.top + targetRect.height / 2;
-
-      const flyer = document.createElement('div');
-      flyer.className = 'fixed pointer-events-none z-[9999] flex items-center justify-center';
-      flyer.style.left = `${startX - 16}px`;
-      flyer.style.top = `${startY - 16}px`;
-      flyer.style.width = '32px';
-      flyer.style.height = '32px';
-      flyer.style.borderRadius = '50%';
-      flyer.style.border = '2px solid #C5A880';
-      flyer.style.boxShadow = '0 10px 25px rgba(197, 168, 128, 0.5)';
-      flyer.style.backgroundColor = '#fff';
-      flyer.style.overflow = 'hidden';
-
-      if (imageUrl) {
-        const img = document.createElement('img');
-        img.src = imageUrl;
-        img.className = 'w-full h-full object-cover';
-        flyer.appendChild(img);
-      } else {
-        flyer.innerHTML = '✨';
-      }
-
-      document.body.appendChild(flyer);
-
-      import('gsap').then(({ gsap }) => {
-        gsap.to(flyer, {
-          x: endX - startX,
-          y: endY - startY,
-          scale: 0.3,
-          opacity: 0.7,
-          duration: 0.8,
-          ease: 'power2.out',
-          onComplete: () => {
-            flyer.remove();
-            setAnimateCart(true);
-            setTimeout(() => setAnimateCart(false), 600);
-          }
-        });
-      });
+      const { startX, startY, fromElement, imageUrl, type = 'add', count = 1 } = e.detail || {};
+      triggerCartAnimation({ startX, startY, fromElement, imageUrl, type, count });
+      setAnimateCart(true);
+      setTimeout(() => setAnimateCart(false), 700);
     };
 
     window.addEventListener('animate-to-cart', handleAnimateToCart);
@@ -464,7 +522,7 @@ export default function StorefrontLayout() {
   useEffect(() => {
     const showPopup = settings.promo_popup_show === 'true' || settings.promo_popup_show === true;
     if (showPopup) {
-      const isDismissed = localStorage.getItem('fairqueen_popup_dismissed');
+      const isDismissed = localStorage.getItem('dansolam_popup_dismissed');
       if (!isDismissed) {
         const delay = parseInt(settings.promo_popup_delay || 3000);
         const timer = setTimeout(() => {
@@ -474,6 +532,40 @@ export default function StorefrontLayout() {
       }
     }
   }, [settings.promo_popup_show, settings.promo_popup_delay]);
+
+  // 2b. Need Chat Bubble Interval Pop & Expand Animation
+  const [isChatBubblePopped, setIsChatBubblePopped] = useState(false);
+  const [chatMessageIndex, setChatMessageIndex] = useState(0);
+
+  const chatMessages = useMemo(() => [
+    { title: 'Need Help?', subtitle: 'Chat with Skincare Specialist 💬', badge: 'Online Now' },
+    { title: 'Looking for advice?', subtitle: 'Ask about routines & spots ✨', badge: 'Active AGENT' },
+    { title: 'Personal Routine', subtitle: 'Tap to get custom formulas 🌿', badge: 'Instant Reply' },
+    { title: 'Delivery Questions?', subtitle: 'We ship nationwide & worldwide ✈️', badge: 'Customer Care' },
+  ], []);
+
+  useEffect(() => {
+    // Initial pop after 3.5 seconds of user browsing
+    const initialTimer = setTimeout(() => {
+      setIsChatBubblePopped(true);
+      const closeTimer = setTimeout(() => setIsChatBubblePopped(false), 4500);
+      return () => clearTimeout(closeTimer);
+    }, 3500);
+
+    // Recurring pop expanding at intervals (every 11 seconds)
+    const intervalTimer = setInterval(() => {
+      setChatMessageIndex((prev) => (prev + 1) % chatMessages.length);
+      setIsChatBubblePopped(true);
+      setTimeout(() => {
+        setIsChatBubblePopped(false);
+      }, 4500);
+    }, 11000);
+
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(intervalTimer);
+    };
+  }, [chatMessages.length]);
 
   // Search Debouncer
   useEffect(() => {
@@ -500,7 +592,7 @@ export default function StorefrontLayout() {
 
   const handleDismissPopup = () => {
     setShowPopupModal(false);
-    localStorage.setItem('fairqueen_popup_dismissed', 'true');
+    localStorage.setItem('dansolam_popup_dismissed', 'true');
   };
 
   const handlePopupSubmit = async (e) => {
@@ -536,230 +628,369 @@ export default function StorefrontLayout() {
     return location.pathname.startsWith(path);
   };
 
-  const announcementActive = settings.announcement_show === 'true' || settings.announcement_show === true;
+  const announcementActive = settings.announcement_show === 'true' || settings.announcement_show === true || settings.announcement_show === '1' || settings.announcement_show === 1 || settings.announcement_show === undefined;
 
   return (
-    <div className="storefront-shell luxury-storefront flex flex-col min-h-[100dvh] relative font-sans text-gray-800">
+    <div className="storefront-shell luxury-storefront flex flex-col min-h-[100dvh] relative font-sans text-gray-800 dark:text-[#F3EFF6] bg-[#FBFAF8] dark:bg-[#17101F] transition-colors duration-300">
 
-      {/* 0. Announcement Bar */}
+      {/* 0. Top Bar Announcement */}
       {announcementActive && (
-        <AnimatedAnnouncementBar text={settings.announcement_text} />
+        <AnimatedAnnouncementBar
+          text={settings.announcement_text || '✨ Free delivery on orders above ₦100,000! | 🌿 100% Organic Skincare, Whitening Soaps & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF your first beauty order'}
+          settings={settings}
+        />
       )}
 
-      {/* 1. Header Navigation Pill (BeautyCenter Design for secondary pages / scrolled state) */}
-      {(!isHome || scrolled) && (
-        <header className="sticky top-3 z-50 px-3 sm:px-6 max-w-7xl mx-auto w-full transition-all duration-300">
-        <div className="bg-white/85 dark:bg-[#1a1817]/90 backdrop-blur-xl border border-white/80 dark:border-white/10 rounded-full px-3.5 py-2 shadow-lg shadow-black/5 flex items-center justify-between gap-3">
-          
-          {/* Mobile Menu Hamburger Trigger */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(true)}
-            className="md:hidden p-2 text-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-full transition-all cursor-pointer"
-            aria-label="Open Mobile Menu"
+      {/* 1. Header Navigation (Floating Transparent Layered Header) */}
+      <header className="sticky top-0 z-50 transition-all duration-300 px-6 sm:px-12 h-20 flex items-center justify-between -mb-20 pointer-events-auto bg-transparent border-b border-transparent">
+
+        {/* Mobile Menu Hamburger Trigger */}
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(true)}
+          className="lg:hidden p-2 text-gray-800 dark:text-white bg-white/90 dark:bg-white/15 hover:bg-white dark:hover:bg-white/25 rounded-full shadow-sm transition-all cursor-pointer mr-2"
+          aria-label="Open Mobile Menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        {/* Brand Logo / Sticky Favicon Transition with Solid White Background on Favicon */}
+        <Link to="/" className="relative flex items-center shrink-0 group py-1" aria-label={ecommerce.name || "Dansolam"}>
+          {/* 1. Full Logo (Shown when at top of page) */}
+          <div
+            className={`transition-all duration-400 ease-out origin-left flex items-center ${
+              scrolled
+                ? 'opacity-0 scale-90 -translate-x-3 pointer-events-none absolute'
+                : 'opacity-100 scale-100 translate-x-0 relative'
+            }`}
           >
-            <Menu className="w-5 h-5" />
-          </button>
+            {settings?.logo_url ? (
+              <img
+                src={settings.logo_url}
+                alt={ecommerce.name}
+                className="h-10 sm:h-11 md:h-12 w-auto object-contain transition-transform group-hover:scale-105 duration-300"
+              />
+            ) : (
+              <div className="flex flex-col leading-tight">
+                <span className="font-sans font-bold text-2xl sm:text-3xl text-[#221B2B] dark:text-[#F3EFF6] tracking-tight group-hover:text-[#5D3E85] dark:group-hover:text-[#EC268F] transition-colors">Dansolam</span>
+                <span className="font-sans font-semibold text-[9px] sm:text-[10px] tracking-[0.3em]  text-[#5D3E85] dark:text-[#E5C158]">Beauty Home</span>
+              </div>
+            )}
+          </div>
 
-          {/* Desktop Left Nav Pill Links */}
-          <nav className="hidden lg:flex items-center gap-1 bg-[#f5ebe6]/80 dark:bg-neutral-800/80 p-1 rounded-full border border-gray-100 dark:border-neutral-700/50">
-            {/* Logo on far left before Home */}
-            <Link to="/" className="px-3.5 py-1.5 text-sm font-extrabold tracking-tight text-[#1a1a1a] dark:text-white font-sans shrink-0 flex items-center gap-1 hover:opacity-90 transition-opacity">
-              {settings?.logo_url ? (
-                <img src={settings.logo_url} alt={ecommerce.name} className="h-5 object-contain" />
+          {/* 2. Favicon Icon Badge with Solid Opaque White Background (Shown when scrolled) */}
+          <div
+            className={`transition-all duration-400 ease-out origin-left flex items-center ${
+              scrolled
+                ? 'opacity-100 scale-100 translate-x-0 relative'
+                : 'opacity-0 scale-75 -translate-x-3 pointer-events-none absolute'
+            }`}
+          >
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white shadow-md border border-gray-200/80 flex items-center justify-center p-2 group-hover:scale-110 group-hover:shadow-lg transition-all duration-300">
+              {settings?.favicon_url ? (
+                <img
+                  src={settings.favicon_url}
+                  alt={ecommerce.name}
+                  className="w-full h-full object-contain"
+                />
+              ) : settings?.logo_url ? (
+                <img
+                  src={settings.logo_url}
+                  alt={ecommerce.name}
+                  className="w-full h-full object-contain"
+                />
               ) : (
-                <span>Beauty<span className="font-sans italic text-[#b86b53] font-medium">Center</span></span>
-              )}
-            </Link>
-
-            <Link
-              to="/"
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
-                isActive('/') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
-              }`}
-            >
-              Home
-            </Link>
-
-            {/* Shop with Mega Dropdown */}
-            <div
-              ref={megaMenuTriggerRef}
-              className="static"
-              onMouseEnter={openMegaMenu}
-              onMouseLeave={scheduleMegaMenuClose}
-            >
-              <Link
-                to="/shop"
-                className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all flex items-center gap-1 ${
-                  isActive('/shop') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
-                }`}
-              >
-                Shop <span className={`text-[9px] opacity-60 transition-transform ${megaMenuOpen ? 'rotate-180' : ''}`}>▼</span>
-              </Link>
-
-              {/* Mega Dropdown Panel Portal */}
-              {typeof document !== 'undefined' && createPortal(
-                <div
-                  onMouseEnter={openMegaMenu}
-                  onMouseLeave={scheduleMegaMenuClose}
-                  style={{ top: `${megaMenuTop}px` }}
-                  className={`luxury-mega-menu fixed left-1/2 -translate-x-1/2 w-[min(1200px,calc(100vw-2rem))] max-h-[calc(100dvh-8rem)] overflow-y-auto overscroll-contain bg-white/95 dark:bg-[#1a1817]/95 backdrop-blur-md border border-gray-100 dark:border-neutral-800 rounded-3xl shadow-xl p-8 grid grid-cols-[minmax(0,4fr)_minmax(220px,1fr)] gap-8 z-[100] transition-all ${
-                    megaMenuOpen ? 'opacity-100 translate-y-0 visible' : 'opacity-0 -translate-y-2 invisible pointer-events-none'
-                  }`}
-                >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-start min-w-0">
-                    {megaMenuCollections.map((col) => (
-                      <div key={col.id} className="flex min-w-0 flex-col gap-3">
-                        <span className="font-sans font-extrabold text-xs uppercase tracking-wider text-gray-950 dark:text-white border-b border-gray-200 dark:border-neutral-800 pb-2.5">
-                          {col.name}
-                        </span>
-                        <div className="flex flex-col gap-2.5 text-xs text-gray-600 dark:text-gray-400">
-                          {col.categories && col.categories.length > 0 ? (
-                            col.categories.map((cat) => (
-                              <Link
-                                key={cat.id}
-                                to={`/shop?category=${cat.slug}`}
-                                onClick={closeMegaMenu}
-                                className="hover:text-black dark:hover:text-white hover:bg-gray-100 dark:hover:bg-neutral-800 px-2 py-1 rounded-lg transition-all block font-bold"
-                              >
-                                {cat.name}
-                              </Link>
-                            ))
-                          ) : (
-                            <span className="text-[10px] text-gray-400 italic">No categories linked</span>
-                          )}
-                          <Link
-                            onClick={closeMegaMenu}
-                            to={`/shop?collection=${col.slug}`}
-                            className="hover:text-black dark:hover:text-white font-bold mt-2 text-[11px] flex items-center gap-0.5 group px-2 py-1 rounded-lg"
-                          >
-                            Shop {col.name}
-                            <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
-                          </Link>
-                        </div>
-                      </div>
-                    ))}
-                    {megaMenuCollections.length === 0 && (
-                      <div className="col-span-full py-6 text-xs text-gray-400">No collections featured in this menu.</div>
-                    )}
-                  </div>
-
-                  <div className="flex min-w-0 flex-col gap-3 border-l border-gray-100 dark:border-neutral-800 pl-8 h-full justify-between">
-                    <span className="font-sans font-extrabold text-xs uppercase tracking-wider text-gray-950 dark:text-white border-b border-gray-200 dark:border-neutral-800 pb-2.5 flex items-center gap-1.5">
-                      ✨ Featured Offers
-                    </span>
-                    <MegaMenuAdSlideshow ads={settings.mega_menu_ads} />
-                  </div>
-                </div>,
-                document.body
+                <span className="text-sm font-extrabold text-[#5D3E85]">D</span>
               )}
             </div>
-
-            <Link
-              to="/pages/about-us"
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
-                isActive('/pages/about-us') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
-              }`}
-            >
-              About Us
-            </Link>
-
-            {settings?.show_gallery_page !== 'false' && (
-              <Link
-                to="/gallery"
-                className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
-                  isActive('/gallery') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
-                }`}
-              >
-                Gallery
-              </Link>
-            )}
-
-            {settings?.show_blog_page !== 'false' && (
-              <Link
-                to="/blog"
-                className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
-                  isActive('/blog') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
-                }`}
-              >
-                Blog
-              </Link>
-            )}
-
-            <Link
-              to="/reviews"
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
-                isActive('/reviews') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
-              }`}
-            >
-              Reviews
-            </Link>
-
-            <Link
-              to="/order-tracking"
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
-                isActive('/order-tracking') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
-              }`}
-            >
-              Track Order
-            </Link>
-
-            <Link
-              to="/contact"
-              className={`px-3.5 py-1.5 text-xs font-semibold rounded-full transition-all ${
-                isActive('/contact') ? 'bg-[#1a1a1a] text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:text-gray-950 dark:hover:text-white'
-              }`}
-            >
-              Contact
-            </Link>
-          </nav>
-
-          {/* Right Action Icons & Pill Buttons */}
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowSearchModal(true)}
-              className="w-9 h-9 rounded-full bg-[#f8f5f2] dark:bg-neutral-800 border border-gray-200/60 dark:border-neutral-700 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-white transition-all cursor-pointer shadow-2xs"
-              title="Search store"
-            >
-              <Search className="w-4 h-4" />
-            </button>
-            <Link
-              to="/account"
-              className="w-9 h-9 rounded-full bg-[#f8f5f2] dark:bg-neutral-800 border border-gray-200/60 dark:border-neutral-700 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-white transition-all shadow-2xs"
-              title="Account"
-            >
-              <User className="w-4 h-4" />
-            </Link>
-            <button
-              type="button"
-              onClick={() => setShowWishlistDrawer(true)}
-              className="relative w-9 h-9 rounded-full bg-[#f8f5f2] dark:bg-neutral-800 border border-gray-200/60 dark:border-neutral-700 flex items-center justify-center text-gray-700 dark:text-gray-200 hover:bg-white transition-all cursor-pointer shadow-2xs"
-              title="Wishlist"
-            >
-              <Heart className="w-4 h-4" />
-              {wishlistCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#b86b53] text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                  {wishlistCount}
-                </span>
-              )}
-            </button>
-            <Link
-              to="/cart"
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#1a1a1a] text-white text-xs font-semibold hover:bg-neutral-800 transition-all shadow-md"
-            >
-              <ShoppingCart className="w-4 h-4" />
-              <span className="hidden sm:inline">Cart</span>
-              {cartItemsCount > 0 && (
-                <span className="bg-white/20 px-1.5 py-0.5 rounded-full text-[10px] font-mono">
-                  {cartItemsCount}
-                </span>
-              )}
-            </Link>
           </div>
+        </Link>
+
+        {/* Desktop Centered Pronounced Glassmorphism Pill Navigation with Blurry Motion & High-Legibility Typography */}
+        <nav className="hidden lg:flex items-center gap-1.5 p-1.5 rounded-full bg-white/70 dark:bg-[#100A16]/70 backdrop-blur-2xl border border-white/60 dark:border-white/15 shadow-[0_8px_32px_rgba(0,0,0,0.12)] text-xs font-bold transition-all">
+          <Link
+            to="/"
+            className={`px-4 py-2 rounded-full transition-all ${isActive('/')
+              ? 'bg-[#221B2B] text-white dark:bg-white dark:text-[#17101F] font-extrabold shadow-sm'
+              : 'text-[#221B2B] dark:text-[#F3EFF6] hover:text-[#EC268F] dark:hover:text-[#EC268F] hover:bg-black/5 dark:hover:bg-white/10'
+              }`}
+          >
+            Home
+          </Link>
+
+          {/* Shop with Mega Dropdown */}
+          <div
+            ref={megaMenuTriggerRef}
+            className="static"
+            onMouseEnter={openMegaMenu}
+            onMouseLeave={scheduleMegaMenuClose}
+          >
+            <Link
+              to="/shop"
+              className={`px-4 py-2 rounded-full transition-all flex items-center gap-1 ${isActive('/shop')
+                ? 'bg-[#221B2B] text-white dark:bg-white dark:text-[#17101F] font-extrabold shadow-sm'
+                : 'text-[#221B2B] dark:text-[#F3EFF6] hover:text-[#EC268F] dark:hover:text-[#EC268F] hover:bg-black/5 dark:hover:bg-white/10'
+                }`}
+            >
+              Shop <span className={`text-[9px] opacity-75 transition-transform ${megaMenuOpen ? 'rotate-180' : ''}`}>▼</span>
+            </Link>
+
+            {/* Mega Dropdown Panel Portal */}
+            {typeof document !== 'undefined' && createPortal(
+              <div
+                onMouseEnter={openMegaMenu}
+                onMouseLeave={scheduleMegaMenuClose}
+                style={{ top: `${megaMenuTop}px` }}
+                className={`luxury-mega-menu fixed left-1/2 -translate-x-1/2 w-[min(1200px,calc(100vw-2rem))] max-h-[calc(100dvh-8rem)] overflow-y-auto overscroll-contain bg-white/95 dark:bg-[#1E1528]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-3xl shadow-2xl p-8 grid grid-cols-[minmax(0,4fr)_minmax(220px,1fr)] gap-8 z-[100] transition-all ${megaMenuOpen ? 'opacity-100 translate-y-0 visible' : 'opacity-0 -translate-y-2 invisible pointer-events-none'
+                  }`}
+              >
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-start min-w-0">
+                  {megaMenuCollections.map((col) => (
+                    <div key={col.id} className="flex min-w-0 flex-col gap-3">
+                      <span className="font-sans font-extrabold text-xs  tracking-wider text-gray-950 dark:text-white border-b border-gray-200 dark:border-white/10 pb-2.5">
+                        {col.name}
+                      </span>
+                      <div className="flex flex-col gap-2.5 text-xs text-gray-600 dark:text-gray-400">
+                        {col.categories && col.categories.length > 0 ? (
+                          col.categories.map((cat) => (
+                            <Link
+                              key={cat.id}
+                              to={`/shop?category=${cat.slug}`}
+                              onClick={closeMegaMenu}
+                              className="hover:text-[#5D3E85] dark:hover:text-[#EC268F] hover:bg-gray-100 dark:hover:bg-white/5 px-2 py-1 rounded-lg transition-all block font-bold"
+                            >
+                              {cat.name}
+                            </Link>
+                          ))
+                        ) : (
+                          <span className="text-[10px] text-gray-400 italic">No categories linked</span>
+                        )}
+                        <Link
+                          onClick={closeMegaMenu}
+                          to={`/shop?collection=${col.slug}`}
+                          className="text-[#5D3E85] dark:text-[#EC268F] hover:underline font-bold mt-2 text-[11px] flex items-center gap-0.5 group px-2 py-1 rounded-lg"
+                        >
+                          Shop {col.name}
+                          <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                  {megaMenuCollections.length === 0 && (
+                    <div className="col-span-full py-6 text-xs text-gray-400">No collections featured in this menu.</div>
+                  )}
+                </div>
+
+                <div className="flex min-w-0 flex-col gap-3 border-l border-gray-100 dark:border-white/10 pl-8 h-full justify-between">
+                  <span className="font-sans font-extrabold text-xs  tracking-wider text-gray-950 dark:text-white border-b border-gray-200 dark:border-white/10 pb-2.5 flex items-center gap-1.5">
+                    ✨ Featured Offers
+                  </span>
+                  <MegaMenuAdSlideshow ads={settings.mega_menu_ads} />
+                </div>
+              </div>,
+              document.body
+            )}
+          </div>
+
+          {/* 3. Reviews */}
+          <Link
+            to="/reviews"
+            className={`px-4 py-2 rounded-full transition-all ${isActive('/reviews')
+              ? 'bg-[#221B2B] text-white dark:bg-white dark:text-[#17101F] font-extrabold shadow-sm'
+              : 'text-[#221B2B] dark:text-[#F3EFF6] hover:text-[#EC268F] dark:hover:text-[#EC268F] hover:bg-black/5 dark:hover:bg-white/10'
+              }`}
+          >
+            Reviews
+          </Link>
+
+          {/* 4. About */}
+          <Link
+            to="/pages/about-us"
+            className={`px-4 py-2 rounded-full transition-all ${isActive('/pages/about-us')
+              ? 'bg-[#221B2B] text-white dark:bg-white dark:text-[#17101F] font-extrabold shadow-sm'
+              : 'text-[#221B2B] dark:text-[#F3EFF6] hover:text-[#EC268F] dark:hover:text-[#EC268F] hover:bg-black/5 dark:hover:bg-white/10'
+              }`}
+          >
+            About
+          </Link>
+
+          {/* 5. Tips */}
+          <Link
+            to="/pages/tips"
+            className={`px-4 py-2 rounded-full transition-all ${isActive('/pages/tips')
+              ? 'bg-[#221B2B] text-white dark:bg-white dark:text-[#17101F] font-extrabold shadow-sm'
+              : 'text-[#221B2B] dark:text-[#F3EFF6] hover:text-[#EC268F] dark:hover:text-[#EC268F] hover:bg-black/5 dark:hover:bg-white/10'
+              }`}
+          >
+            Tips
+          </Link>
+
+          {/* 6. Track Order */}
+          <Link
+            to="/order-tracking"
+            className={`px-4 py-2 rounded-full transition-all ${isActive('/order-tracking')
+              ? 'bg-[#221B2B] text-white dark:bg-white dark:text-[#17101F] font-extrabold shadow-sm'
+              : 'text-[#221B2B] dark:text-[#F3EFF6] hover:text-[#EC268F] dark:hover:text-[#EC268F] hover:bg-black/5 dark:hover:bg-white/10'
+              }`}
+          >
+            Track Order
+          </Link>
+
+          {/* 7. Blog */}
+          <Link
+            to="/blog"
+            className={`px-4 py-2 rounded-full transition-all ${isActive('/blog')
+              ? 'bg-[#221B2B] text-white dark:bg-white dark:text-[#17101F] font-extrabold shadow-sm'
+              : 'text-[#221B2B] dark:text-[#F3EFF6] hover:text-[#EC268F] dark:hover:text-[#EC268F] hover:bg-black/5 dark:hover:bg-white/10'
+              }`}
+          >
+            Blog
+          </Link>
+
+          {/* 8. Contact */}
+          <Link
+            to="/contact"
+            className={`px-4 py-2 rounded-full transition-all ${isActive('/contact')
+              ? 'bg-[#221B2B] text-white dark:bg-white dark:text-[#17101F] font-extrabold shadow-sm'
+              : 'text-[#221B2B] dark:text-[#F3EFF6] hover:text-[#EC268F] dark:hover:text-[#EC268F] hover:bg-black/5 dark:hover:bg-white/10'
+              }`}
+          >
+            Contact
+          </Link>
+        </nav>
+
+        {/* Right Action Icons & Bag Pill (Borderless with Solid White Backgrounds & Crisp Shadows) */}
+        <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Theme Toggle (shown when admin mode allows user_choice) */}
+          {themeMode === 'user_choice' && (
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="hidden sm:flex w-10 h-10 rounded-full bg-white dark:bg-white/90 shadow-md hover:shadow-lg items-center justify-center text-[#221B2B] hover:text-[#EC268F] hover:scale-105 transition-all cursor-pointer btn-spring"
+              title={storefrontDark ? 'Switch to Quiet Editorial Light Mode' : 'Switch to B Night Dark Mode'}
+              aria-label="Toggle Light and Dark Theme"
+            >
+              {storefrontDark ? (
+                <Sun className="w-4 h-4 text-[#5D3E85]" />
+              ) : (
+                <Moon className="w-4 h-4 text-[#5D3E85]" />
+              )}
+            </button>
+          )}
+
+          {/* Search Trigger */}
+          <button
+            type="button"
+            onClick={() => setShowSearchModal(true)}
+            className="w-10 h-10 rounded-full bg-white dark:bg-white/90 shadow-md hover:shadow-lg flex items-center justify-center text-[#221B2B] hover:text-[#EC268F] hover:scale-105 transition-all cursor-pointer btn-spring"
+            title="Search catalog"
+          >
+            <Search className="w-4.5 h-4.5" />
+          </button>
+
+          {/* User Account Direct Dashboard / Login Dropdown Trigger */}
+          <div className="relative hidden sm:block" ref={userDropdownRef}>
+            <button
+              type="button"
+              onClick={() => {
+                const adminToken = localStorage.getItem('dansolam_admin_token') || sessionStorage.getItem('dansolam_admin_token');
+                const customerToken = localStorage.getItem('dansolam_customer_token') || sessionStorage.getItem('dansolam_customer_token');
+                if (adminToken) {
+                  navigate('/admin');
+                } else if (customerToken) {
+                  navigate('/account');
+                } else {
+                  setShowUserDropdown((prev) => !prev);
+                }
+              }}
+              className={`w-10 h-10 rounded-full bg-white dark:bg-white/90 shadow-md hover:shadow-lg flex items-center justify-center text-[#221B2B] hover:text-[#EC268F] hover:scale-105 transition-all cursor-pointer btn-spring ${showUserDropdown ? 'ring-2 ring-[#5D3E85]' : ''
+                }`}
+              title="Account / Dashboard"
+              aria-label="Account / Dashboard"
+              aria-expanded={showUserDropdown}
+            >
+              <User className="w-4.5 h-4.5" />
+            </button>
+
+            {/* Dropdown Menu (Shown only when not logged in to select destination) */}
+            {showUserDropdown && (
+              <div className="absolute right-0 top-full mt-2.5 w-64 md:w-72 bg-white dark:bg-[#1E1528] rounded-2xl p-2.5 shadow-2xl border border-[#EADBEE] dark:border-white/12 z-50 animate-fade-in text-left">
+                <div className="px-3 py-2 border-b border-[#EADBEE]/60 dark:border-white/10 mb-1.5">
+                  <span className="text-[10px]  tracking-wider font-extrabold text-[#5D3E85] dark:text-[#EC268F] block">Select Login Portal</span>
+                  <span className="text-[11px] text-gray-500 dark:text-[#9B8EA9] leading-tight block mt-0.5">Choose your account destination</span>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  {/* Customer Portal */}
+                  <Link
+                    to="/account"
+                    onClick={() => setShowUserDropdown(false)}
+                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-[#5D3E85]/8 dark:hover:bg-white/5 transition-all group"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-[#5D3E85]/10 dark:bg-[#EC268F]/20 text-[#5D3E85] dark:text-[#EC268F] flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <User className="w-4.5 h-4.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <strong className="block text-xs font-bold text-[#221B2B] dark:text-[#F3EFF6] group-hover:text-[#5D3E85] dark:group-hover:text-[#EC268F] transition-colors">
+                        Customer Login
+                      </strong>
+                      <span className="block text-[10px] text-gray-500 dark:text-[#9B8EA9] truncate">
+                        Orders, Profile & Wishlist
+                      </span>
+                    </div>
+                    <ArrowUpRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#5D3E85] dark:group-hover:text-[#EC268F] transition-colors opacity-60" />
+                  </Link>
+
+                  {/* Staff & Admin Portal */}
+                  <Link
+                    to="/admin/login"
+                    onClick={() => setShowUserDropdown(false)}
+                    className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-amber-500/10 dark:hover:bg-amber-400/10 transition-all group"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-amber-500/10 dark:bg-amber-400/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                      <ShieldCheck className="w-4.5 h-4.5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <strong className="block text-xs font-bold text-[#221B2B] dark:text-[#F3EFF6] group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                        Staff & Admin Login
+                      </strong>
+                      <span className="block text-[10px] text-gray-500 dark:text-[#9B8EA9] truncate">
+                        Store Management & POS
+                      </span>
+                    </div>
+                    <ArrowUpRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors opacity-60" />
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Wishlist */}
+          <button
+            type="button"
+            onClick={() => setShowWishlistDrawer(true)}
+            className="relative w-10 h-10 rounded-full bg-white dark:bg-white/90 shadow-md hover:shadow-lg flex items-center justify-center text-[#221B2B] hover:text-[#EC268F] hover:scale-105 transition-all cursor-pointer btn-spring"
+            title="Saved Wishlist"
+          >
+            <Heart className="w-4.5 h-4.5" />
+            {wishlistCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-[#EC268F] text-white text-[9px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold shadow-xs">
+                {wishlistCount}
+              </span>
+            )}
+          </button>
+
+          {/* Bag Pill Button */}
+          <Link
+            to="/cart"
+            id="cart-btn-desktop"
+            className="flex items-center gap-2 px-4.5 sm:px-5 py-2.5 rounded-full bg-[#EC268F] hover:bg-[#C9166F] text-white text-xs font-bold shadow-md hover:scale-105 active:scale-95 transition-all btn-spring"
+          >
+            <ShoppingBag className="w-4 h-4" />
+            <span>Bag · {cartItemsCount}</span>
+          </Link>
         </div>
       </header>
-      )}
 
       {/* Slide-out Mobile Navigation Drawer */}
       <div
@@ -769,15 +1000,22 @@ export default function StorefrontLayout() {
       >
         <div
           onClick={e => e.stopPropagation()}
-          className={`fixed top-0 bottom-0 left-0 w-80 max-w-[85vw] bg-white z-[60] p-6 flex flex-col gap-6 shadow-2xl transition-transform duration-300 rounded-r-3xl ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          className={`fixed top-0 bottom-0 left-0 w-80 max-w-[85vw] bg-white dark:bg-[#1E1528] text-[#221B2B] dark:text-[#F3EFF6] z-[60] p-6 flex flex-col gap-6 shadow-2xl transition-transform duration-300 rounded-r-3xl ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
             }`}
         >
           {/* Drawer Header */}
-          <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-            <span className="font-serif font-bold text-gray-900 text-base">{ecommerce.name}</span>
+          <div className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-white/10">
+            {settings?.logo_url ? (
+              <img src={settings.logo_url} alt={ecommerce.name} className="h-9 object-contain" />
+            ) : (
+              <div className="flex flex-col leading-tight">
+                <span className="font-sans font-bold text-lg text-[#221B2B] dark:text-[#F3EFF6]">{ecommerce.name}</span>
+                <span className="font-sans font-semibold text-[8px] tracking-[0.25em]  text-[#5D3E85] dark:text-[#E5C158]">Beauty Home</span>
+              </div>
+            )}
             <button
               onClick={() => setMobileMenuOpen(false)}
-              className="p-1.5 hover:bg-gray-50 rounded-full text-gray-400 hover:text-gray-950 transition-all cursor-pointer"
+              className="p-1.5 hover:bg-gray-50 dark:hover:bg-white/10 rounded-full text-gray-400 dark:text-gray-300 hover:text-gray-950 transition-all cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -791,44 +1029,44 @@ export default function StorefrontLayout() {
             }}
             className="flex items-center relative cursor-pointer"
           >
-            <div className="pl-10 pr-4 py-2.5 text-xs rounded-full border border-gray-200 text-gray-400 bg-gray-55/30 w-full select-none font-semibold">
-              Search ecommerce catalog...
+            <div className="pl-10 pr-4 py-2.5 text-xs rounded-full border border-gray-200 dark:border-white/15 text-gray-400 bg-gray-50 dark:bg-white/5 w-full select-none font-semibold">
+              Search catalog...
             </div>
             <Search className="w-3.5 h-3.5 text-gray-400 absolute left-4" />
           </div>
 
           {/* Nav Links */}
-          <nav className="flex flex-col gap-4 text-base md:text-lg font-bold text-gray-900">
-            <Link to="/" onClick={() => setMobileMenuOpen(false)} className="hover:text-primary transition-colors py-1 flex items-center justify-between">
-              Home <ArrowUpRight className="w-3.5 h-3.5 text-gray-300" />
+          <nav className="flex flex-col gap-3.5 text-sm font-bold text-gray-800 dark:text-[#F3EFF6]">
+            <Link to="/" onClick={() => setMobileMenuOpen(false)} className="hover:text-[#5D3E85] dark:hover:text-[#EC268F] transition-colors py-1 flex items-center justify-between">
+              Home <ArrowUpRight className="w-3.5 h-3.5 opacity-40" />
             </Link>
-            <Link to="/shop" onClick={() => setMobileMenuOpen(false)} className="hover:text-primary transition-colors py-1 flex items-center justify-between">
-              Shop All Catalog <ArrowUpRight className="w-3.5 h-3.5 text-gray-300" />
+            <Link to="/shop" onClick={() => setMobileMenuOpen(false)} className="hover:text-[#5D3E85] dark:hover:text-[#EC268F] transition-colors py-1 flex items-center justify-between">
+              Shop <ArrowUpRight className="w-3.5 h-3.5 opacity-40" />
             </Link>
-            <Link to="/pages/about-us" onClick={() => setMobileMenuOpen(false)} className="hover:text-primary transition-colors py-1 flex items-center justify-between">
-              About Us <ArrowUpRight className="w-3.5 h-3.5 text-gray-300" />
+            <Link to="/reviews" onClick={() => setMobileMenuOpen(false)} className="hover:text-[#5D3E85] dark:hover:text-[#EC268F] transition-colors py-1 flex items-center justify-between">
+              Reviews <ArrowUpRight className="w-3.5 h-3.5 opacity-40" />
             </Link>
-            <Link to="/pages/size-guide" onClick={() => setMobileMenuOpen(false)} className="hover:text-primary transition-colors py-1 flex items-center justify-between">
-              Size Guide & Fit <ArrowUpRight className="w-3.5 h-3.5 text-gray-300" />
+            <Link to="/pages/about-us" onClick={() => setMobileMenuOpen(false)} className="hover:text-[#5D3E85] dark:hover:text-[#EC268F] transition-colors py-1 flex items-center justify-between">
+              About <ArrowUpRight className="w-3.5 h-3.5 opacity-40" />
             </Link>
-            {settings?.show_gallery_page !== 'false' && (
-              <Link to="/gallery" onClick={() => setMobileMenuOpen(false)} className="hover:text-primary transition-colors py-1 flex items-center justify-between">
-                Gallery Lookbook <ArrowUpRight className="w-3.5 h-3.5 text-gray-300" />
-              </Link>
-            )}
+            <Link to="/pages/tips" onClick={() => setMobileMenuOpen(false)} className="hover:text-[#5D3E85] dark:hover:text-[#EC268F] transition-colors py-1 flex items-center justify-between">
+              Tips <ArrowUpRight className="w-3.5 h-3.5 opacity-40" />
+            </Link>
+            <Link to="/order-tracking" onClick={() => setMobileMenuOpen(false)} className="hover:text-[#5D3E85] dark:hover:text-[#EC268F] transition-colors py-1 flex items-center justify-between">
+              Track Order <ArrowUpRight className="w-3.5 h-3.5 opacity-40" />
+            </Link>
             {settings?.show_blog_page !== 'false' && (
-              <Link to="/blog" onClick={() => setMobileMenuOpen(false)} className="hover:text-primary transition-colors py-1 flex items-center justify-between">
-                Ecommerce Blog <ArrowUpRight className="w-3.5 h-3.5 text-gray-300" />
+              <Link to="/blog" onClick={() => setMobileMenuOpen(false)} className="hover:text-[#5D3E85] dark:hover:text-[#EC268F] transition-colors py-1 flex items-center justify-between">
+                Blog <ArrowUpRight className="w-3.5 h-3.5 opacity-40" />
               </Link>
             )}
-            <Link to="/reviews" onClick={() => setMobileMenuOpen(false)} className="hover:text-primary transition-colors py-1 flex items-center justify-between">
-              Customer Reviews <ArrowUpRight className="w-3.5 h-3.5 text-gray-300" />
-            </Link>
-            <Link to="/order-tracking" onClick={() => setMobileMenuOpen(false)} className="hover:text-primary transition-colors py-1 flex items-center justify-between">
-              Track Your Order <ArrowUpRight className="w-3.5 h-3.5 text-gray-300" />
-            </Link>
-            <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="hover:text-primary transition-colors py-1 flex items-center justify-between">
-              Contact Us <ArrowUpRight className="w-3.5 h-3.5 text-gray-300" />
+            {settings?.show_gallery_page !== 'false' && (
+              <Link to="/gallery" onClick={() => setMobileMenuOpen(false)} className="hover:text-[#5D3E85] dark:hover:text-[#EC268F] transition-colors py-1 flex items-center justify-between">
+                Gallery Lookbook <ArrowUpRight className="w-3.5 h-3.5 opacity-40" />
+              </Link>
+            )}
+            <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="hover:text-[#5D3E85] dark:hover:text-[#EC268F] transition-colors py-1 flex items-center justify-between">
+              Contact <ArrowUpRight className="w-3.5 h-3.5 opacity-40" />
             </Link>
             {settings?.enable_fitting_sessions !== 'false' && (
               <button
@@ -837,18 +1075,53 @@ export default function StorefrontLayout() {
                   setMobileMenuOpen(false);
                   setBookFittingModalOpen(true);
                 }}
-                className="w-full text-left font-bold text-gray-900 hover:text-primary transition-colors py-1 flex items-center justify-between cursor-pointer"
+                className="w-full text-left font-bold text-gray-800 dark:text-[#F3EFF6] hover:text-[#5D3E85] dark:hover:text-[#EC268F] transition-colors py-1 flex items-center justify-between cursor-pointer"
               >
-                <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-                  ✨ Book VIP Fitting Session
+                <span className="flex items-center gap-1.5 text-amber-600 dark:text-[#E5C158]">
+                  Book VIP Spa Session
                 </span>
-                <Sparkles className="w-4 h-4 text-yellow-500" />
+                <ArrowUpRight className="w-3.5 h-3.5 opacity-40" />
               </button>
             )}
-            <Link to="/account" onClick={() => setMobileMenuOpen(false)} className="hover:text-primary transition-colors py-1 flex items-center justify-between">
-              My Profile & Orders <ArrowUpRight className="w-3.5 h-3.5 text-gray-300" />
-            </Link>
-            {!!window.localStorage.getItem('fairqueen_admin_token') && (
+            <div className="pt-2 pb-1 flex flex-col gap-1 border-t border-gray-100 dark:border-white/10">
+              <span className="text-[10px]  tracking-wider font-extrabold text-gray-400 dark:text-[#9B8EA9] px-1 block mb-1">Login Portals</span>
+              <Link to="/account" onClick={() => setMobileMenuOpen(false)} className="hover:text-[#5D3E85] dark:hover:text-[#EC268F] transition-colors py-1 flex items-center justify-between text-xs font-semibold text-gray-800 dark:text-[#F3EFF6]">
+                <span className="flex items-center gap-2"><User className="w-3.5 h-3.5 text-[#5D3E85] dark:text-[#EC268F]" /> Customer Login (Orders & Profile)</span>
+                <ArrowUpRight className="w-3.5 h-3.5 opacity-40" />
+              </Link>
+              <Link to="/admin/login" onClick={() => setMobileMenuOpen(false)} className="hover:text-amber-600 dark:hover:text-amber-400 transition-colors py-1 flex items-center justify-between text-xs font-semibold text-gray-800 dark:text-[#F3EFF6]">
+                <span className="flex items-center gap-2"><ShieldCheck className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" /> Staff & Admin Portal</span>
+                <ArrowUpRight className="w-3.5 h-3.5 opacity-40" />
+              </Link>
+            </div>
+
+            {/* Theme Mode Toggle Button Row (when user_choice is allowed) */}
+            {themeMode === 'user_choice' && (
+              <div className="pt-3 border-t border-gray-100 dark:border-white/10 flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-700 dark:text-[#C9BED4] flex items-center gap-2">
+                  {storefrontDark ? <Moon className="w-4 h-4 text-purple-400" /> : <Sun className="w-4 h-4 text-amber-500" />}
+                  Appearance
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleTheme}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs ${storefrontDark ? 'bg-amber-400 text-gray-950 hover:bg-amber-300' : 'bg-[#181120] text-white hover:bg-[#281b36]'
+                    }`}
+                >
+                  {storefrontDark ? (
+                    <>
+                      <Sun className="w-3.5 h-3.5" /> Light Mode
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="w-3.5 h-3.5" /> B Night
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+
+            {!!window.localStorage.getItem('dansolam_admin_token') && (
               <Link
                 to="/admin"
                 onClick={() => setMobileMenuOpen(false)}
@@ -882,52 +1155,90 @@ export default function StorefrontLayout() {
         <Outlet />
       </main>
 
+      {/* Cross-Selling & Not Found CTA Partial (Shown on all pages except Home and Shop) */}
+      {location.pathname !== '/' && !location.pathname.startsWith('/shop') && (
+        <NotFoundCrossSellSection />
+      )}
+
       {/* 3. Footer (Desktop & Tablet) */}
-      <footer className="bg-[#0B0B0B] py-16 px-6 md:px-12 text-sm text-gray-300 hidden md:block">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10">
-          <div className="flex flex-col gap-4">
-            <h4 className="font-serif font-bold text-white text-lg leading-none">{ecommerce.name}</h4>
-            <p className="text-xs leading-relaxed text-gray-400">{settings.description}</p>
+      <footer className="bg-[#100A16] border-t border-white/5 py-16 px-6 md:px-12 text-sm text-[#C9BED4] hidden md:block">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10">
+          
+          {/* Column 1: Brand Logo & Copyright starting from same flush left symmetrical line */}
+          <div className="flex flex-col gap-4 items-start text-left">
+            {settings?.logo_url ? (
+              <img
+                src={settings.logo_url}
+                alt={ecommerce.name}
+                className="h-10 sm:h-11 w-auto object-contain object-left mr-auto brightness-110"
+              />
+            ) : (
+              <div className="flex flex-col leading-none text-left">
+                <span className="font-serif italic text-2xl text-[#F3EFF6] font-normal tracking-tight">{ecommerce.name}</span>
+                <span className="text-[8px] font-extrabold text-[#EC268F] tracking-[0.22em]  mt-0.5">Luxury Skincare & Spa</span>
+              </div>
+            )}
+            {settings.description && (
+              <p className="text-xs leading-relaxed text-[#9B8EA9] text-left">{settings.description}</p>
+            )}
+            <p className="text-[11px] text-[#6B6274] mt-1 text-left">© {new Date().getFullYear()} {ecommerce.name}. All Rights Reserved.</p>
+          </div>
+
+          {/* Column 2: Go To Links displaying all navbar links */}
+          <div>
+            <h5 className="font-sans font-bold text-[#F3EFF6] mb-4 text-xs tracking-wider uppercase">Go To Links</h5>
+            <ul className="flex flex-col gap-2.5 text-xs text-[#C9BED4]">
+              <li><Link to="/" className="hover:text-[#EC268F] transition-colors">Home</Link></li>
+              <li><Link to="/shop" className="hover:text-[#EC268F] transition-colors">Shop All Products</Link></li>
+              <li><Link to="/pages/about-us" className="hover:text-[#EC268F] transition-colors">About Us</Link></li>
+              <li><Link to="/pages/tips" className="hover:text-[#EC268F] transition-colors">Beauty & Glow Tips</Link></li>
+              {settings?.show_gallery_page !== 'false' && (
+                <li><Link to="/gallery" className="hover:text-[#EC268F] transition-colors">Lookbook Gallery</Link></li>
+              )}
+              {settings?.show_blog_page !== 'false' && (
+                <li><Link to="/blog" className="hover:text-[#EC268F] transition-colors">Blog & Articles</Link></li>
+              )}
+              <li><Link to="/reviews" className="hover:text-[#EC268F] transition-colors">Client Reviews</Link></li>
+              <li><Link to="/order-tracking" className="hover:text-[#EC268F] transition-colors">Track Order</Link></li>
+              <li><Link to="/contact" className="hover:text-[#EC268F] transition-colors">Contact Us</Link></li>
+            </ul>
+          </div>
+
+          {/* Column 3: Get In Touch with address, hours & admin managed social media icons */}
+          <div>
+            <h5 className="font-sans font-bold text-[#F3EFF6] mb-4 text-xs tracking-wider uppercase">Get In Touch</h5>
+            <ul className="flex flex-col gap-2.5 text-xs text-[#C9BED4] leading-relaxed">
+              <li>📍 {settings.store_address || 'Wuse II, Abuja, Nigeria'}</li>
+              <li>🕒 Hours: {settings.opening_hours || 'Mon–Sat: 9am - 7pm'}</li>
+              <li>🚚 Rapid Doorstep Dispatch</li>
+            </ul>
+
+            {/* Social Media Icons Managed Under Admin Settings */}
             {socialLinks.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 pt-1" aria-label="Social media links">
+              <div className="flex flex-wrap items-center gap-2 pt-4" aria-label="Social media links">
                 {socialLinks.map(({ label, url, network }) => (
-                  <a key={label} href={url} target="_blank" rel="noopener noreferrer" aria-label={label} title={label} className="w-9 h-9 rounded-full border border-white/15 bg-white/[0.06] hover:bg-primary hover:border-primary text-white flex items-center justify-center transition-all hover:-translate-y-0.5">
+                  <a
+                    key={label}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    title={label}
+                    className="w-8 h-8 rounded-full border border-white/10 bg-white/5 hover:bg-[#EC268F] hover:border-[#EC268F] text-white flex items-center justify-center transition-all hover:-translate-y-0.5"
+                  >
                     <SocialIcon network={network} className="w-4 h-4" />
                   </a>
                 ))}
               </div>
             )}
-            <p className="text-[11px] text-gray-500 mt-2">© {new Date().getFullYear()} {ecommerce.name}. All Rights Reserved.</p>
           </div>
-          <div>
-            <h5 className="font-serif font-bold text-white mb-4 text-xs tracking-wider uppercase">Shopping Info</h5>
-            <ul className="flex flex-col gap-2.5 text-xs text-gray-300">
-              <li><Link to="/shop" className="hover:text-white transition-colors">Shop All Catalog</Link></li>
-              <li><Link to="/pages/size-guide" className="hover:text-white transition-colors">Size Guide</Link></li>
-              {settings?.show_gallery_page !== 'false' && (
-                <li><Link to="/gallery" className="hover:text-white transition-colors">Lookbook Gallery</Link></li>
-              )}
-              {settings?.show_blog_page !== 'false' && (
-                <li><Link to="/blog" className="hover:text-white transition-colors">Style Blog Articles</Link></li>
-              )}
-              <li><Link to="/reviews" className="hover:text-white transition-colors">Customer Reviews</Link></li>
-              <li><Link to="/order-tracking" className="hover:text-white transition-colors">Track Order</Link></li>
-              <li><Link to="/pages/faq" className="hover:text-white transition-colors">FAQs</Link></li>
-            </ul>
-          </div>
-          <div>
-            <h5 className="font-serif font-bold text-white mb-4 text-xs tracking-wider uppercase">Store Details</h5>
-            <ul className="flex flex-col gap-2.5 text-xs text-gray-300 leading-relaxed">
-              <li>📍 {settings.store_address}</li>
-              <li>🕒 Hours: {settings.opening_hours}</li>
-              <li>🚚 Delivery Coverage: Worldwide</li>
-            </ul>
-          </div>
+
+          {/* Column 4: VIP Beauty AGENT & WhatsApp CTA */}
           <div className="flex flex-col gap-4">
-            <h5 className="font-serif font-bold text-white text-xs tracking-wider uppercase">Social Selling Support</h5>
-            <p className="text-xs text-gray-400 leading-relaxed">Need size recommendations, quick orders, or photos? Chat with us!</p>
+            <h5 className="font-sans font-bold text-[#F3EFF6] text-xs tracking-wider uppercase">VIP Beauty AGENT</h5>
+            <p className="text-xs text-[#9B8EA9] leading-relaxed">Need custom routine advice, bulk orders, or rapid dispatch? Chat with our specialist!</p>
             <a
-              href={`https://wa.me/${whatsappNumber}?text=Hello%20${encodeURIComponent(ecommerce.name)}%2C%20I'm%20visiting%2520your%2520online%2520store%2520and%2520need%2520assistance.`}
+              href={`https://wa.me/${whatsappNumber}?text=Hello%20${encodeURIComponent(ecommerce.name)}%2C%20I'm%20visiting%20your%20online%20store%20and%20need%20assistance.`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-full text-xs font-semibold shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] self-start"
@@ -939,7 +1250,7 @@ export default function StorefrontLayout() {
         </div>
 
         {/* Brand Assurances Bar */}
-        <div className="max-w-6xl mx-auto border-t border-gray-800/80 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-400">
+        <div className="max-w-7xl mx-auto border-t border-white/10 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#9B8EA9]">
           <div className="flex flex-wrap gap-4 items-center">
             <Link to="/pages/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
             <span className="opacity-35">|</span>
@@ -949,41 +1260,39 @@ export default function StorefrontLayout() {
           </div>
 
           {/* Payment Trust Assurances Icons */}
-          <div className="flex items-center gap-3 select-none">
-            <span className="text-[10px] font-bold text-white tracking-wider uppercase">SECURE PAYMENT SYSTEMS:</span>
+          <div className="flex flex-wrap items-center gap-3 select-none">
+            <span className="text-[10px] font-bold text-[#F3EFF6] tracking-wider ">SECURE CARDS & GLOBAL PAYMENTS:</span>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {/* VISA Badge */}
-              <div className="h-6 px-2.5 bg-white/10 rounded-md border border-white/20 flex items-center justify-center backdrop-blur-xs transition-all hover:bg-white/15" title="Visa">
-                <svg className="h-3 w-auto" viewBox="0 0 36 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M13.67 0.35L9.04 11.5H6.11L3.71 2.5C3.57 1.95 3.44 1.74 3.01 1.51C2.31 1.14 1.08 0.77 0 0.54L0.06 0.35H5.06C5.7 0.35 6.27 0.77 6.4 1.48L7.63 8.01L10.72 0.35H13.67ZM25.29 8.21C25.31 5.08 20.97 4.9 21.01 3.5C21.03 3.08 21.44 2.62 22.38 2.5C22.84 2.44 24.13 2.39 25.56 3.05L26.11 0.78C25.35 0.5 24.37 0.25 23.15 0.25C20.31 0.25 18.28 1.77 18.26 3.9C18.23 5.5 19.67 6.39 20.76 6.92C21.88 7.47 22.25 7.82 22.24 8.31C22.23 9.06 21.34 9.39 20.5 9.4C19.06 9.42 17.84 8.98 17.18 8.68L16.61 11.02C17.39 11.38 18.82 11.69 20.3 11.7C23.36 11.7 25.28 10.19 25.29 8.21ZM32.74 11.5H35.32L33.06 0.35H30.73C30.22 0.35 29.78 0.64 29.59 1.1L25.33 11.5H28.31L28.9 9.87H32.53L32.74 11.5ZM29.72 7.56L31.25 3.32L32.13 7.56H29.72ZM17.65 0.35L15.34 11.5H12.51L14.82 0.35H17.65Z" fill="#FFFFFF" />
-                  <path d="M5.06 0.35H0L0.06 0.54C2.56 1.17 4.7 1.95 6.4 3.05L5.06 0.35Z" fill="#F7B600" />
-                </svg>
+              <div className="h-7 px-3 bg-white dark:bg-white/95 rounded-md border border-white/20 flex items-center justify-center shadow-3xs" title="Visa">
+                <VisaLogo className="h-3 w-auto" />
               </div>
 
               {/* MASTERCARD Badge */}
-              <div className="h-6 px-2.5 bg-white/10 rounded-md border border-white/20 flex items-center justify-center backdrop-blur-xs transition-all hover:bg-white/15" title="Mastercard">
-                <svg className="h-3.5 w-auto" viewBox="0 0 24 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="8" cy="8" r="7" fill="#EB001B" />
-                  <circle cx="16" cy="8" r="7" fill="#F79E1B" fillOpacity="0.9" />
-                  <path d="M12 2.68A6.98 6.98 0 0 0 9.33 8c0 2.24 1.05 4.23 2.67 5.32A6.98 6.98 0 0 0 14.67 8c0-2.24-1.05-4.23-2.67-5.32z" fill="#FF5F00" />
-                </svg>
+              <div className="h-7 px-3 bg-white dark:bg-white/95 rounded-md border border-white/20 flex items-center justify-center shadow-3xs" title="Mastercard">
+                <MastercardLogo className="h-4 w-auto" />
               </div>
 
               {/* PAYSTACK Badge */}
-              <div className="h-6 px-2.5 bg-white/10 rounded-md border border-white/20 flex items-center justify-center backdrop-blur-xs gap-1 transition-all hover:bg-white/15" title="Paystack">
-                <svg className="h-3 w-auto" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M2 5H22V8H2V5Z" fill="#00C3F7" />
-                  <path d="M2 11H16V14H2V11Z" fill="#00C3F7" />
-                  <path d="M2 17H22V20H2V17Z" fill="#00C3F7" />
-                </svg>
-                <span className="text-[9px] font-bold text-white tracking-tight">paystack</span>
+              <div className="h-7 px-3 bg-white dark:bg-white/95 rounded-md border border-white/20 flex items-center justify-center shadow-3xs" title="Paystack">
+                <PaystackLogo className="h-4 w-auto" />
+              </div>
+
+              {/* STRIPE Badge */}
+              <div className="h-7 px-3 bg-white dark:bg-white/95 rounded-md border border-white/20 flex items-center justify-center shadow-3xs" title="Stripe">
+                <StripeLogo className="h-3.5 w-auto" />
+              </div>
+
+              {/* PAYPAL Badge */}
+              <div className="h-7 px-3 bg-white dark:bg-white/95 rounded-md border border-white/20 flex items-center justify-center shadow-3xs" title="PayPal">
+                <PayPalLogo className="h-3.5 w-auto" />
               </div>
 
               {/* COD Badge */}
-              <div className="h-6 px-2.5 bg-white/10 rounded-md border border-white/20 flex items-center justify-center backdrop-blur-xs gap-1 transition-all hover:bg-white/15" title="Cash on Delivery">
+              <div className="h-7 px-2.5 bg-white/10 rounded-md border border-white/15 flex items-center justify-center backdrop-blur-xs gap-1" title="Cash on Delivery">
                 <Banknote className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-[8px] font-bold text-white tracking-wider">COD</span>
+                <span className="text-[9px] font-bold text-white tracking-wider">COD</span>
               </div>
             </div>
           </div>
@@ -991,61 +1300,118 @@ export default function StorefrontLayout() {
       </footer>
 
       {/* 4. PWA Bottom Navigation (Mobile Viewports Only) */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 flex items-center justify-around py-2.5 z-40 md:hidden pb-safe">
-        <Link to="/" className={`flex flex-col items-center gap-0.5 text-gray-400 hover:text-primary ${isActive('/') && 'text-primary'}`}>
+      <nav className="fixed bottom-0 left-0 right-0 bg-[#FBFAF8]/95 dark:bg-[#150F1D]/95 backdrop-blur-xl border-t border-[#EADBEE] dark:border-white/10 flex items-center justify-around py-2.5 z-40 md:hidden pb-safe">
+        <Link to="/" className={`flex flex-col items-center gap-0.5 text-gray-500 dark:text-[#C9BED4] hover:text-[#5D3E85] dark:hover:text-[#EC268F] ${isActive('/') && '!text-[#EC268F] font-bold'}`}>
           <Home className="w-5 h-5" />
           <span className="text-[10px] font-medium">Home</span>
         </Link>
-        <Link to="/shop" className={`flex flex-col items-center gap-0.5 text-gray-400 hover:text-primary ${isActive('/shop') && 'text-primary'}`}>
+        <Link to="/shop" className={`flex flex-col items-center gap-0.5 text-gray-500 dark:text-[#C9BED4] hover:text-[#5D3E85] dark:hover:text-[#EC268F] ${isActive('/shop') && '!text-[#EC268F] font-bold'}`}>
           <ShoppingBag className="w-5 h-5" />
           <span className="text-[10px] font-medium">Shop</span>
         </Link>
-        <Link to="/shop?focusSearch=true" className="flex flex-col items-center gap-0.5 text-gray-400 hover:text-primary">
+        <button
+          type="button"
+          onClick={() => setShowSearchModal(true)}
+          className="flex flex-col items-center gap-0.5 text-gray-500 dark:text-[#C9BED4] hover:text-[#EC268F] cursor-pointer"
+        >
           <Search className="w-5 h-5" />
           <span className="text-[10px] font-medium">Search</span>
-        </Link>
-        <Link
-          to="/cart"
-          id="cart-btn-mobile"
-          className={`flex flex-col items-center gap-0.5 text-gray-400 hover:text-primary relative ${isActive('/cart') && 'text-primary'} ${animateCart ? 'animate-spiral-hit' : ''}`}
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowWishlistDrawer(true)}
+          className="flex flex-col items-center gap-0.5 text-gray-500 dark:text-[#C9BED4] hover:text-[#EC268F] relative cursor-pointer"
         >
-          <ShoppingCart className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Cart</span>
-          {cartItemsCount > 0 && (
-            <span className="absolute top-0 right-1.5 bg-primary text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-              {cartItemsCount}
+          <Heart className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Saved</span>
+          {wishlistCount > 0 && (
+            <span className="absolute -top-1 right-2 bg-[#EC268F] text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center font-bold">
+              {wishlistCount}
             </span>
           )}
-        </Link>
-        <Link to="/account" className={`flex flex-col items-center gap-0.5 text-gray-400 hover:text-primary ${isActive('/account') && 'text-primary'}`}>
+        </button>
+        <Link to="/account" className={`flex flex-col items-center gap-0.5 text-gray-500 dark:text-[#C9BED4] hover:text-[#EC268F] ${isActive('/account') && '!text-[#EC268F] font-bold'}`}>
           <User className="w-5 h-5" />
           <span className="text-[10px] font-medium">Account</span>
         </Link>
       </nav>
 
-      {/* 5. Floating WhatsApp Click-to-Chat Button with Stretcher Effect */}
-      <a
-        href={`https://wa.me/${whatsappNumber}?text=Hello%20${encodeURIComponent(ecommerce.name)}%2C%20I'm%20browsing%20your%20store%20and%20would%20love%20to%20make%20an%20inquiry.`}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="storefront-whatsapp-fab text-white p-3 md:p-3.5 rounded-full shadow-2xl z-40 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 active:scale-95 flex items-center gap-2.5 max-w-[52px] hover:max-w-[260px] overflow-hidden group border-2 border-white/30 backdrop-blur-xs cursor-pointer select-none"
-        aria-label="WhatsApp Chat Support"
-      >
-        {/* Pulsing Radar Ring */}
-        <span className="absolute inset-0 rounded-full animate-ping opacity-35 pointer-events-none" style={{ backgroundColor: 'var(--color-primary)' }} />
+      {/* 5. Floating WhatsApp Click-to-CHAT US with Interval Pop Animation */}
+      <div className="fixed right-4 sm:right-6 bottom-20 md:bottom-8 z-40 flex flex-col items-end pointer-events-none select-none">
+        {/* Animated Pop Speech Bubble */}
+        {isChatBubblePopped && (
+          <div className="animate-bubble-pop mb-2.5 max-w-[240px] sm:max-w-[280px] bg-white dark:bg-[#1E1528] rounded-2xl p-3 shadow-2xl border border-[#EADBEE] dark:border-white/15 pointer-events-auto relative text-left">
+            {/* Small speech arrow pointing down */}
+            <div className="absolute -bottom-1.5 right-6 w-3 h-3 bg-white dark:bg-[#1E1528] border-r border-b border-[#EADBEE] dark:border-white/15 rotate-45" />
 
-        {/* WhatsApp Icon */}
-        <div className="relative shrink-0 flex items-center justify-center">
-          <MessageCircle className="w-6 h-6 fill-white text-white transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
-          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-300 rounded-full border border-white animate-pulse" />
-        </div>
+            <div className="flex items-start gap-2.5 relative z-10">
+              {/* Agent Avatar / Glow */}
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#5D3E85] to-[#EC268F] flex items-center justify-center text-white shrink-0 shadow-sm relative">
+                <MessageCircle className="w-4 h-4" />
+                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white dark:border-[#1E1528]" />
+              </div>
 
-        {/* Stretcher Expanded Text Bubble */}
-        <div className="opacity-0 group-hover:opacity-100 whitespace-nowrap transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 font-sans font-bold text-xs pr-2 flex flex-col justify-center leading-tight">
-          <span>Need Help?</span>
-          <span className="text-[10px] font-normal opacity-90">Chat on WhatsApp 💬</span>
-        </div>
-      </a>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-1">
+                  <span className="text-[9px] font-extrabold  tracking-wider text-[#EC268F] bg-[#EC268F]/10 px-1.5 py-0.5 rounded-md">
+                    {chatMessages[chatMessageIndex].badge}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setIsChatBubblePopped(false);
+                    }}
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-0.5 cursor-pointer"
+                    aria-label="Dismiss chat tip"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+                <p className="font-extrabold text-[11px] text-[#221B2B] dark:text-[#F3EFF6] mt-1 leading-snug">
+                  {chatMessages[chatMessageIndex].title}
+                </p>
+                <p className="text-[10px] text-gray-500 dark:text-[#C9BED4] leading-tight mt-0.5 font-medium">
+                  {chatMessages[chatMessageIndex].subtitle}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Floating WhatsApp Action Button */}
+        <a
+          href={`https://wa.me/${whatsappNumber}?text=Hello%20${encodeURIComponent(ecommerce.name)}%2C%20I'm%20browsing%20your%20store%20and%20would%20love%20to%20make%20an%20inquiry.`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`pointer-events-auto text-white p-3 md:p-3.5 rounded-full shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-105 active:scale-95 flex items-center gap-2.5 overflow-hidden group border-2 border-white/30 backdrop-blur-xs cursor-pointer select-none bg-[#EC268F] hover:bg-[#5D3E85] ${isChatBubblePopped
+            ? 'max-w-[280px] ring-4 ring-[#EC268F]/30 shadow-[#EC268F]/40 scale-105'
+            : 'max-w-[52px] hover:max-w-[260px]'
+            }`}
+          aria-label="WhatsApp Chat Support"
+        >
+          {/* Pulsing Radar Ring */}
+          <span className="absolute inset-0 rounded-full animate-ping opacity-35 pointer-events-none bg-[#EC268F]" />
+
+          {/* WhatsApp Icon */}
+          <div className="relative shrink-0 flex items-center justify-center">
+            <MessageCircle className="w-6 h-6 fill-white text-white transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-300 rounded-full border border-white animate-pulse" />
+          </div>
+
+          {/* Stretcher Expanded Text Bubble */}
+          <div
+            className={`whitespace-nowrap transition-all duration-300 font-sans font-bold text-xs pr-2 flex flex-col justify-center leading-tight ${isChatBubblePopped
+              ? 'opacity-100 transform translate-x-0'
+              : 'opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0'
+              }`}
+          >
+            <span>Need Help?</span>
+            <span className="text-[10px] font-normal opacity-90">Chat on WhatsApp 💬</span>
+          </div>
+        </a>
+      </div>
 
       {/* 6. PROMOTIONAL POPUP NEWSLETTER MODAL */}
       {showPopupModal && (
@@ -1114,30 +1480,30 @@ export default function StorefrontLayout() {
 
       {/* Search Typeahead Popup Modal */}
       {showSearchModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-start justify-center pt-[10vh] p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-start justify-center pt-[10vh] p-4 animate-fade-in">
           <div className="fixed inset-0" onClick={() => setShowSearchModal(false)} />
 
-          <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl border border-gray-150 relative z-10 flex flex-col max-h-[75vh] overflow-hidden animate-scale-up">
+          <div className="bg-white dark:bg-[#1E1528] text-gray-900 dark:text-[#F3EFF6] rounded-3xl w-full max-w-2xl shadow-2xl border border-gray-200 dark:border-white/10 relative z-10 flex flex-col max-h-[75vh] overflow-hidden animate-scale-up">
             {/* Search Input Header */}
-            <div className="p-4 border-b border-gray-100 flex items-center gap-3">
-              <Search className="w-5 h-5 text-gray-400 shrink-0" />
+            <div className="p-4 border-b border-gray-100 dark:border-white/10 flex items-center gap-3">
+              <Search className="w-5 h-5 text-gray-400 dark:text-[#9B8EA9] shrink-0" />
               <input
                 type="text"
                 autoFocus
-                placeholder="Search products, pages, guides, blog articles..."
+                placeholder="Search products, treatments, routines, articles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full py-2 text-sm text-gray-800 focus:outline-none placeholder-gray-400 bg-transparent"
+                className="w-full py-2 text-sm text-gray-800 dark:text-[#F3EFF6] focus:outline-none placeholder-gray-400 dark:placeholder-[#9B8EA9] bg-transparent font-medium"
               />
               {searchLoading && (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary shrink-0" />
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#5D3E85] dark:border-[#EC268F] shrink-0" />
               )}
               <button
                 onClick={() => {
                   setSearchQuery('');
                   setShowSearchModal(false);
                 }}
-                className="p-1.5 hover:bg-gray-105 rounded-xl text-gray-400 hover:text-gray-600 transition-all shrink-0 cursor-pointer"
+                className="p-1.5 hover:bg-gray-100 dark:hover:bg-white/10 rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-white transition-all shrink-0 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1148,69 +1514,69 @@ export default function StorefrontLayout() {
               {!searchQuery.trim() || searchQuery.trim().length < 2 ? (
                 <div className="flex flex-col gap-6">
                   <div>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-2.5">Quick Page Links</span>
+                    <span className="text-[10px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider block mb-2.5">Quick Links</span>
                     <div className="flex flex-wrap gap-2">
                       <Link
                         to="/shop"
                         onClick={() => setShowSearchModal(false)}
-                        className="px-4 py-2 bg-gray-50 hover:bg-primary/5 hover:text-primary border border-gray-100 rounded-full text-xs text-gray-600 transition-all font-semibold"
+                        className="px-4 py-2 bg-gray-50 dark:bg-white/5 hover:bg-[#5D3E85]/10 dark:hover:bg-[#EC268F]/10 hover:text-[#5D3E85] dark:hover:text-[#EC268F] border border-gray-100 dark:border-white/10 rounded-full text-xs text-gray-600 dark:text-[#C9BED4] transition-all font-semibold"
                       >
-                        🛍️ Shop Catalog
+                        🛍️ Shop Catalogue
                       </Link>
                       <Link
                         to="/pages/about-us"
                         onClick={() => setShowSearchModal(false)}
-                        className="px-4 py-2 bg-gray-50 hover:bg-primary/5 hover:text-primary border border-gray-100 rounded-full text-xs text-gray-600 transition-all font-semibold"
+                        className="px-4 py-2 bg-gray-50 dark:bg-white/5 hover:bg-[#5D3E85]/10 dark:hover:bg-[#EC268F]/10 hover:text-[#5D3E85] dark:hover:text-[#EC268F] border border-gray-100 dark:border-white/10 rounded-full text-xs text-gray-600 dark:text-[#C9BED4] transition-all font-semibold"
                       >
                         ✨ About Dansolam
                       </Link>
                       <Link
-                        to="/pages/size-guide"
+                        to="/pages/tips"
                         onClick={() => setShowSearchModal(false)}
-                        className="px-4 py-2 bg-gray-50 hover:bg-primary/5 hover:text-primary border border-gray-100 rounded-full text-xs text-gray-600 transition-all font-semibold"
+                        className="px-4 py-2 bg-gray-50 dark:bg-white/5 hover:bg-[#5D3E85]/10 dark:hover:bg-[#EC268F]/10 hover:text-[#5D3E85] dark:hover:text-[#EC268F] border border-gray-100 dark:border-white/10 rounded-full text-xs text-gray-600 dark:text-[#C9BED4] transition-all font-semibold"
                       >
-                        📏 Size metrics Guide
+                        🌿 Beauty Tips
                       </Link>
                       <Link
                         to="/pages/faq"
                         onClick={() => setShowSearchModal(false)}
-                        className="px-4 py-2 bg-gray-50 hover:bg-primary/5 hover:text-primary border border-gray-100 rounded-full text-xs text-gray-600 transition-all font-semibold"
+                        className="px-4 py-2 bg-gray-50 dark:bg-white/5 hover:bg-[#5D3E85]/10 dark:hover:bg-[#EC268F]/10 hover:text-[#5D3E85] dark:hover:text-[#EC268F] border border-gray-100 dark:border-white/10 rounded-full text-xs text-gray-600 dark:text-[#C9BED4] transition-all font-semibold"
                       >
                         💡 FAQ & Shipping
                       </Link>
                       <Link
                         to="/reviews"
                         onClick={() => setShowSearchModal(false)}
-                        className="px-4 py-2 bg-gray-50 hover:bg-primary/5 hover:text-primary border border-gray-100 rounded-full text-xs text-gray-600 transition-all font-semibold"
+                        className="px-4 py-2 bg-gray-50 dark:bg-white/5 hover:bg-[#5D3E85]/10 dark:hover:bg-[#EC268F]/10 hover:text-[#5D3E85] dark:hover:text-[#EC268F] border border-gray-100 dark:border-white/10 rounded-full text-xs text-gray-600 dark:text-[#C9BED4] transition-all font-semibold"
                       >
                         ⭐ Customer Reviews
                       </Link>
                       <Link
                         to="/contact"
                         onClick={() => setShowSearchModal(false)}
-                        className="px-4 py-2 bg-gray-50 hover:bg-primary/5 hover:text-primary border border-gray-100 rounded-full text-xs text-gray-600 transition-all font-semibold"
+                        className="px-4 py-2 bg-gray-50 dark:bg-white/5 hover:bg-[#5D3E85]/10 dark:hover:bg-[#EC268F]/10 hover:text-[#5D3E85] dark:hover:text-[#EC268F] border border-gray-100 dark:border-white/10 rounded-full text-xs text-gray-600 dark:text-[#C9BED4] transition-all font-semibold"
                       >
                         📞 Contact Us
                       </Link>
                     </div>
                   </div>
                   <div>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">Type to search anything</span>
-                    <p className="text-xs text-gray-450 leading-relaxed">Start typing to search products, content pages, size guides, shipping policies, and blog articles instantly.</p>
+                    <span className="text-[10px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider block mb-1">Instant discovery</span>
+                    <p className="text-xs text-gray-500 dark:text-[#9B8EA9] leading-relaxed">Search organic formulas, nourishing creams, body polishes, treatments, and skincare articles.</p>
                   </div>
                 </div>
               ) : (searchResults.products.length === 0 && searchResults.pages.length === 0 && searchResults.articles.length === 0) ? (
                 <div className="text-center py-10">
                   <span className="text-3xl">🔍</span>
-                  <p className="text-xs font-semibold text-gray-700 mt-2">No matching results found</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">Check spelling or try a different term.</p>
+                  <p className="text-xs font-semibold text-gray-700 dark:text-[#F3EFF6] mt-2">No matching results found</p>
+                  <p className="text-[11px] text-gray-400 dark:text-[#9B8EA9] mt-0.5">Check spelling or try a different keyword.</p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-6">
                   {/* Products */}
                   {searchResults.products.length > 0 && (
                     <div className="flex flex-col gap-2">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block border-b border-gray-50 pb-2">Products</span>
+                      <span className="text-[10px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider block border-b border-gray-100 dark:border-white/10 pb-2">Products</span>
                       <div className="flex flex-col gap-2">
                         {searchResults.products.map(prod => {
                           const price = prod.sale_price || prod.price;
@@ -1222,9 +1588,9 @@ export default function StorefrontLayout() {
                                 setShowSearchModal(false);
                                 setSearchQuery('');
                               }}
-                              className="flex items-center gap-4 p-2 rounded-2xl hover:bg-gray-55/50 transition-all group"
+                              className="flex items-center gap-4 p-2 rounded-2xl hover:bg-gray-50 dark:hover:bg-white/5 transition-all group"
                             >
-                              <div className="w-12 h-12 rounded-xl bg-gray-50 overflow-hidden shrink-0 border border-gray-100">
+                              <div className="w-12 h-12 rounded-xl bg-gray-50 dark:bg-white/5 overflow-hidden shrink-0 border border-gray-100 dark:border-white/10">
                                 <img loading="lazy" decoding="async"
                                   src={prod.images?.[0]?.image_url || '/images/products/placeholder.jpg'}
                                   alt={prod.name}
@@ -1232,11 +1598,11 @@ export default function StorefrontLayout() {
                                 />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h5 className="text-xs font-bold text-gray-800 truncate group-hover:text-primary transition-colors">{prod.name}</h5>
-                                <span className="text-[10px] text-gray-400 block truncate">{prod.short_description || 'View product details'}</span>
+                                <h5 className="text-xs font-bold text-gray-800 dark:text-[#F3EFF6] truncate group-hover:text-[#5D3E85] dark:group-hover:text-[#EC268F] transition-colors">{prod.name}</h5>
+                                <span className="text-[10px] text-gray-400 dark:text-[#9B8EA9] block truncate">{prod.short_description || 'View product details'}</span>
                               </div>
-                              <span className="text-xs font-bold text-gray-900 shrink-0">
-                                {window.localStorage.getItem('fairqueen_currency_symbol') || '₦'}{parseFloat(price).toLocaleString()}
+                              <span className="text-xs font-bold text-gray-900 dark:text-[#F3EFF6] shrink-0">
+                                {window.localStorage.getItem('dansolam_currency_symbol') || '₦'}{parseFloat(price).toLocaleString()}
                               </span>
                             </Link>
                           );
@@ -1248,7 +1614,7 @@ export default function StorefrontLayout() {
                   {/* Pages */}
                   {searchResults.pages.length > 0 && (
                     <div className="flex flex-col gap-2">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block border-b border-gray-50 pb-2">Pages</span>
+                      <span className="text-[10px] text-gray-400 font-bold  tracking-wider block border-b border-gray-50 pb-2">Pages</span>
                       <div className="flex flex-col gap-2">
                         {searchResults.pages.map(page => (
                           <Link
@@ -1277,7 +1643,7 @@ export default function StorefrontLayout() {
                   {/* Articles */}
                   {searchResults.articles.length > 0 && (
                     <div className="flex flex-col gap-2">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block border-b border-gray-50 pb-2">Blog Articles</span>
+                      <span className="text-[10px] text-gray-400 font-bold  tracking-wider block border-b border-gray-50 pb-2">Blog Articles</span>
                       <div className="flex flex-col gap-2">
                         {searchResults.articles.map(art => (
                           <Link
@@ -1349,7 +1715,7 @@ export default function StorefrontLayout() {
                     {/* Info */}
                     <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                       <div>
-                        <h4 onClick={() => { setShowWishlistDrawer(false); navigate(`/product/${prod.slug}`); }} className="font-bold text-xs md:text-sm text-gray-800 leading-snug hover:text-primary transition-colors truncate cursor-pointer">
+                        <h4 onClick={() => { setShowWishlistDrawer(false); navigate(`/product/${prod.slug}`); }} className="font-bold text-xs md:text-sm text-gray-800 leading-snug hover:text-[#5D3E85] transition-colors truncate cursor-pointer">
                           {prod.name}
                         </h4>
                         <span className="text-[10px] text-gray-400 font-medium block mt-0.5">{prod.category?.name || 'Designer Wear'}</span>
@@ -1362,14 +1728,27 @@ export default function StorefrontLayout() {
 
                         <div className="flex items-center gap-1.5">
                           {prod.stock_quantity <= 0 && !allowOverselling ? (
-                            <span className="text-[9px] font-bold text-red-500 uppercase tracking-wider">Out of Stock</span>
+                            <span className="text-[9px] font-bold text-red-500  tracking-wider">Out of Stock</span>
                           ) : (
                             <button
-                              onClick={() => {
+                              onClick={(e) => {
+                                if (e.currentTarget) {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  window.dispatchEvent(new CustomEvent('animate-to-cart', {
+                                    detail: {
+                                      startX: rect.left + rect.width / 2,
+                                      startY: rect.top + rect.height / 2,
+                                      imageUrl: prod.images?.[0]?.image_url || prod.image_url,
+                                      type: 'add',
+                                      count: 1
+                                    }
+                                  }));
+                                }
                                 useCartStore.getState().addItem(prod, prod.variants?.[0] || null, 1, allowOverselling);
+                                useWishlistStore.getState().removeItem(prod.id);
                                 systemToast.success(`${prod.name} added to cart!`);
                               }}
-                              className="px-3 py-1.5 bg-primary hover:bg-primary-hover text-white text-[10px] font-bold rounded-full uppercase tracking-wider shadow-sm transition-all cursor-pointer"
+                              className="px-3 py-1.5 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-[10px] font-bold rounded-full uppercase tracking-wider shadow-sm transition-all cursor-pointer"
                             >
                               + Cart
                             </button>
@@ -1397,7 +1776,7 @@ export default function StorefrontLayout() {
                 </p>
                 <button
                   onClick={() => { setShowWishlistDrawer(false); navigate('/shop'); }}
-                  className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-full mt-2 shadow-sm cursor-pointer"
+                  className="px-5 py-2.5 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold rounded-full mt-2 shadow-sm cursor-pointer"
                 >
                   Explore Catalog
                 </button>
@@ -1412,7 +1791,7 @@ export default function StorefrontLayout() {
                 setShowWishlistDrawer(false);
                 navigate('/cart');
               }}
-              className="w-full py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md shadow-primary/20 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer group hover:scale-[1.01] active:scale-[0.99]"
+              className="w-full py-3 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl shadow-md shadow-[#5D3E85]/20 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer group hover:scale-[1.01] active:scale-[0.99]"
             >
               <ShoppingCart className="w-4 h-4" />
               <span>View Shopping Cart</span>

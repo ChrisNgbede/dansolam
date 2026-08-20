@@ -9,261 +9,105 @@
 @source '../**/*.jsx';
 
 @theme {
-    --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
-    --font-serif: 'Playfair Display', Georgia, serif;
+  
+    --font-sans: 'Manrope', 'Outfit', ui-sans-serif, system-ui, sans-serif;
+    --font-manrope: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    --font-serif: 'Fraunces', 'Playfair Display', Georgia, serif;
+    --font-fraunces: 'Fraunces', 'Playfair Display', Georgia, serif;
+    --font-instrument: 'Fraunces', 'Playfair Display', Georgia, serif;
+    --font-outfit: 'Outfit', ui-sans-serif, system-ui, sans-serif;
     
-    /* Elegant Ecommerce Theme Accent Overrides */
-    --color-primary: #b98800; /* Dansolam signature gold */
-    --color-primary-hover: #9a7000;
-    --color-accent: #FAF3E8; /* Champagne/Blush Nude */
+    /* Dansolam Beauty Home Signature Brand Palette */
+    --color-primary: #5D3E85; /* Deep Royal Plum */
+    --color-primary-hover: #4A2B68;
+    --color-accent: #EC268F; /* Electric Fuchsia */
+    --color-accent-hover: #D01B79;
+    --color-gold: #E5C158; /* Warm Gold */
+    --color-gold-hover: #D4AF37;
     
-    /* High contrast floating sidebar styling */
-    --color-sidebar-bg: #09090b;
-    --color-sidebar-text: #a1a1aa;
-    --color-sidebar-border: #18181b;
+    /* B Night Surfaces */
+    --color-night-bg: #17101F;
+    --color-night-surface: #1E1528;
+    --color-night-elevated: #231B30;
+    --color-night-deep: #100A16;
+    --color-night-border: rgba(243, 239, 246, 0.08);
+    --color-night-text: #F3EFF6;
+    --color-night-muted: #C9BED4;
     
-    /* Neutral main backgrounds */
-    --color-bg-neutral-light: #F5F6F8;
-    --color-bg-neutral-dark: #09090b;
-    
-    /* Light/Dark Content Surfaces */
-    --color-surface-light: #ffffff;
-    --color-surface-dark: #09090b;
-    
-    /* Custom Borders */
-    --color-border-light: #f1f3f5;
-    --color-border-dark: #18181b;
-}
+    /* Quiet Editorial (Light) Surfaces */
+    --color-light-bg: #FBFAF8;
+    --color-light-surface: #F1EDF2;
+    --color-light-elevated: #FFFFFF;
+    --color-light-border: #E8E2E9;
+    --color-light-text: #221B2B;
+    --color-light-muted: #6B6274;
 
+}
 /* Dansolam cinematic luxury storefront */
-:root {
-  --fq-gold: #b98800;
-  --fq-gold-deep: #9a7000;
-  --fq-champagne: #d4af37;
-  --fq-ink: #0a0a0a;
-  --fq-ivory: #f8f4ed;
+:root{
+  --fq-purple: #5D3E85;
+  --fq-purple-deep: #4A2B68;
+  --fq-pink: #EC268F;
+  --fq-gold: #E5C158;
+  --fq-ink: #17101F;
+  --fq-paper: #FBFAF8;
 }
-
-html { scroll-behavior: smooth; }
-
-.luxury-storefront {
-  background:
-    radial-gradient(circle at 8% 4%, rgba(212,175,55,.12), transparent 25rem),
-    radial-gradient(circle at 92% 18%, rgba(185,136,0,.08), transparent 30rem),
-    #f9f7f2;
+html{ scroll-behavior: smooth; }
+/* B Night Dark vs Light Theme Root Containers */
+.luxury-storefront{
+  background-color: #FBFAF8;
+  color: #221B2B;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
-
-.luxury-storefront main { isolation: isolate; }
-
-.storefront-main--inner {
+.dark .luxury-storefront,
+.storefront-dark .luxury-storefront{
+  background-color: #17101F;
+  color: #F3EFF6;
+}
+/* Tactile Spring Button & Interactive Micro-animations */
+.btn-spring{
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, background-color 0.3s ease;
+}
+.btn-spring:hover{
+  transform: translateY(-2px) scale(1.02);
+}
+.btn-spring:active{
+  transform: translateY(0) scale(0.98);
+}
+.luxury-storefront main{ isolation: isolate; }
+.storefront-main--inner{
   position: relative;
-  padding-top: clamp(6.5rem, 9vw, 8rem);
-  padding-bottom: clamp(5rem, 8vw, 8rem) !important;
+  padding-top: 0 !important;
+  padding-bottom: clamp(3rem, 5vw, 5rem) !important;
   min-height: 65vh;
 }
-.storefront-main--inner::before {
+.storefront-main--inner::before{
   content: none;
 }
-
-/* Let inner-page headings flow into their page surface without divider lines. */
-.storefront-page-hero {
-  border: 0 !important;
-}
-.storefront-main--inner + footer {
+.storefront-main--inner + footer{
   position: relative;
   margin-top: 0 !important;
 }
-
-.luxury-nav > nav {
-  background: rgba(255,255,255,.66) !important;
-  border-color: rgba(255,255,255,.78) !important;
-  box-shadow: 0 18px 50px rgba(20,16,8,.06), inset 0 1px rgba(255,255,255,.9) !important;
-  backdrop-filter: blur(26px) saturate(135%);
-}
-
-.luxury-nav--overlay {
-  position: absolute !important;
-  top: 34px !important;
-  left: 0;
-  right: 0;
-}
-.luxury-nav--overlay > a:first-child {
-  background: rgba(255,255,255,.5);
-  border: 1px solid rgba(255,255,255,.62);
-  backdrop-filter: blur(24px) saturate(135%);
-  box-shadow: none !important;
-}
-.luxury-nav--scrolled {
-  position: sticky !important;
-  top: 0 !important;
-}
-.luxury-nav > nav {
-  padding: .62rem .72rem !important;
-  background: rgba(255,255,255,.58) !important;
-  border: 0 !important;
-  box-shadow: none !important;
-  backdrop-filter: blur(34px) saturate(155%);
-}
-.luxury-nav > nav > a,
-.luxury-nav > nav > div > a { padding: .65rem 1.35rem !important; }
-
-/* Subtle motion cue for inactive storefront navigation items. */
-.luxury-nav > nav > a:not(.bg-primary),
-.luxury-nav > nav > div > a:not(.bg-primary) {
-  position: relative;
-  isolation: isolate;
-  transition: color .3s ease, background-color .3s ease, transform .3s cubic-bezier(.22,1,.36,1) !important;
-}
-
-.luxury-nav > nav > a:not(.bg-primary)::after,
-.luxury-nav > nav > div > a:not(.bg-primary)::after {
-  content: '';
-  position: absolute;
-  left: 30%;
-  right: 30%;
-  bottom: .32rem;
-  height: 1px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
-  opacity: 0;
-  transform: scaleX(.25);
-  transition: opacity .3s ease, transform .35s cubic-bezier(.22,1,.36,1);
-  pointer-events: none;
-}
-
-.luxury-nav > nav > a:not(.bg-primary):hover,
-.luxury-nav > nav > div > a:not(.bg-primary):hover {
-  transform: translateY(-1px);
-}
-
-.luxury-nav > nav > a:not(.bg-primary):hover::after,
-.luxury-nav > nav > div > a:not(.bg-primary):hover::after {
-  opacity: .48;
-  transform: scaleX(1);
-}
-.luxury-mega-menu {
+.luxury-mega-menu{
   left: 50% !important;
   margin-left: 0 !important;
 }
-
-.luxury-nav a,
-.luxury-nav button { letter-spacing: -.01em; }
-
-.luxury-nav .bg-primary,
-.luxury-home .bg-primary,
 .luxury-storefront button.bg-primary,
-.luxury-storefront a.bg-primary {
-  background: var(--color-primary, #C5A880) !important;
+.luxury-storefront a.bg-primary{
+  background: #5D3E85 !important;
   color: #fff !important;
   text-shadow: none !important;
   box-shadow: none !important;
   border: none !important;
   animation: none !important;
 }
-
-.luxury-nav .bg-primary:hover,
-.luxury-home .bg-primary:hover,
 .luxury-storefront button.bg-primary:hover,
-.luxury-storefront a.bg-primary:hover {
-  filter: brightness(0.92) !important;
+.luxury-storefront a.bg-primary:hover{
+  background: #EC268F !important;
   transform: translateY(-1px);
   box-shadow: none !important;
 }
-
-.luxury-home {
-  position: relative;
-  overflow: clip;
-  color: #171717;
-  background:
-    radial-gradient(circle at 84% 11%, rgba(185,136,0,.1), transparent 28rem),
-    linear-gradient(180deg, #f9f6ef 0%, #fff 30%, #f8f5ef 70%, #fff 100%);
-}
-
-.luxury-home::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  opacity: .18;
-  pointer-events: none;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
-  z-index: 0;
-}
-
-.luxury-home > section { position: relative; z-index: 1; }
-
-.luxury-cinematic-hero {
-  background:
-    radial-gradient(circle at 20% 35%, rgba(212,175,55,.18), transparent 27rem),
-    linear-gradient(135deg, #f2e9dd 0%, #fbfaf7 45%, #ece3d9 100%);
-  border-radius: 0 0 42px 42px;
-  margin-top: 0 !important;
-}
-
-@media (min-width: 768px) {
-  .luxury-cinematic-hero {
-    min-height: calc(100svh - 32px) !important;
-    padding-top: 9rem !important;
-    padding-bottom: 3rem !important;
-    box-sizing: border-box;
-  }
-  .luxury-cinematic-hero > div.relative {
-    padding-top: 0 !important;
-  }
-  .luxury-hero-slide {
-    min-height: 0;
-    align-items: center !important;
-  }
-  .luxury-hero-visual > div:last-child {
-    width: min(100%, calc((100svh - 14rem) * 1.25));
-    max-height: calc(100svh - 14rem);
-    aspect-ratio: 5 / 4 !important;
-    margin-inline: auto;
-  }
-  .luxury-hero-copy {
-    justify-content: center;
-    padding-block: 1rem;
-  }
-}
-
-.luxury-cinematic-hero::after {
-  content: '';
-  position: absolute;
-  width: min(46vw, 680px);
-  aspect-ratio: 1;
-  right: 7%;
-  top: 15%;
-  border: 1px solid rgba(185,136,0,.18);
-  border-radius: 50%;
-  box-shadow: 0 0 0 38px rgba(185,136,0,.035), 0 0 0 78px rgba(185,136,0,.025);
-}
-
-/* Keep carousel slides isolated without exposing clipped viewport edge lines. */
-.luxury-hero-viewport {
-  isolation: isolate;
-}
-
-.luxury-hero-track {
-  will-change: transform;
-  backface-visibility: hidden;
-  transform-style: preserve-3d;
-}
-
-.luxury-hero-slide {
-  padding-inline: 0;
-  box-sizing: border-box;
-  backface-visibility: hidden;
-}
-
-.luxury-hero-copy {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  backface-visibility: hidden;
-}
-
-.luxury-hero-copy { animation: fqReveal .8s cubic-bezier(.22,1,.36,1) both; }
-
-.admin-field-label {
+.admin-field-label{
   display: block;
   margin-bottom: .4rem;
   color: #4b5563;
@@ -272,8 +116,7 @@ html { scroll-behavior: smooth; }
   letter-spacing: .06em;
   text-transform: uppercase;
 }
-
-.admin-field-input {
+.admin-field-input{
   width: 100%;
   border: 1px solid #e5e7eb;
   border-radius: .9rem;
@@ -284,14 +127,12 @@ html { scroll-behavior: smooth; }
   outline: none;
   transition: border-color .2s ease, box-shadow .2s ease;
 }
-
-.admin-field-input:focus {
+.admin-field-input:focus{
   border-color: #c88e1b;
   box-shadow: 0 0 0 3px rgba(200,142,27,.12);
 }
-
 .admin-btn-primary,
-.admin-btn-secondary {
+.admin-btn-secondary{
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -302,120 +143,22 @@ html { scroll-behavior: smooth; }
   cursor: pointer;
   transition: transform .2s ease, background-color .2s ease, border-color .2s ease, opacity .2s ease;
 }
-.admin-btn-primary { background: var(--color-primary); color: #fff; border: 1px solid var(--color-primary); }
-.admin-btn-secondary { background: #fff; color: #4b5563; border: 1px solid #e5e7eb; }
-.admin-btn-primary:hover:not(:disabled), .admin-btn-secondary:hover:not(:disabled) { transform: translateY(-1px); }
-.admin-btn-primary:disabled, .admin-btn-secondary:disabled { opacity: .55; cursor: not-allowed; }
-.luxury-hero-copy > span { color: #5f4700 !important; background: rgba(255,255,255,.58) !important; backdrop-filter: blur(18px); }
-.luxury-hero-copy p { font-size: clamp(.78rem, 1.1vw, 1rem) !important; line-height: 1.8 !important; color: #59544c !important; }
-.luxury-hero-copy h1 span { color: var(--fq-gold-deep) !important; }
-
-.luxury-hero-visual > div:last-child {
-  box-shadow: none !important;
-  border: 0 !important;
-  animation: fqFloat 8s ease-in-out infinite;
-}
-.luxury-hero-visual img { filter: saturate(.86) contrast(1.03); }
-.luxury-hero-visual > div:last-child::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, transparent 45%, rgba(10,10,10,.35));
-  pointer-events: none;
-}
-
-.luxury-hero-float {
-  position: absolute;
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 170px;
-  padding: 14px 17px;
-  border-radius: 18px;
-  color: white;
-  background: rgba(16,13,9,.48);
-  border: 1px solid rgba(255,255,255,.32);
-  box-shadow: 0 15px 40px rgba(0,0,0,.2);
-  backdrop-filter: blur(22px) saturate(125%);
-}
-.luxury-hero-float span { font-size: 9px; text-transform: uppercase; letter-spacing: .14em; opacity: .72; }
-.luxury-hero-float strong { font-family: ui-serif, Georgia, serif; font-size: 13px; font-weight: 600; }
-.luxury-hero-float-top { top: 18px; right: 18px; }
-.luxury-hero-float-bottom { bottom: 18px; left: 18px; }
-.luxury-hero-control {
-  bottom: 20px !important;
-  top: auto !important;
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid rgba(255,255,255,.58) !important;
-  background: rgba(255,255,255,.5) !important;
-  box-shadow: none !important;
-  backdrop-filter: blur(18px);
-  opacity: .62;
-}
-.luxury-hero-control:hover { opacity: .95; background: rgba(255,255,255,.78) !important; }
-.luxury-hero-control-prev { right: 72px !important; left: auto !important; }
-.luxury-hero-control-next { right: 24px !important; }
-
-.luxury-home section:not(.luxury-cinematic-hero) h2,
-.luxury-home section:not(.luxury-cinematic-hero) h3 {
-  letter-spacing: -.035em;
-}
-
-.luxury-home section:not(.luxury-cinematic-hero) h2 {
-  font-size: clamp(2rem, 4vw, 3.75rem) !important;
-  line-height: 1 !important;
-}
-
-.luxury-home section a[class*="rounded-2xl"],
-.luxury-home section a[class*="rounded-3xl"],
-.luxury-home section div[class*="rounded-2xl"],
-.luxury-home section div[class*="rounded-3xl"] {
-  transition: transform .55s cubic-bezier(.22,1,.36,1), box-shadow .55s ease, border-color .4s ease;
-}
-
-.luxury-home section a[class*="rounded-2xl"]:hover,
-.luxury-home section a[class*="rounded-3xl"]:hover {
-  transform: translateY(-7px);
-  box-shadow: 0 30px 75px rgba(24,18,9,.13), 0 10px 28px rgba(24,18,9,.07) !important;
-  border-color: rgba(185,136,0,.28) !important;
-}
-
-.luxury-home .storefront-brand-strip { background: transparent !important; }
-
-.luxury-image-marquee {
-  margin-top: -8rem;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  background: linear-gradient(180deg, rgba(249,247,242,.86), rgba(255,255,255,.7));
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 11%, #000 89%, transparent 100%);
-  mask-image: linear-gradient(90deg, transparent 0, #000 11%, #000 89%, transparent 100%);
-}
-html.storefront-dark .luxury-image-marquee,
-.storefront-dark .luxury-image-marquee,
-:is(.storefront-dark, .storefront-dark *) .luxury-image-marquee,
-.dark .luxury-image-marquee,
-html.dark .luxury-image-marquee,
-:is(.dark, .dark *) .luxury-image-marquee {
-  background: #000000 !important;
-  background-image: none !important;
-}
-.luxury-marquee-row {
+.admin-btn-primary{ background: var(--color-primary); color: #fff; border: 1px solid var(--color-primary); }
+.admin-btn-secondary{ background: #fff; color: #4b5563; border: 1px solid #e5e7eb; }
+.admin-btn-primary:hover:not(:disabled),
+.admin-btn-secondary:hover:not(:disabled){ transform: translateY(-1px); }
+.admin-btn-primary:disabled,
+.admin-btn-secondary:disabled{ opacity: .55; cursor: not-allowed; }
+.luxury-marquee-row{
   display: flex;
   gap: 1rem;
   width: max-content;
   padding-inline: .5rem;
   will-change: transform;
 }
-.luxury-marquee-forward { animation: fqMarqueeForward 90s linear infinite; }
-.luxury-marquee-reverse { animation: fqMarqueeReverse 105s linear infinite; }
-.luxury-marquee-card {
+.luxury-marquee-forward{ animation: fqMarqueeForward 90s linear infinite; }
+.luxury-marquee-reverse{ animation: fqMarqueeReverse 105s linear infinite; }
+.luxury-marquee-card{
   position: relative;
   width: clamp(180px, 18vw, 290px);
   height: clamp(92px, 9vw, 138px);
@@ -424,14 +167,14 @@ html.dark .luxury-image-marquee,
   border-radius: 24px;
   isolation: isolate;
 }
-.luxury-marquee-card::after {
+.luxury-marquee-card::after{
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(90deg, rgba(8,8,7,.7), rgba(8,8,7,.08));
   z-index: -1;
 }
-.luxury-marquee-card img {
+.luxury-marquee-card img{
   position: absolute;
   inset: 0;
   z-index: -2;
@@ -441,8 +184,8 @@ html.dark .luxury-image-marquee,
   filter: saturate(.82) contrast(1.04);
   transition: transform .7s cubic-bezier(.22,1,.36,1);
 }
-.luxury-marquee-card:hover img { transform: scale(1.08); }
-.luxury-marquee-card span {
+.luxury-marquee-card:hover img{ transform: scale(1.08); }
+.luxury-marquee-card span{
   position: absolute;
   left: 1rem;
   bottom: .9rem;
@@ -452,7 +195,7 @@ html.dark .luxury-image-marquee,
   font-weight: 700;
   letter-spacing: -.02em;
 }
-.luxury-marquee-control {
+.luxury-marquee-control{
   position: absolute !important;
   top: 50%;
   z-index: 8;
@@ -471,29 +214,30 @@ html.dark .luxury-image-marquee,
   opacity: .56;
   transition: opacity .25s ease, background .25s ease, transform .25s ease !important;
 }
-.luxury-marquee-control:hover {
+.luxury-marquee-control:hover{
   opacity: .9;
   background: rgba(255,255,255,.7) !important;
   transform: translateY(-50%) scale(1.04) !important;
 }
-.luxury-marquee-control-left { left: 12px; }
-.luxury-marquee-control-right { right: 12px; }
+.luxury-marquee-control-left{ left: 12px; }
+.luxury-marquee-control-right{ right: 12px; }
 .dark .luxury-marquee-control,
 html.dark .luxury-marquee-control,
-:is(.dark, .dark *) .luxury-marquee-control {
+:is(.dark,
+.dark *) .luxury-marquee-control{
   color: rgba(255,255,255,.85) !important;
   background: rgba(30,30,30,.7) !important;
   border-color: rgba(255,255,255,.15) !important;
 }
 .dark .luxury-marquee-control:hover,
 html.dark .luxury-marquee-control:hover,
-:is(.dark, .dark *) .luxury-marquee-control:hover {
+:is(.dark,
+.dark *) .luxury-marquee-control:hover{
   background: rgba(45,45,45,.9) !important;
 }
-@keyframes fqMarqueeForward { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
-@keyframes fqMarqueeReverse { from { transform: translate3d(-50%,0,0); } to { transform: translate3d(0,0,0); } }
-
-.luxury-storefront footer {
+@keyframes fqMarqueeForward{ from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
+@keyframes fqMarqueeReverse{ from { transform: translate3d(-50%,0,0); } to { transform: translate3d(0,0,0); } }
+.luxury-storefront footer{
   background: #0b0b0a !important;
   color: rgba(255,255,255,.72) !important;
   border: 0 !important;
@@ -504,168 +248,117 @@ html.dark .luxury-marquee-control:hover,
 .luxury-storefront footer h2,
 .luxury-storefront footer h3,
 .luxury-storefront footer h4,
-.luxury-storefront footer strong { color: white !important; }
-.luxury-storefront footer a:hover { color: #d4af37 !important; }
-
-@keyframes fqReveal {
+.luxury-storefront footer strong{ color: white !important; }
+.luxury-storefront footer a:hover{ color: #d4af37 !important; }
+@keyframes fqReveal{
   from { opacity: 0; transform: translateY(22px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes fqFloat {
+@keyframes fqFloat{
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
 }
-
-@media (max-width: 767px) {
-  .luxury-nav--overlay { top: 43px !important; }
-  .luxury-cinematic-hero { border-radius: 0 0 28px 28px; min-height: auto !important; padding-bottom: 4.5rem; }
-  .luxury-hero-copy h1 { font-size: clamp(3rem, 14vw, 4.6rem) !important; }
-  .luxury-hero-visual > div:last-child { aspect-ratio: 4 / 5 !important; }
-  .luxury-hero-float { min-width: 140px; padding: 11px 13px; }
-  .luxury-hero-float strong { font-size: 11px; }
-  .luxury-hero-control { bottom: 16px !important; width: 34px; height: 34px; }
-  .luxury-hero-control-prev { right: 58px !important; }
-  .luxury-hero-control-next { right: 16px !important; }
-  .luxury-home { gap: 5rem !important; }
-  .luxury-image-marquee { margin-top: -5rem; padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
+@media (max-width: 767px){
   .luxury-marquee-card { width: 165px; height: 88px; border-radius: 18px; }
-  .luxury-image-marquee {
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 16%, #000 84%, transparent 100%);
-    mask-image: linear-gradient(90deg, transparent 0, #000 16%, #000 84%, transparent 100%);
-  }
   .luxury-marquee-control { width: 34px; height: 54px; }
   .luxury-marquee-control-left { left: 6px; }
   .luxury-marquee-control-right { right: 6px; }
-  .luxury-home section:not(.luxury-cinematic-hero) { padding-left: 1rem; padding-right: 1rem; }
   .luxury-storefront footer { border-radius: 0; }
   .storefront-main--inner {
-    padding-top: 6rem;
-    padding-bottom: 6.5rem !important;
+    padding-top: 0 !important;
+    padding-bottom: 5rem !important;
   }
 }
-
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce){
   html { scroll-behavior: auto; }
-  .luxury-storefront *, .luxury-home * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .luxury-storefront * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
-
 /* Glassmorphism sidebar active state highlight */
-.active-glass {
+.active-glass{
   background-color: rgba(197, 168, 128, 0.12) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
   color: var(--color-primary) !important;
   font-weight: 700 !important;
 }
-.dark .active-glass {
+.dark .active-glass{
   background-color: rgba(197, 168, 128, 0.18) !important;
   color: #FAF3E8 !important;
 }
-
 /* Storefront royal-gold interaction system */
-@keyframes royal-gold-sweep {
+@keyframes royal-gold-sweep{
   0% { transform: translateX(-160%) skewX(-20deg); }
   55%, 100% { transform: translateX(240%) skewX(-20deg); }
 }
-
-@keyframes royal-gold-glitter {
+@keyframes royal-gold-glitter{
   0%, 100% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
 }
-
-@keyframes fqBulgyPulse {
+@keyframes fqBulgyPulse{
   0%, 100% {
     transform: scale(1);
-    filter: brightness(1);
-    text-shadow: 0 0 0px rgba(255, 255, 255, 0);
   }
   50% {
-    transform: scale(1.06);
-    filter: brightness(1.2);
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.7), 0 0 15px rgba(212, 184, 106, 0.9);
+    transform: scale(1.10);
   }
 }
-
-.animate-bulgy-pulse {
+.animate-bulgy-pulse{
   animation: fqBulgyPulse 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
-
-.storefront-shell :is(button, a).bg-primary,
-.storefront-shell button[type="submit"]:not([class*="bg-red"]):not([class*="bg-green"]) {
+.storefront-shell :is(button,
+a).bg-primary{
   position: relative;
   isolation: isolate;
   overflow: hidden;
   color: #ffffff !important;
   border-color: transparent !important;
-  background: var(--color-primary, #C5A880) !important;
+  background: #5D3E85 !important;
   background-image: none !important;
   text-shadow: none !important;
   box-shadow: none !important;
   animation: none !important;
 }
-
-.storefront-shell :is(button, a).bg-primary::before,
-.storefront-shell button[type="submit"]:not([class*="bg-red"]):not([class*="bg-green"])::before {
-  display: none !important;
-  content: none !important;
+.storefront-shell :is(button,
+a).bg-primary:hover{
+  background: #EC268F !important;
 }
-
-.storefront-shell :is(button, a).bg-primary:hover,
-.storefront-shell button[type="submit"]:not([class*="bg-red"]):not([class*="bg-green"]):hover {
-  box-shadow: none !important;
-  filter: brightness(0.92) !important;
+/* Headings carry their own size/weight via Tailwind utilities on each component;
+   only the shared optical tracking lives here. */
+.storefront-shell main :is(h1, h2),
+.luxury-storefront :is(h1, h2) {
+  letter-spacing: -.045em;
 }
-
-.storefront-shell main :is(h1, h2) {
-  text-shadow: 0 1px 0 rgba(255,255,255,.8), 0 8px 28px rgba(156, 111, 20, .08);
-}
-
-/* The brand marquee is a clean strip, not a generated content card. */
-.storefront-shell main .storefront-brand-strip {
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  border-right: 0 !important;
-  border-left: 0 !important;
-  border-bottom: 0 !important;
-}
-
 /* Page containers should meet the shared footer without duplicate bottom padding. */
-.storefront-shell .anim-content > [class*="pb-16"] {
+.storefront-shell .anim-content > [class*="pb-16"]{
   padding-bottom: 0 !important;
 }
-
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce){
   .storefront-shell :is(button, a).bg-primary,
   .storefront-shell :is(button, a).bg-primary::before,
   .storefront-shell button[type="submit"] {
     animation: none !important;
   }
 }
-
 /* Custom transitions and scrollbar overrides */
-.transition-smooth {
+.transition-smooth{
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 /* Global utility classes for premium dashboard shadows & spacing */
-.card-premium {
+.card-premium{
   background-color: var(--color-surface-light);
   border: 1px solid var(--color-border-light);
   border-radius: 1rem; /* 16px */
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
-.dark .card-premium {
+.dark .card-premium{
   background-color: var(--color-surface-dark);
   border-color: var(--color-border-dark);
 }
-
-.card-premium:hover {
+.card-premium:hover{
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
 }
-
-.input-pill {
+.input-pill{
   border-radius: 9999px;
   padding: 0.5rem 1.25rem;
   font-size: 0.8125rem;
@@ -674,78 +367,102 @@ html.dark .luxury-marquee-control:hover,
   border-color: #e5e7eb;
   transition: all 0.15s ease-in-out;
 }
-.input-pill:focus {
+.input-pill:focus{
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(197, 168, 128, 0.2);
 }
-
-.dark .input-pill {
+.dark .input-pill{
   background-color: #1f2937;
   border-color: #374151;
   color: #f3f4f6;
 }
-
 /* Scrollbar tweaks */
-::-webkit-scrollbar {
+::-webkit-scrollbar{
   width: 6px;
   height: 6px;
 }
-::-webkit-scrollbar-track {
+::-webkit-scrollbar-track{
   background: transparent;
 }
-::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb{
   background: #C5A880;
   border-radius: 99px;
 }
-
-
 /* Custom Scrollbars */
-::-webkit-scrollbar {
+::-webkit-scrollbar{
   width: 6px;
   height: 6px;
 }
-::-webkit-scrollbar-track {
+::-webkit-scrollbar-track{
   background: #FAF9F6;
 }
-::-webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb{
   background: #C5A880;
   border-radius: 3px;
 }
-
 /* PWA App Shell Safe Areas for iPhones */
-body {
+body{
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
-
 /* Keep the branded WhatsApp control anchored outside shared .bg-primary button effects. */
-.storefront-whatsapp-fab {
+.storefront-whatsapp-fab{
   position: fixed !important;
   right: 1.5rem !important;
   bottom: 2rem !important;
-  background: var(--color-primary) !important;
+  background: #EC268F !important;
 }
-
-.storefront-whatsapp-fab:hover {
-  filter: brightness(.9);
+.storefront-whatsapp-fab:hover{
+  background: #5D3E85 !important;
 }
-
-@media (max-width: 767px) {
+@media (max-width: 767px){
   .storefront-whatsapp-fab {
     bottom: 5rem !important;
   }
 }
-.pb-safe-nav {
+.pb-safe-nav{
   padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
 }
-@media (min-width: 768px) {
+@media (min-width: 768px){
   .pb-safe-nav {
     padding-bottom: 0;
   }
 }
-
+@keyframes bubble-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.85);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.03);
+  }
+  80% {
+    transform: translateY(1px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes chat-fab-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 10px 30px -5px rgba(236, 38, 143, 0.45);
+  }
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 15px 40px 0px rgba(93, 62, 133, 0.55), 0 0 20px 4px rgba(236, 38, 143, 0.4);
+  }
+}
+.animate-bubble-pop {
+  animation: bubble-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.animate-chat-fab-pulse {
+  animation: chat-fab-pulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
 /* Spiral Hit animation for the cart icon */
-@keyframes spiral-hit {
+@keyframes spiral-hit{
   0% {
     transform: scale(1) rotate(0deg);
   }
@@ -765,12 +482,11 @@ body {
     transform: scale(1) rotate(0deg);
   }
 }
-.animate-spiral-hit {
+.animate-spiral-hit{
   animation: spiral-hit 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
-
 /* Mega Menu Drop Animations */
-@keyframes mega-menu-drop {
+@keyframes mega-menu-drop{
   0% {
     opacity: 0;
     transform: translateY(-8px);
@@ -780,7 +496,7 @@ body {
     transform: translateY(0);
   }
 }
-@keyframes mega-menu-drop-centered {
+@keyframes mega-menu-drop-centered{
   0% {
     opacity: 0;
     transform: translate(-50%, -8px);
@@ -790,47 +506,43 @@ body {
     transform: translate(-50%, 0);
   }
 }
-
-.animate-mega-menu-drop {
+.animate-mega-menu-drop{
   animation: mega-menu-drop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-
-@media (min-width: 1280px) {
+@media (min-width: 1280px){
   .xl\:animate-mega-menu-drop-centered {
     animation: mega-menu-drop-centered 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 }
-
 /* ==========================================
    PREMIUM SaaS ADMIN ELEMENT OVERRIDES
    ========================================== */
 
 /* Modern Responsive Workspace Card containers */
 main .bg-white:not([role="dialog"]),
-main .dark\:bg-gray-900:not([role="dialog"]) {
+main .dark\:bg-gray-900:not([role="dialog"]){
   border-radius: 1rem !important; /* 16px border radius */
   border: 1px solid var(--color-border-light) !important;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02), 0 1px 2px -1px rgba(0, 0, 0, 0.02) !important;
 }
 .dark main .bg-white:not([role="dialog"]),
-.dark main .dark\:bg-gray-900:not([role="dialog"]) {
+.dark main .dark\:bg-gray-900:not([role="dialog"]){
   border-color: var(--color-border-dark) !important;
 }
-
 /* Modernized Tables */
-main table {
+main table{
   width: 100%;
   border-collapse: separate !important;
   border-spacing: 0 !important;
   text-align: left;
 }
-main thead tr {
+main thead tr{
   background-color: var(--color-bg-neutral-light) !important;
 }
-.dark main thead tr {
+.dark main thead tr{
   background-color: rgba(31, 41, 55, 0.4) !important;
 }
-main th {
+main th{
   padding: 0.85rem 1rem !important;
   font-weight: 600 !important;
   text-transform: uppercase !important;
@@ -839,125 +551,77 @@ main th {
   color: #6b7280 !important; /* text-gray-500 */
   border-bottom: 1px solid var(--color-border-light) !important;
 }
-.dark main th {
+.dark main th{
   color: #9ca3af !important;
   border-bottom-color: var(--color-border-dark) !important;
 }
-main tbody tr {
+main tbody tr{
   border-bottom: 1px solid var(--color-border-light) !important;
   transition: background-color 0.15s ease-in-out;
 }
-.dark main tbody tr {
+.dark main tbody tr{
   border-bottom-color: var(--color-border-dark) !important;
 }
-main tbody tr:hover {
+main tbody tr:hover{
   background-color: rgba(0, 0, 0, 0.015) !important;
 }
-.dark main tbody tr:hover {
+.dark main tbody tr:hover{
   background-color: rgba(255, 255, 255, 0.02) !important;
 }
-main td {
+main td{
   padding: 0.85rem 1rem !important;
   font-size: 0.8125rem !important; /* 13px */
   color: #374151 !important; /* text-gray-700 */
 }
-.dark main td {
+.dark main td{
   color: #cbd5e1 !important;
 }
-
+/* Legacy global control styling — scoped to the admin shell only.
+   The storefront gets its look from Tailwind utilities on the components. */
 /* Modernized Pill Buttons - Light Grey design for secondary & white buttons */
-.storefront-shell button,
-.luxury-storefront button,
-.luxury-nav button,
-main button,
-main button.bg-primary,
-main button[type="submit"],
-main button.border-gray-200,
-main button.border-gray-300,
-main button[type="button"] {
+.admin-shell main button,
+.admin-shell main button.bg-primary,
+.admin-shell main button[type="submit"],
+.admin-shell main button.border-gray-200,
+.admin-shell main button.border-gray-300,
+.admin-shell main button[type="button"]{
   border: none !important;
 }
-
-button.bg-white,
-a.bg-white,
-.storefront-shell button.bg-white,
-.storefront-shell a.bg-white,
-.luxury-storefront button.bg-white,
-.luxury-storefront a.bg-white,
-main button.border-gray-200,
-main button.border-gray-300,
-main button[type="button"]:not(.bg-primary):not([class*="bg-amber"]):not([class*="bg-yellow"]):not(.text-red-500):not(.text-gray-400) {
+.admin-shell button.bg-white,
+.admin-shell a.bg-white,
+.admin-shell main button.border-gray-200,
+.admin-shell main button.border-gray-300,
+.admin-shell main button[type="button"]:not(.bg-primary):not([class*="bg-amber"]):not([class*="bg-yellow"]):not(.text-red-500):not(.text-gray-400){
   background-color: #f3f4f6 !important;
   color: #1f2937 !important;
   border: none !important;
 }
-
-button.bg-white:hover,
-a.bg-white:hover,
-.storefront-shell button.bg-white:hover,
-.storefront-shell a.bg-white:hover,
-.luxury-storefront button.bg-white:hover,
-.luxury-storefront a.bg-white:hover,
-main button.border-gray-200:hover,
-main button.border-gray-300:hover {
+.admin-shell button.bg-white:hover,
+.admin-shell a.bg-white:hover,
+.admin-shell main button.border-gray-200:hover,
+.admin-shell main button.border-gray-300:hover{
   background-color: #e5e7eb !important;
 }
-
-html.storefront-dark button.bg-white,
-html.storefront-dark a.bg-white,
-html.storefront-dark .storefront-shell button.bg-white,
-html.storefront-dark .storefront-shell a.bg-white,
-html.storefront-dark .luxury-storefront button.bg-white,
-html.storefront-dark .luxury-storefront a.bg-white,
-html.storefront-dark main button.border-gray-200,
-html.storefront-dark main button.border-gray-300,
-html.storefront-dark main button[type="button"]:not(.bg-primary):not([class*="bg-amber"]):not([class*="bg-yellow"]):not(.text-red-500):not(.text-gray-400) {
-  background-color: #222222 !important;
-  color: #f4f4f5 !important;
-  border: none !important;
-}
-
-html.storefront-dark button.bg-white:hover,
-html.storefront-dark a.bg-white:hover,
-html.storefront-dark .storefront-shell button.bg-white:hover,
-html.storefront-dark .storefront-shell a.bg-white:hover,
-html.storefront-dark .luxury-storefront button.bg-white:hover,
-html.storefront-dark .luxury-storefront a.bg-white:hover,
-html.storefront-dark main button.border-gray-200:hover,
-html.storefront-dark main button.border-gray-300:hover {
-  background-color: #2c2c2c !important;
-}
-
 /* Yellow Add to Cart Button Styling - Consistent Pill shape & dark text */
 .btn-add-to-cart,
-button.bg-amber-400,
-button[class*="bg-amber"],
-button[class*="bg-yellow"] {
+.admin-shell button.bg-amber-400,
+.admin-shell button[class*="bg-amber"],
+.admin-shell button[class*="bg-yellow"]{
   background-color: #facc15 !important;
   color: #0f172a !important;
   border-radius: 9999px !important;
   font-weight: 700 !important;
   border: none !important;
 }
-
-.btn-add-to-cart:hover,
-button.bg-amber-400:hover,
-button[class*="bg-amber"]:hover,
-button[class*="bg-yellow"]:hover {
+.admin-shell .btn-add-to-cart:hover,
+.admin-shell button.bg-amber-400:hover,
+.admin-shell button[class*="bg-amber"]:hover,
+.admin-shell button[class*="bg-yellow"]:hover{
   background-color: #eab308 !important;
   color: #0f172a !important;
 }
-
-html.storefront-dark .btn-add-to-cart,
-html.storefront-dark button.bg-amber-400,
-html.storefront-dark button[class*="bg-amber"],
-html.storefront-dark button[class*="bg-yellow"] {
-  background-color: #facc15 !important;
-  color: #0f172a !important;
-}
-
-main button.bg-primary,
-main button[type="submit"] {
+.admin-shell main button.bg-primary,
+.admin-shell main button[type="submit"]{
   border-radius: 9999px !important; /* Pill shaped buttons */
   font-weight: 600 !important;
   transition: all 0.2s ease-in-out !important;
@@ -969,15 +633,14 @@ main button[type="submit"] {
   justify-content: center !important;
   cursor: pointer !important;
 }
-main button.bg-primary:hover,
-main button[type="submit"]:hover {
+.admin-shell main button.bg-primary:hover,
+.admin-shell main button[type="submit"]:hover{
   transform: translateY(-1px);
   box-shadow: none !important;
 }
-
-main button.border-gray-200,
-main button.border-gray-300,
-main button[type="button"]:not(.bg-primary):not(.text-red-500):not(.text-gray-400) {
+.admin-shell main button.border-gray-200,
+.admin-shell main button.border-gray-300,
+.admin-shell main button[type="button"]:not(.bg-primary):not(.text-red-500):not(.text-gray-400){
   border-radius: 9999px !important;
   font-weight: 600 !important;
   transition: all 0.2s ease-in-out !important;
@@ -988,303 +651,239 @@ main button[type="button"]:not(.bg-primary):not(.text-red-500):not(.text-gray-40
   cursor: pointer !important;
   border: none !important;
 }
-main button.border-gray-200:hover,
-main button.border-gray-300:hover {
+.admin-shell main button.border-gray-200:hover,
+.admin-shell main button.border-gray-300:hover{
   background-color: var(--color-bg-neutral-light) !important;
 }
-.dark main button.border-gray-200:hover,
-.dark main button.border-gray-300:hover {
+.dark .admin-shell main button.border-gray-200:hover,
+.dark .admin-shell main button.border-gray-300:hover{
   background-color: var(--color-bg-neutral-dark) !important;
 }
-
-/* Pill-shaped Input fields and form controls */
-main input[type="text"],
-main input[type="number"],
-main input[type="email"],
-main input[type="password"],
-main input[type="tel"],
-main input[type="date"],
-main select,
-main textarea {
-  border-radius: 9999px !important; /* Rounded inputs */
-  border: 1px solid #e5e7eb !important;
-  background-color: #ffffff !important;
-  padding: 0.5rem 1.25rem !important;
+/* Systematic High-Definition Visible Input Borders for Admin Panels & Modals */
+.admin-shell input[type="text"],
+.admin-shell input[type="number"],
+.admin-shell input[type="email"],
+.admin-shell input[type="password"],
+.admin-shell input[type="search"],
+.admin-shell input[type="tel"],
+.admin-shell input[type="date"],
+.admin-shell input[type="time"],
+.admin-shell input[type="url"],
+.admin-shell select,
+.admin-shell textarea,
+.admin-shell .rich-editor,
+.admin-shell [contenteditable="true"],
+.fixed.inset-0 input[type="text"],
+.fixed.inset-0 input[type="number"],
+.fixed.inset-0 input[type="email"],
+.fixed.inset-0 input[type="password"],
+.fixed.inset-0 input[type="search"],
+.fixed.inset-0 input[type="tel"],
+.fixed.inset-0 input[type="date"],
+.fixed.inset-0 input[type="time"],
+.fixed.inset-0 input[type="url"],
+.fixed.inset-0 select,
+.fixed.inset-0 textarea,
+.fixed.inset-0 .rich-editor,
+.fixed.inset-0 [contenteditable="true"],
+div[role="dialog"] input[type="text"],
+div[role="dialog"] input[type="number"],
+div[role="dialog"] input[type="email"],
+div[role="dialog"] input[type="password"],
+div[role="dialog"] input[type="search"],
+div[role="dialog"] input[type="tel"],
+div[role="dialog"] input[type="date"],
+div[role="dialog"] input[type="time"],
+div[role="dialog"] input[type="url"],
+div[role="dialog"] select,
+div[role="dialog"] textarea {
+  border: 1.5px solid #94A3B8 !important; /* Visible high-definition slate-400 border */
+  border-radius: 0.625rem !important; /* Clean rounded-xl */
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
   font-size: 0.8125rem !important;
-  color: #1f2937 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
   transition: all 0.15s ease-in-out !important;
 }
 
-/* Preserve component spacing for inputs with leading/trailing icons.
-   The global form styling must not override Tailwind pl-* / pr-* utilities. */
-main :is(input, select, textarea)[class~="pl-3"] { padding-left: 0.75rem !important; }
-main :is(input, select, textarea)[class~="pl-4"] { padding-left: 1rem !important; }
-main :is(input, select, textarea)[class~="pl-6"] { padding-left: 1.5rem !important; }
-main :is(input, select, textarea)[class~="pl-8"] { padding-left: 2rem !important; }
-main :is(input, select, textarea)[class~="pl-10"] { padding-left: 2.5rem !important; }
-main :is(input, select, textarea)[class~="pl-11"] { padding-left: 2.75rem !important; }
-
-main :is(input, select, textarea)[class~="pr-0"] { padding-right: 0 !important; }
-main :is(input, select, textarea)[class~="pr-1"] { padding-right: 0.25rem !important; }
-main :is(input, select, textarea)[class~="pr-2"] { padding-right: 0.5rem !important; }
-main :is(input, select, textarea)[class~="pr-3"] { padding-right: 0.75rem !important; }
-main :is(input, select, textarea)[class~="pr-4"] { padding-right: 1rem !important; }
-main :is(input, select, textarea)[class~="pr-6"] { padding-right: 1.5rem !important; }
-main :is(input, select, textarea)[class~="pr-10"] { padding-right: 2.5rem !important; }
-main :is(input, select, textarea)[class~="pr-12"] { padding-right: 3rem !important; }
-.dark main input[type="text"],
-.dark main input[type="number"],
-.dark main input[type="email"],
-.dark main input[type="password"],
-.dark main input[type="tel"],
-.dark main input[type="date"],
-.dark main select,
-.dark main textarea {
-  border-color: #374151 !important;
-  background-color: #1f2937 !important;
-  color: #f3f4f6 !important;
+.admin-shell input[type="text"],
+.admin-shell input[type="number"],
+.admin-shell input[type="email"],
+.admin-shell input[type="password"],
+.admin-shell input[type="search"],
+.admin-shell input[type="tel"],
+.admin-shell input[type="date"],
+.admin-shell input[type="time"],
+.admin-shell input[type="url"],
+.admin-shell select,
+.fixed.inset-0 input[type="text"],
+.fixed.inset-0 input[type="number"],
+.fixed.inset-0 input[type="email"],
+.fixed.inset-0 input[type="password"],
+.fixed.inset-0 input[type="search"],
+.fixed.inset-0 input[type="tel"],
+.fixed.inset-0 input[type="date"],
+.fixed.inset-0 input[type="time"],
+.fixed.inset-0 input[type="url"],
+.fixed.inset-0 select,
+div[role="dialog"] input:not([type="checkbox"]):not([type="radio"]),
+div[role="dialog"] select {
+  padding: 0.55rem 0.875rem !important;
 }
-main input:focus,
-main select:focus,
-main textarea:focus {
+
+.admin-shell textarea,
+.fixed.inset-0 textarea,
+div[role="dialog"] textarea {
+  padding: 0.75rem 1rem !important;
+  border-radius: 0.75rem !important;
+}
+
+/* Preserve component spacing for inputs with leading/trailing icons. */
+.admin-shell main :is(input, select, textarea)[class~="pl-3"]{ padding-left: 0.75rem !important; }
+.admin-shell main :is(input, select, textarea)[class~="pl-4"]{ padding-left: 1rem !important; }
+.admin-shell main :is(input, select, textarea)[class~="pl-6"]{ padding-left: 1.5rem !important; }
+.admin-shell main :is(input, select, textarea)[class~="pl-8"]{ padding-left: 2rem !important; }
+.admin-shell main :is(input, select, textarea)[class~="pl-10"]{ padding-left: 2.5rem !important; }
+.admin-shell main :is(input, select, textarea)[class~="pl-11"]{ padding-left: 2.75rem !important; }
+.admin-shell main :is(input, select, textarea)[class~="pr-0"]{ padding-right: 0 !important; }
+.admin-shell main :is(input, select, textarea)[class~="pr-1"]{ padding-right: 0.25rem !important; }
+.admin-shell main :is(input, select, textarea)[class~="pr-2"]{ padding-right: 0.5rem !important; }
+.admin-shell main :is(input, select, textarea)[class~="pr-3"]{ padding-right: 0.75rem !important; }
+.admin-shell main :is(input, select, textarea)[class~="pr-4"]{ padding-right: 1rem !important; }
+.admin-shell main :is(input, select, textarea)[class~="pr-6"]{ padding-right: 1.5rem !important; }
+.admin-shell main :is(input, select, textarea)[class~="pr-10"]{ padding-right: 2.5rem !important; }
+.admin-shell main :is(input, select, textarea)[class~="pr-12"]{ padding-right: 3rem !important; }
+
+/* Admin & modal input focus state */
+.admin-shell input:focus,
+.admin-shell select:focus,
+.admin-shell textarea:focus,
+.admin-shell .rich-editor:focus,
+.admin-shell [contenteditable="true"]:focus,
+.fixed.inset-0 input:focus,
+.fixed.inset-0 select:focus,
+.fixed.inset-0 textarea:focus,
+.fixed.inset-0 .rich-editor:focus,
+.fixed.inset-0 [contenteditable="true"]:focus,
+div[role="dialog"] input:focus,
+div[role="dialog"] select:focus,
+div[role="dialog"] textarea:focus {
   outline: none !important;
-  border-color: var(--color-primary) !important;
-  box-shadow: 0 0 0 3px rgba(197, 168, 128, 0.15) !important;
+  border-color: #5D3E85 !important;
+  box-shadow: 0 0 0 3px rgba(93, 62, 133, 0.2) !important;
+}
+
+/* Dark Mode Admin & Modal Inputs */
+.dark .admin-shell input[type="text"],
+.dark .admin-shell input[type="number"],
+.dark .admin-shell input[type="email"],
+.dark .admin-shell input[type="password"],
+.dark .admin-shell input[type="search"],
+.dark .admin-shell input[type="tel"],
+.dark .admin-shell input[type="date"],
+.dark .admin-shell select,
+.dark .admin-shell textarea,
+.dark .admin-shell .rich-editor,
+.dark .admin-shell [contenteditable="true"],
+.dark .fixed.inset-0 input[type="text"],
+.dark .fixed.inset-0 input[type="number"],
+.dark .fixed.inset-0 input[type="email"],
+.dark .fixed.inset-0 input[type="password"],
+.dark .fixed.inset-0 input[type="search"],
+.dark .fixed.inset-0 input[type="tel"],
+.dark .fixed.inset-0 input[type="date"],
+.dark .fixed.inset-0 select,
+.dark .fixed.inset-0 textarea,
+.dark div[role="dialog"] input,
+.dark div[role="dialog"] select,
+.dark div[role="dialog"] textarea {
+  border: 1.5px solid #64748B !important; /* Crisp slate-500 in dark mode */
+  background-color: #1F2937 !important;
+  color: #F8FAFC !important;
+}
+
+.dark .admin-shell input:focus,
+.dark .admin-shell select:focus,
+.dark .admin-shell textarea:focus,
+.dark .fixed.inset-0 input:focus,
+.dark .fixed.inset-0 select:focus,
+.dark .fixed.inset-0 textarea:focus,
+.dark div[role="dialog"] input:focus,
+.dark div[role="dialog"] select:focus,
+.dark div[role="dialog"] textarea:focus {
+  border-color: #EC268F !important;
+  box-shadow: 0 0 0 3px rgba(236, 38, 143, 0.25) !important;
 }
 
 /* Prevent checkboxes from inheriting general text input styles */
 main input[type="checkbox"],
-.fixed.inset-0.z-50 input[type="checkbox"] {
-  border-radius: 0.25rem !important; /* 4px rounding */
-  width: 0.875rem !important; /* 14px */
-  height: 0.875rem !important; /* 14px */
+.fixed.inset-0.z-50 input[type="checkbox"],
+.admin-shell input[type="checkbox"]{
+  border-radius: 0.25rem !important;
+  width: 1rem !important;
+  height: 1rem !important;
   padding: 0 !important;
+  border: 1.5px solid #94A3B8 !important;
   background-color: transparent !important;
 }
-
-/* Textareas keep slightly larger rounded-2xl corners for readability */
-main textarea {
-  border-radius: 1rem !important;
-}
-
 /* Elegant Modals/Dialogs */
 div[role="dialog"] .bg-white,
-.fixed.inset-0.z-50 .bg-white {
+.fixed.inset-0.z-50 .bg-white{
   border-radius: 1.5rem !important; /* Large rounded 24px */
   border: 1px solid var(--color-border-light) !important;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02) !important;
 }
 .dark div[role="dialog"] .bg-white,
-.dark .fixed.inset-0.z-50 .bg-white {
+.dark .fixed.inset-0.z-50 .bg-white{
   background-color: var(--color-surface-dark) !important;
   border-color: var(--color-border-dark) !important;
 }
-
 /* Status Pill Badges */
-.bg-green-50.text-green-600 {
+.bg-green-50.text-green-600{
   background-color: #E6F4EA !important;
   color: #137333 !important;
   border: 1px solid #ceead6 !important;
   border-radius: 9999px !important;
 }
-.bg-orange-50.text-orange-500 {
+.bg-orange-50.text-orange-500{
   background-color: #FEF7E0 !important;
   color: #B06000 !important;
   border: 1px solid #feebc8 !important;
   border-radius: 9999px !important;
 }
-.bg-red-50.text-red-500 {
+.bg-red-50.text-red-500{
   background-color: #FCE8E6 !important;
   color: #C5221F !important;
   border: 1px solid #fad2cf !important;
   border-radius: 9999px !important;
 }
-
-/* Keep the storefront brand marquee flat after the generic admin card rules. */
-.storefront-shell main section.storefront-brand-strip.bg-white {
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  border-right: 0 !important;
-  border-left: 0 !important;
-  border-bottom: 0 !important;
-}
-
 /* Storefront light/dark theme ------------------------------------------------ */
-html.storefront-dark {
+/* B Night surfaces are supplied by Tailwind `dark:` utilities on the components
+   themselves. Only the things utilities cannot express live here. */
+html.storefront-dark{
   color-scheme: dark;
-  background: #000000 !important;
 }
-
-html.storefront-dark body,
-html.storefront-dark #root,
-html.storefront-dark .storefront-shell,
-html.storefront-dark .luxury-storefront main {
-  background-color: #000000 !important;
-  color: #e7e7e8 !important;
+/* Rating stars and active wishlist hearts keep their accent colour in both themes. */
+svg[class*="fill-amber"],
+svg[class*="fill-yellow"],
+.text-amber-400 svg,
+.text-yellow-400 svg{
+  color: #E5C158 !important;
+  fill: #E5C158 !important;
 }
-
-html.storefront-dark .luxury-storefront main > div:not(.fixed),
-html.storefront-dark .luxury-storefront main > section,
-html.storefront-dark .luxury-home {
-  background-color: #000000 !important;
+svg[class*="fill-red"],
+.text-red-500 svg{
+  color: #ef4444 !important;
+  fill: #ef4444 !important;
 }
-
-html.storefront-dark .luxury-home {
-  background: #000000 !important;
-}
-
-html.storefront-dark footer,
-html.storefront-dark .luxury-storefront footer,
-html.storefront-dark [class*="bg-[#0B0B0B]"],
-html.storefront-dark [class*="bg-black"],
-html.storefront-dark [class*="bg-[#000]"],
-html.storefront-dark [class*="bg-[#000000]"],
-html.storefront-dark [class*="bg-gray-950"],
-html.storefront-dark [class*="bg-gray-900"] {
-  background-color: #000000 !important;
-  background: #000000 !important;
-}
-
-html.storefront-dark .luxury-cinematic-hero {
-  background: #000000 !important;
-}
-
-html.storefront-dark .storefront-brand-strip,
-html.storefront-dark section.storefront-brand-strip {
-  background-color: #000000 !important;
-  background-image: none !important;
-}
-
-html.storefront-dark .luxury-storefront :is(.bg-white, .bg-gray-50, .bg-gray-55, .bg-gray-100, .bg-gray-105, .bg-gray-150, .bg-gray-200),
-html.storefront-dark .luxury-storefront [class*="bg-[#FA"],
-html.storefront-dark .luxury-storefront [class*="bg-[#F5"],
-html.storefront-dark .storefront-shell :is(.bg-white, .bg-gray-50, .bg-gray-55, .bg-gray-100, .bg-gray-105, .bg-gray-150, .bg-gray-200),
-html.storefront-dark .storefront-shell [class*="bg-[#FA"],
-html.storefront-dark .storefront-shell [class*="bg-[#F5"] {
-  background-color: #111111 !important;
-  background-image: none !important;
-}
-
-html.storefront-dark .luxury-storefront :is(.bg-white\/95, .bg-white\/80, .bg-white\/75, .bg-white\/72, .bg-white\/60) {
-  background-color: rgba(17, 17, 17, 0.92) !important;
-}
-
-html.storefront-dark .luxury-storefront main :is(h1, h2, h3, h4, h5, h6),
-html.storefront-dark .luxury-storefront main [class*="text-gray-9"],
-html.storefront-dark .luxury-storefront main [class*="text-gray-8"],
-html.storefront-dark .luxury-storefront main [class*="text-gray-7"] {
-  color: #f4f4f5 !important;
-}
-
-html.storefront-dark .luxury-storefront main [class*="text-gray-6"],
-html.storefront-dark .luxury-storefront main [class*="text-gray-5"],
-html.storefront-dark .luxury-storefront main [class*="text-gray-4"] {
-  color: #b8bbc2 !important;
-}
-
-/* Remove all border lines across sections, cards, dividers, and containers in dark mode */
-html.storefront-dark .luxury-storefront main [class*="border"],
-html.storefront-dark .luxury-storefront section,
-html.storefront-dark .luxury-storefront div,
-html.storefront-dark .luxury-storefront footer,
-html.storefront-dark .luxury-storefront header,
-html.storefront-dark .luxury-mega-menu,
-html.storefront-dark .luxury-mega-menu [class*="border"],
-html.storefront-dark [class*="border-gray-"],
-html.storefront-dark [class*="border-white"],
-html.storefront-dark [class*="border-y"],
-html.storefront-dark [class*="border-t"],
-html.storefront-dark [class*="border-b"],
-html.storefront-dark [class*="border-l"],
-html.storefront-dark [class*="border-r"] {
-  border-color: transparent !important;
-}
-
-html.storefront-dark .luxury-storefront main :is(input, select, textarea) {
-  background: #111111 !important;
-  border-color: #222222 !important;
-  color: #f4f4f5 !important;
-}
-
-html.storefront-dark .luxury-storefront main :is(input, textarea)::placeholder {
-  color: #777d88 !important;
-}
-
-html.storefront-dark .luxury-nav > nav {
-  background: rgba(16,18,22,.88) !important;
-  border-color: transparent !important;
-  box-shadow: 0 12px 35px rgba(0,0,0,.45) !important;
-}
-
-html.storefront-dark .luxury-nav > nav a:not(.bg-primary),
-html.storefront-dark .luxury-nav button,
-html.storefront-dark .luxury-nav svg {
-  color: #e5e7eb !important;
-}
-
-html.storefront-dark .luxury-nav--scrolled > a:first-child,
-html.storefront-dark .luxury-nav--scrolled > div:last-child > :is(a, button) {
-  background-color: rgba(16,18,22,.82) !important;
-  border-color: transparent !important;
-}
-
-html.storefront-dark .luxury-mega-menu {
-  background: rgba(15,17,21,.97) !important;
-  border-color: transparent !important;
-  color: #e5e7eb !important;
-  box-shadow: 0 24px 65px rgba(0,0,0,.48) !important;
-}
-
-html.storefront-dark .luxury-mega-menu [class*="text-gray-"] {
-  color: #c2c6ce !important;
-}
-
-html.storefront-dark .luxury-mega-menu [class*="border-gray-"] {
-  border-color: transparent !important;
-}
-
-html.storefront-dark .luxury-storefront > div.fixed > div.bg-white {
-  background: #111318 !important;
-  color: #f4f4f5 !important;
-  border-color: transparent !important;
-}
-
-html.storefront-dark .storefront-faq-section {
-  background: #000000 !important;
-  border-color: transparent !important;
-}
-
-html.storefront-dark .storefront-page-hero {
-  background: #000000 !important;
-  border-color: transparent !important;
-}
-
-html.storefront-dark .luxury-storefront > nav.fixed,
-html.storefront-dark .luxury-storefront .fixed .bg-white {
-  background-color: #111318 !important;
-  border-color: transparent !important;
-  color: #f4f4f5 !important;
-}
-
-html.storefront-dark .luxury-storefront .fixed [class*="text-gray-"] {
-  color: #b8bbc2 !important;
-}
-
-html.storefront-dark .storefront-brand-strip::before,
-html.storefront-dark .storefront-brand-strip::after {
-  opacity: 0 !important;
-}
-
-@media (prefers-reduced-motion: no-preference) {
+@media (prefers-reduced-motion: no-preference){
   .storefront-shell,
   .storefront-shell main,
-  .storefront-shell main > div,
-  .luxury-nav > nav {
+  .storefront-shell main > div {
     transition: background-color .3s ease, color .3s ease, border-color .3s ease !important;
   }
 }
-
-.storefront-faq-trigger {
+.storefront-faq-trigger{
   display: flex !important;
   width: 100% !important;
   justify-content: space-between !important;
@@ -1292,19 +891,16 @@ html.storefront-dark .storefront-brand-strip::after {
   text-align: left !important;
   border-radius: 0 !important;
 }
-
-.storefront-faq-question {
+.storefront-faq-question{
   flex: 1 1 auto !important;
   text-align: left !important;
 }
-
-.storefront-faq-caret {
+.storefront-faq-caret{
   margin-left: auto !important;
   padding: 0 !important;
 }
-
 /* BeautyCenter Luxury Aesthetic Enhancements */
-@keyframes spinSlow {
+@keyframes spinSlow{
   from {
     transform: rotate(0deg);
   }
@@ -1312,12 +908,10 @@ html.storefront-dark .storefront-brand-strip::after {
     transform: rotate(360deg);
   }
 }
-
-.animate-spin-slow {
+.animate-spin-slow{
   animation: spinSlow 24s linear infinite;
 }
-
-@keyframes pulseGlow {
+@keyframes pulseGlow{
   0%, 100% {
     opacity: 0.8;
     transform: scale(1);
@@ -1327,47 +921,319 @@ html.storefront-dark .storefront-brand-strip::after {
     transform: scale(1.05);
   }
 }
-
-.animate-pulse-glow {
+.animate-pulse-glow{
   animation: pulseGlow 4s ease-in-out infinite;
 }
-
-.bc-hero-bg {
+.bc-hero-bg{
   background: linear-gradient(135deg, #d8b8ab 0%, #c69d8d 50%, #eade87 100%);
 }
-
-.bc-glass-pill {
+.bc-glass-pill{
   background: rgba(255, 255, 255, 0.45);
   backdrop-filter: blur(20px) saturate(140%);
   -webkit-backdrop-filter: blur(20px) saturate(140%);
   border: 1px solid rgba(255, 255, 255, 0.6);
 }
-
-.bc-glass-card {
+.bc-glass-card{
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.8);
 }
-
-.bc-dark-pill {
+.bc-dark-pill{
   background-color: #1a1a1a;
   color: #ffffff;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
-.bc-dark-pill:hover {
+.bc-dark-pill:hover{
   background-color: #333333;
   transform: translateY(-1px);
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
 }
-
-.bc-card-hover {
+.bc-card-hover{
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
-
-.bc-card-hover:hover {
+.bc-card-hover:hover{
   transform: translateY(-4px);
   box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.08);
 }
+/* Luxury Policy Page Typography & Layout Enhancements */
+.policy-prose-content h2{
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.25rem, 2.5vw, 1.65rem);
+  font-weight: 800;
+  color: #181120;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  padding-left: 0.85rem;
+  border-left: 4px solid #5D3E85;
+  line-height: 1.3;
+}
+.dark .policy-prose-content h2{
+  color: #ffffff;
+  border-left-color: #EC268F;
+}
+.policy-prose-content h3{
+  font-family: 'Outfit', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #5D3E85;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
+}
+.dark .policy-prose-content h3{
+  color: #f472b6;
+}
+.policy-prose-content p{
+  font-size: 0.875rem;
+  line-height: 1.75;
+  color: #4b5563;
+  margin-bottom: 1.15rem;
+}
+.dark .policy-prose-content p{
+  color: #d1d5db;
+}
+.policy-prose-content ul{
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  margin-bottom: 1.5rem;
+  padding-left: 0;
+  list-style: none;
+}
+.policy-prose-content li{
+  position: relative;
+  background: rgba(250, 247, 252, 0.8);
+  border: 1px solid #f0e6f5;
+  padding: 0.85rem 1.15rem;
+  padding-left: 2.5rem;
+  border-radius: 1rem;
+  font-size: 0.85rem;
+  color: #374151;
+  line-height: 1.6;
+}
+.dark .policy-prose-content li{
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #e5e7eb;
+}
+.policy-prose-content li::before{
+  content: '✦';
+  position: absolute;
+  left: 1rem;
+  top: 0.85rem;
+  color: #5D3E85;
+  font-size: 0.85rem;
+}
+.dark .policy-prose-content li::before{
+  color: #EC268F;
+}
+/* B Night & Quiet Editorial Utilities */
+.font-fraunces,
+.font-instrument{
+  font-family: 'Fraunces', 'Playfair Display', Georgia, serif;
+}
+.font-serif{
+  font-family: 'Fraunces', 'Playfair Display', Georgia, serif;
+}
+.font-manrope{
+  font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+}
+.font-outfit{
+  font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+}
+/* Smooth Fade In Reveal */
+@keyframes fadeInScale{
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.animate-fade-scale{
+  animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+/* Glass Sheen Light Sweep Keyframes */
+@keyframes glassSheen{
+  0% {
+    transform: translateX(-100%) skewX(-15deg);
+  }
+  100% {
+    transform: translateX(200%) skewX(-15deg);
+  }
+}
+.animate-glass-sheen{
+  animation: glassSheen 1.2s ease-in-out infinite;
+}
+/* Shimmer Background */
+@keyframes shimmerPulse{
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+.animate-shimmer-pulse{
+  animation: shimmerPulse 3s ease-in-out infinite;
+}
+.policy-prose-content strong{
+  color: #181120;
+  font-weight: 700;
+}
+.dark .policy-prose-content strong{
+  color: #ffffff;
+}
+/* ---------------------------------------------------------------------------
+   Scroll reveal — one shared animation for every storefront page.
+   Elements start slightly offset and settle as they enter the viewport.
+   Fully disabled under prefers-reduced-motion.
+--------------------------------------------------------------------------- */
+.reveal {
+  opacity: 0;
+  transform: translate3d(0, 26px, 0);
+  transition:
+    opacity .7s cubic-bezier(.22, 1, .36, 1),
+    transform .7s cubic-bezier(.22, 1, .36, 1);
+  will-change: opacity, transform;
+}
 
+.reveal.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* Stagger siblings so grids and card rows cascade rather than pop together. */
+.reveal.is-visible:nth-child(2) { transition-delay: .07s; }
+.reveal.is-visible:nth-child(3) { transition-delay: .14s; }
+.reveal.is-visible:nth-child(4) { transition-delay: .21s; }
+.reveal.is-visible:nth-child(5) { transition-delay: .28s; }
+.reveal.is-visible:nth-child(6) { transition-delay: .35s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Global Form Inputs, Textarea & Selects Border Contrast & Styling
+--------------------------------------------------------------------------- */
+.luxury-storefront input[type="text"],
+.luxury-storefront input[type="email"],
+.luxury-storefront input[type="password"],
+.luxury-storefront input[type="number"],
+.luxury-storefront input[type="tel"],
+.luxury-storefront input[type="search"],
+.luxury-storefront input[type="date"],
+.luxury-storefront input[type="datetime-local"],
+.luxury-storefront textarea,
+.luxury-storefront select {
+  border-width: 1.5px !important;
+  border-style: solid !important;
+  border-color: #D4C3E2 !important;
+  background-color: #FAF7FC !important;
+  color: #221B2B !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.luxury-storefront input[type="text"]:hover,
+.luxury-storefront input[type="email"]:hover,
+.luxury-storefront input[type="password"]:hover,
+.luxury-storefront input[type="number"]:hover,
+.luxury-storefront input[type="tel"]:hover,
+.luxury-storefront input[type="search"]:hover,
+.luxury-storefront input[type="date"]:hover,
+.luxury-storefront input[type="datetime-local"]:hover,
+.luxury-storefront textarea:hover,
+.luxury-storefront select:hover {
+  border-color: #9C78C4 !important;
+}
+
+.luxury-storefront input[type="text"]:focus,
+.luxury-storefront input[type="email"]:focus,
+.luxury-storefront input[type="password"]:focus,
+.luxury-storefront input[type="number"]:focus,
+.luxury-storefront input[type="tel"]:focus,
+.luxury-storefront input[type="search"]:focus,
+.luxury-storefront input[type="date"]:focus,
+.luxury-storefront input[type="datetime-local"]:focus,
+.luxury-storefront textarea:focus,
+.luxury-storefront select:focus {
+  border-color: #5D3E85 !important;
+  box-shadow: 0 0 0 3px rgba(93, 62, 133, 0.15) !important;
+  background-color: #FFFFFF !important;
+  outline: none !important;
+}
+
+/* Dark Mode Overrides */
+.dark .luxury-storefront input[type="text"],
+.dark .luxury-storefront input[type="email"],
+.dark .luxury-storefront input[type="password"],
+.dark .luxury-storefront input[type="number"],
+.dark .luxury-storefront input[type="tel"],
+.dark .luxury-storefront input[type="search"],
+.dark .luxury-storefront input[type="date"],
+.dark .luxury-storefront input[type="datetime-local"],
+.dark .luxury-storefront textarea,
+.dark .luxury-storefront select,
+.storefront-dark .luxury-storefront input[type="text"],
+.storefront-dark .luxury-storefront input[type="email"],
+.storefront-dark .luxury-storefront input[type="password"],
+.storefront-dark .luxury-storefront input[type="number"],
+.storefront-dark .luxury-storefront input[type="tel"],
+.storefront-dark .luxury-storefront input[type="search"],
+.storefront-dark .luxury-storefront input[type="date"],
+.storefront-dark .luxury-storefront input[type="datetime-local"],
+.storefront-dark .luxury-storefront textarea,
+.storefront-dark .luxury-storefront select {
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  background-color: #140D1C !important;
+  color: #F3EFF6 !important;
+}
+
+.dark .luxury-storefront input:hover,
+.dark .luxury-storefront textarea:hover,
+.dark .luxury-storefront select:hover,
+.storefront-dark .luxury-storefront input:hover,
+.storefront-dark .luxury-storefront textarea:hover,
+.storefront-dark .luxury-storefront select:hover {
+  border-color: rgba(236, 38, 143, 0.6) !important;
+}
+
+.dark .luxury-storefront input:focus,
+.dark .luxury-storefront textarea:focus,
+.dark .luxury-storefront select:focus,
+.storefront-dark .luxury-storefront input:focus,
+.storefront-dark .luxury-storefront textarea:focus,
+.storefront-dark .luxury-storefront select:focus {
+  border-color: #EC268F !important;
+  box-shadow: 0 0 0 3px rgba(236, 38, 143, 0.25) !important;
+  background-color: #1A1124 !important;
+  outline: none !important;
+}
+
+
+/* ---------------------------------------------------------------------------
+   PayPal inline card fields.
+   PayPal injects a zoid wrapper + iframe of its own height. Let it define the
+   height (clipping it makes the field look double-layered) and just make it
+   fill our pill horizontally.
+--------------------------------------------------------------------------- */
+.pp-field {
+  display: block;
+  width: 100%;
+}
+
+/* PayPal injects a zoid wrapper + iframe and sizes the iframe to its own content.
+   Only stretch it to our width — constraining the height clips the field and makes
+   it read as a box inside a box. */
+.pp-field > div,
+.pp-field iframe {
+  width: 100% !important;
+  display: block;
+  border: 0;
+}

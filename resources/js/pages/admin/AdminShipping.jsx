@@ -357,7 +357,7 @@ export default function AdminShipping() {
                     value={name}
                     onChange={e => setName(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                    placeholder="e.g., Abuja Standard Delivery"
+                    placeholder="e.g., Express Priority Courier"
                   />
                 </div>
 

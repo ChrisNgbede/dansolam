@@ -24,6 +24,7 @@ class Banner extends Model
         'bottom_kicker',
         'bottom_text',
         'type',
+        'layout_mode',
         'is_active',
         'sort_order',
     ];

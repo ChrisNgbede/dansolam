@@ -9,6 +9,7 @@ import ImageUploadField from '../../components/ui/ImageUploadField';
 import RichTextEditor from '../../components/ui/RichTextEditor';
 import { COUNTRIES } from '../../utils/geoData';
 import SettingsSearchTypeahead from '../../components/admin/SettingsSearchTypeahead';
+import { PaystackLogo, StripeLogo, PayPalLogo } from '../../components/storefront/PaymentGatewayLogos';
 
 const CURRENCIES = [
   { code: 'NGN', symbol: '₦', name: 'Nigerian Naira (₦)' },
@@ -68,6 +69,8 @@ export default function AdminSettings() {
   const [logoUrl, setLogoUrl] = useState('');
   const [faviconUrl, setFaviconUrl] = useState('');
   const [themeColor, setThemeColor] = useState('#C5A880');
+  const [storefrontThemeMode, setStorefrontThemeMode] = useState('user_choice'); // 'b_night' | 'light' | 'user_choice'
+  const [storefrontDefaultTheme, setStorefrontDefaultTheme] = useState('dark'); // 'dark' | 'light'
   const [tagline, setTagline] = useState('');
   const [description, setDescription] = useState('');
   const [instagramUrl, setInstagramUrl] = useState('');
@@ -116,6 +119,13 @@ export default function AdminSettings() {
   // Settings states - Promotions & Popups
   const [announcementShow, setAnnouncementShow] = useState(true);
   const [announcementText, setAnnouncementText] = useState('');
+  const [announcementBgColor, setAnnouncementBgColor] = useState('#181120');
+  const [announcementTextColor, setAnnouncementTextColor] = useState('#FFFFFF');
+  const [announcementAccentColor, setAnnouncementAccentColor] = useState('#EC268F');
+  const [announcementAutoplaySpeed, setAnnouncementAutoplaySpeed] = useState('4500');
+  const [announcementIncludeCoupons, setAnnouncementIncludeCoupons] = useState(true);
+  const [announcementLinkUrl, setAnnouncementLinkUrl] = useState('');
+  const [announcementAnimationMode, setAnnouncementAnimationMode] = useState('fade_slide');
   const [promoPopupShow, setPromoPopupShow] = useState(false);
   const [promoPopupTitle, setPromoPopupTitle] = useState('');
   const [promoPopupBody, setPromoPopupBody] = useState('');
@@ -132,10 +142,19 @@ export default function AdminSettings() {
 
   // Settings states - Payment Gateways
   const [paymentGatewayActive, setPaymentGatewayActive] = useState('paystack');
+  const [paystackEnabled, setPaystackEnabled] = useState(true);
+  const [stripeEnabled, setStripeEnabled] = useState(true);
+  const [paypalEnabled, setPaypalEnabled] = useState(true);
+  const [bankTransferEnabled, setBankTransferEnabled] = useState(true);
+  const [paypalMode, setPaypalMode] = useState('sandbox');
   const [stripeKeyPublic, setStripeKeyPublic] = useState('');
   const [stripeKeySecret, setStripeKeySecret] = useState('');
+  const [stripeWebhookSecret, setStripeWebhookSecret] = useState('');
   const [paypalClientId, setPaypalClientId] = useState('');
   const [paypalClientSecret, setPaypalClientSecret] = useState('');
+  const [paypalIntent, setPaypalIntent] = useState('CAPTURE');
+  const [paypalCurrency, setPaypalCurrency] = useState('USD');
+  const [paypalExchangeRate, setPaypalExchangeRate] = useState('1');
   const [paystackKeyPublic, setPaystackKeyPublic] = useState('');
   const [paystackKeySecret, setPaystackKeySecret] = useState('');
   const [flutterwaveKeyPublic, setFlutterwaveKeyPublic] = useState('');
@@ -206,6 +225,8 @@ export default function AdminSettings() {
       setLogoUrl(s.logo_url || '');
       setFaviconUrl(s.favicon_url || '');
       setThemeColor(s.theme_primary_color || '#C5A880');
+      setStorefrontThemeMode(s.storefront_theme_mode || 'user_choice');
+      setStorefrontDefaultTheme(s.storefront_default_theme || 'dark');
       setTagline(s.tagline || '');
       setDescription(s.description || '');
       setInstagramUrl(s.instagram_url || '');
@@ -251,6 +272,13 @@ export default function AdminSettings() {
       // Load Promotions & Popups
       setAnnouncementShow(s.announcement_show === 'true' || s.announcement_show === true || s.announcement_show === '1' || s.announcement_show === 1);
       setAnnouncementText(s.announcement_text || '');
+      setAnnouncementBgColor(s.announcement_bg_color || '#181120');
+      setAnnouncementTextColor(s.announcement_text_color || '#FFFFFF');
+      setAnnouncementAccentColor(s.announcement_accent_color || '#EC268F');
+      setAnnouncementAutoplaySpeed(s.announcement_autoplay_speed || '4500');
+      setAnnouncementIncludeCoupons(s.announcement_include_coupons === undefined || ['true', '1', true, 1].includes(s.announcement_include_coupons));
+      setAnnouncementLinkUrl(s.announcement_link_url || '');
+      setAnnouncementAnimationMode(s.announcement_animation_mode || 'fade_slide');
       setPromoPopupShow(s.promo_popup_show === 'true' || s.promo_popup_show === true || s.promo_popup_show === '1' || s.promo_popup_show === 1);
       setPromoPopupTitle(s.promo_popup_title || '');
       setPromoPopupBody(s.promo_popup_body || '');
@@ -267,10 +295,19 @@ export default function AdminSettings() {
 
       // Load Payment Gateways
       setPaymentGatewayActive(s.payment_gateway_active || 'paystack');
+      setPaystackEnabled(s.paystack_enabled === undefined || ['true', '1', true, 1].includes(s.paystack_enabled));
+      setStripeEnabled(s.stripe_enabled === undefined || ['true', '1', true, 1].includes(s.stripe_enabled));
+      setPaypalEnabled(s.paypal_enabled === undefined || ['true', '1', true, 1].includes(s.paypal_enabled));
+      setBankTransferEnabled(s.bank_transfer_enabled === undefined || ['true', '1', true, 1].includes(s.bank_transfer_enabled));
+      setPaypalMode(s.paypal_mode || 'sandbox');
       setStripeKeyPublic(s.stripe_key_public || '');
       setStripeKeySecret(s.stripe_key_secret || '');
+      setStripeWebhookSecret(s.stripe_webhook_secret || '');
       setPaypalClientId(s.paypal_client_id || '');
       setPaypalClientSecret(s.paypal_client_secret || '');
+      setPaypalIntent(s.paypal_intent || 'CAPTURE');
+      setPaypalCurrency(s.paypal_currency || 'USD');
+      setPaypalExchangeRate(s.paypal_exchange_rate || '1');
       setPaystackKeyPublic(s.paystack_key_public || '');
       setPaystackKeySecret(s.paystack_key_secret || '');
       setFlutterwaveKeyPublic(s.flutterwave_key_public || '');
@@ -332,6 +369,8 @@ export default function AdminSettings() {
       logo_url: logoUrl,
       favicon_url: faviconUrl,
       theme_primary_color: themeColor,
+      storefront_theme_mode: storefrontThemeMode,
+      storefront_default_theme: storefrontDefaultTheme,
       tagline: tagline,
       description: description,
       instagram_url: instagramUrl,
@@ -374,6 +413,13 @@ export default function AdminSettings() {
       // Promotions & Popups payload
       announcement_show: announcementShow ? 'true' : 'false',
       announcement_text: announcementText,
+      announcement_bg_color: announcementBgColor,
+      announcement_text_color: announcementTextColor,
+      announcement_accent_color: announcementAccentColor,
+      announcement_autoplay_speed: announcementAutoplaySpeed,
+      announcement_include_coupons: announcementIncludeCoupons ? 'true' : 'false',
+      announcement_link_url: announcementLinkUrl,
+      announcement_animation_mode: announcementAnimationMode,
       promo_popup_show: promoPopupShow ? 'true' : 'false',
       promo_popup_title: promoPopupTitle,
       promo_popup_body: promoPopupBody,
@@ -391,10 +437,19 @@ export default function AdminSettings() {
 
       // Payment gateways payload
       payment_gateway_active: paymentGatewayActive,
+      paystack_enabled: paystackEnabled ? 'true' : 'false',
+      stripe_enabled: stripeEnabled ? 'true' : 'false',
+      paypal_enabled: paypalEnabled ? 'true' : 'false',
+      bank_transfer_enabled: bankTransferEnabled ? 'true' : 'false',
+      paypal_mode: paypalMode,
       stripe_key_public: stripeKeyPublic,
       stripe_key_secret: stripeKeySecret,
+      stripe_webhook_secret: stripeWebhookSecret,
       paypal_client_id: paypalClientId,
       paypal_client_secret: paypalClientSecret,
+      paypal_intent: paypalIntent,
+      paypal_currency: paypalCurrency,
+      paypal_exchange_rate: paypalExchangeRate,
       paystack_key_public: paystackKeyPublic,
       paystack_key_secret: paystackKeySecret,
       flutterwave_key_public: flutterwaveKeyPublic,
@@ -536,90 +591,123 @@ export default function AdminSettings() {
         <SettingsSearchTypeahead onSelectSetting={handleSelectSearchSetting} />
       </div>
 
-      {/* Tabs Menu selectors */}
-      <div className="flex border-b border-gray-150 text-xs font-semibold text-gray-400">
+      {/* Tabs Menu button bar */}
+      <div style={{ backgroundColor: '#F1F5F9' }} className="flex items-center gap-1.5 p-1.5 rounded-2xl border border-gray-200 overflow-x-auto scrollbar-none text-xs font-bold shadow-2xs">
         <button
+          type="button"
           onClick={() => setActiveSettingsTab('brand')}
-          className={`flex items-center gap-1.5 pb-2.5 px-4 border-b-2 transition-all ${
-            activeSettingsTab === 'brand' ? 'border-primary text-primary' : 'border-transparent hover:text-gray-650'
+          style={{ backgroundColor: activeSettingsTab === 'brand' ? '#5D3E85' : '#FFFFFF' }}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+            activeSettingsTab === 'brand'
+              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
           }`}
         >
-          <Settings className="w-4 h-4" />
+          <Settings className="w-3.5 h-3.5" />
           Brand & Identity
         </button>
         <button
+          type="button"
           onClick={() => setActiveSettingsTab('promotions')}
-          className={`flex items-center gap-1.5 pb-2.5 px-4 border-b-2 transition-all ${
-            activeSettingsTab === 'promotions' ? 'border-primary text-primary' : 'border-transparent hover:text-gray-655'
+          style={{ backgroundColor: activeSettingsTab === 'promotions' ? '#5D3E85' : '#FFFFFF' }}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+            activeSettingsTab === 'promotions'
+              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
           }`}
         >
-          <Volume2 className="w-4 h-4" />
+          <Volume2 className="w-3.5 h-3.5" />
           Announcements & Popups
         </button>
         <button
+          type="button"
           onClick={() => setActiveSettingsTab('shipping')}
-          className={`flex items-center gap-1.5 pb-2.5 px-4 border-b-2 transition-all ${
-            activeSettingsTab === 'shipping' ? 'border-primary text-primary' : 'border-transparent hover:text-gray-655'
+          style={{ backgroundColor: activeSettingsTab === 'shipping' ? '#5D3E85' : '#FFFFFF' }}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+            activeSettingsTab === 'shipping'
+              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
           }`}
         >
-          <Truck className="w-4 h-4" />
+          <Truck className="w-3.5 h-3.5" />
           Shipping Rules
         </button>
         <button
+          type="button"
           onClick={() => setActiveSettingsTab('payment')}
-          className={`flex items-center gap-1.5 pb-2.5 px-4 border-b-2 transition-all ${
-            activeSettingsTab === 'payment' ? 'border-primary text-primary' : 'border-transparent hover:text-gray-655'
+          style={{ backgroundColor: activeSettingsTab === 'payment' ? '#5D3E85' : '#FFFFFF' }}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+            activeSettingsTab === 'payment'
+              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
           }`}
         >
-          <CreditCard className="w-4 h-4" />
+          <CreditCard className="w-3.5 h-3.5" />
           Payment Gateways
         </button>
         <button
+          type="button"
           onClick={() => setActiveSettingsTab('smtp')}
-          className={`flex items-center gap-1.5 pb-2.5 px-4 border-b-2 transition-all ${
-            activeSettingsTab === 'smtp' ? 'border-primary text-primary' : 'border-transparent hover:text-gray-655'
+          style={{ backgroundColor: activeSettingsTab === 'smtp' ? '#5D3E85' : '#FFFFFF' }}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+            activeSettingsTab === 'smtp'
+              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
           }`}
         >
-          <Lock className="w-4 h-4" />
+          <Lock className="w-3.5 h-3.5" />
           SMTP Server
         </button>
         <button
+          type="button"
           onClick={() => setActiveSettingsTab('templates')}
-          className={`flex items-center gap-1.5 pb-2.5 px-4 border-b-2 transition-all ${
-            activeSettingsTab === 'templates' ? 'border-primary text-primary' : 'border-transparent hover:text-gray-655'
+          style={{ backgroundColor: activeSettingsTab === 'templates' ? '#5D3E85' : '#FFFFFF' }}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+            activeSettingsTab === 'templates'
+              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
           }`}
         >
-          <Mail className="w-4 h-4" />
+          <Mail className="w-3.5 h-3.5" />
           Notification Templates
         </button>
         <button
-          onClick={() => setActiveSettingsTab('pages')}
-          className={`flex items-center gap-1.5 pb-2.5 px-4 border-b-2 transition-all ${
-            activeSettingsTab === 'pages' ? 'border-primary text-primary' : 'border-transparent hover:text-gray-655'
-          }`}
           type="button"
+          onClick={() => setActiveSettingsTab('pages')}
+          style={{ backgroundColor: activeSettingsTab === 'pages' ? '#5D3E85' : '#FFFFFF' }}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+            activeSettingsTab === 'pages'
+              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
+          }`}
         >
-          <FileText className="w-4 h-4" />
+          <FileText className="w-3.5 h-3.5" />
           Storefront Pages
         </button>
         <button
-          onClick={() => setActiveSettingsTab('modules')}
-          className={`flex items-center gap-1.5 pb-2.5 px-4 border-b-2 transition-all ${
-            activeSettingsTab === 'modules' ? 'border-primary text-primary' : 'border-transparent hover:text-gray-655'
-          }`}
           type="button"
+          onClick={() => setActiveSettingsTab('modules')}
+          style={{ backgroundColor: activeSettingsTab === 'modules' ? '#5D3E85' : '#FFFFFF' }}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+            activeSettingsTab === 'modules'
+              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
+          }`}
         >
-          <Layers className="w-4 h-4" />
+          <Layers className="w-3.5 h-3.5" />
           Modules
         </button>
         <button
-          onClick={() => setActiveSettingsTab('security')}
-          className={`flex items-center gap-1.5 pb-2.5 px-4 border-b-2 transition-all ${
-            activeSettingsTab === 'security' ? 'border-primary text-primary' : 'border-transparent hover:text-gray-655'
-          }`}
           type="button"
+          onClick={() => setActiveSettingsTab('security')}
+          style={{ backgroundColor: activeSettingsTab === 'security' ? '#5D3E85' : '#FFFFFF' }}
+          className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
+            activeSettingsTab === 'security'
+              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
+          }`}
         >
-          <ShieldCheck className="w-4 h-4" />
+          <ShieldCheck className="w-3.5 h-3.5" />
           Security & CAPTCHA
         </button>
       </div>
@@ -654,6 +742,34 @@ export default function AdminSettings() {
                   <span className="text-xs font-mono font-semibold text-gray-650">{themeColor}</span>
                 </div>
               </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] text-gray-555 font-bold uppercase">Storefront Theme Mode</label>
+                <select
+                  value={storefrontThemeMode}
+                  onChange={e => setStorefrontThemeMode(e.target.value)}
+                  className="px-3 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 font-medium cursor-pointer"
+                >
+                  <option value="user_choice">User Choice (Allow Visitor Toggle)</option>
+                  <option value="b_night">B Night (Enforce Dark Mode)</option>
+                  <option value="light">Quiet Editorial (Enforce Light Mode)</option>
+                </select>
+                <span className="text-[10px] text-gray-400">Controls whether visitors can toggle between B Night and Light mode</span>
+              </div>
+
+              {storefrontThemeMode === 'user_choice' && (
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] text-gray-555 font-bold uppercase">Default Theme for New Visitors</label>
+                  <select
+                    value={storefrontDefaultTheme}
+                    onChange={e => setStorefrontDefaultTheme(e.target.value)}
+                    className="px-3 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 font-medium cursor-pointer"
+                  >
+                    <option value="dark">B Night (Dark Mode)</option>
+                    <option value="light">Quiet Editorial (Light Mode)</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -782,7 +898,7 @@ export default function AdminSettings() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] text-gray-555 font-bold uppercase">Instagram Handle</label>
-                <input type="text" value={instagramHandle} onChange={e => setInstagramHandle(e.target.value)} className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white" placeholder="@fairqueen_collections" />
+                <input type="text" value={instagramHandle} onChange={e => setInstagramHandle(e.target.value)} className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white" placeholder="@dansolam_official" />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] text-gray-555 font-bold uppercase">Instagram Professional Access Token</label>
@@ -945,28 +1061,216 @@ export default function AdminSettings() {
             <p className="text-xs text-gray-400">Configure client promotions, header notice bars, and email capture popup delays.</p>
 
             {/* Announcement Ribbon */}
-            <div id="setting-announcement-bar" className="bg-gray-50 border border-gray-200 rounded-xl p-4 flex flex-col gap-4">
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-800">
-                <input
-                  type="checkbox"
-                  checked={announcementShow}
-                  onChange={e => setAnnouncementShow(e.target.checked)}
-                  className="rounded border-gray-300 text-primary w-4.5 h-4.5"
-                />
-                Show Header Announcement Ribbon
-              </label>
+            <div id="setting-announcement-bar" className="bg-gray-50 border border-gray-200 rounded-xl p-5 flex flex-col gap-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-200/80 pb-3">
+                <div>
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-gray-800">
+                    <input
+                      type="checkbox"
+                      checked={announcementShow}
+                      onChange={e => setAnnouncementShow(e.target.checked)}
+                      className="rounded border-gray-300 text-primary w-4.5 h-4.5"
+                    />
+                    Enable Storefront Top Bar Announcement Ribbon
+                  </label>
+                  <p className="text-[11px] text-gray-500 mt-0.5 ml-6.5">
+                    Displays a top-level notice ribbon across all storefront pages with rotating messages, coupon badges, and copy buttons.
+                  </p>
+                </div>
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider self-start sm:self-auto ${
+                  announcementShow ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'
+                }`}>
+                  {announcementShow ? 'Active' : 'Disabled'}
+                </span>
+              </div>
 
+              {/* Live Preview of the Announcement Bar */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-505 font-bold uppercase">Ribbon Text Message</label>
-                <input
-                  type="text"
+                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Live Real-time Preview</span>
+                <div
+                  style={{
+                    backgroundColor: announcementBgColor,
+                    color: announcementTextColor,
+                    borderColor: `${announcementAccentColor}40`
+                  }}
+                  className="rounded-xl px-4 py-2.5 text-xs font-bold flex flex-wrap items-center justify-between gap-3 shadow-sm border overflow-hidden relative"
+                >
+                  <div className="flex items-center gap-2">
+                    <span style={{ color: announcementAccentColor }}>📢</span>
+                    <span className="truncate max-w-xs sm:max-w-md">
+                      {announcementText.split('|')[0]?.trim() || `✨ Free delivery on orders above ${currencySymbol}100,000!`}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      style={{
+                        backgroundColor: `${announcementTextColor}25`,
+                        color: announcementTextColor,
+                        borderColor: `${announcementTextColor}40`
+                      }}
+                      className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border flex items-center gap-1.5"
+                    >
+                      <span>WELCOME10</span>
+                      <span
+                        style={{ backgroundColor: announcementAccentColor, color: '#FFFFFF' }}
+                        className="px-1.5 py-0.2 rounded text-[9px] font-sans font-black"
+                      >
+                        COPY
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Text Message Field with Multi-message delimiter support */}
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] text-gray-600 font-bold uppercase">
+                    Announcement Messages (Separate multiple slides with <span className="font-mono text-[#5D3E85] font-black">|</span>)
+                  </label>
+                  <span className="text-[10px] text-gray-400 font-medium">Supports emojis & text</span>
+                </div>
+                <textarea
+                  rows="3"
                   value={announcementText}
                   onChange={e => setAnnouncementText(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                  placeholder={`e.g. Free delivery on orders above ${currencySymbol}50,000!`}
+                  className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white font-medium"
+                  placeholder={`✨ Free delivery on orders above ${currencySymbol}100,000! | 🌿 100% Organic Skincare & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF`}
                   disabled={!announcementShow}
                 />
+                <span className="text-[10px] text-gray-400">
+                  Tip: Use the pipe symbol <code className="bg-gray-200 px-1 py-0.5 rounded font-mono">|</code> to create multiple rotating announcements.
+                </span>
               </div>
+
+              {/* Colors Customization Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-gray-200/80 pt-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] text-gray-600 font-bold uppercase">Background Color</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={announcementBgColor}
+                      onChange={e => setAnnouncementBgColor(e.target.value)}
+                      className="w-9 h-9 rounded-lg border border-gray-200 cursor-pointer p-0.5 bg-white shrink-0"
+                      disabled={!announcementShow}
+                    />
+                    <input
+                      type="text"
+                      value={announcementBgColor}
+                      onChange={e => setAnnouncementBgColor(e.target.value)}
+                      className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white font-mono uppercase flex-1"
+                      placeholder="#181120"
+                      disabled={!announcementShow}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] text-gray-600 font-bold uppercase">Text Color</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={announcementTextColor}
+                      onChange={e => setAnnouncementTextColor(e.target.value)}
+                      className="w-9 h-9 rounded-lg border border-gray-200 cursor-pointer p-0.5 bg-white shrink-0"
+                      disabled={!announcementShow}
+                    />
+                    <input
+                      type="text"
+                      value={announcementTextColor}
+                      onChange={e => setAnnouncementTextColor(e.target.value)}
+                      className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white font-mono uppercase flex-1"
+                      placeholder="#FFFFFF"
+                      disabled={!announcementShow}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] text-gray-600 font-bold uppercase">Accent & Copy Badge Color</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={announcementAccentColor}
+                      onChange={e => setAnnouncementAccentColor(e.target.value)}
+                      className="w-9 h-9 rounded-lg border border-gray-200 cursor-pointer p-0.5 bg-white shrink-0"
+                      disabled={!announcementShow}
+                    />
+                    <input
+                      type="text"
+                      value={announcementAccentColor}
+                      onChange={e => setAnnouncementAccentColor(e.target.value)}
+                      className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white font-mono uppercase flex-1"
+                      placeholder="#EC268F"
+                      disabled={!announcementShow}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Behavior & Animation Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-gray-200/80 pt-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] text-gray-600 font-bold uppercase">Rotation Speed (ms)</label>
+                  <select
+                    value={announcementAutoplaySpeed}
+                    onChange={e => setAnnouncementAutoplaySpeed(e.target.value)}
+                    className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white cursor-pointer"
+                    disabled={!announcementShow}
+                  >
+                    <option value="3000">3 Seconds (Fast)</option>
+                    <option value="4500">4.5 Seconds (Normal)</option>
+                    <option value="6000">6 Seconds (Relaxed)</option>
+                    <option value="8000">8 Seconds (Slow)</option>
+                    <option value="0">Disabled (Static First Slide)</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] text-gray-600 font-bold uppercase">Transition Animation</label>
+                  <select
+                    value={announcementAnimationMode}
+                    onChange={e => setAnnouncementAnimationMode(e.target.value)}
+                    className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white cursor-pointer"
+                    disabled={!announcementShow}
+                  >
+                    <option value="fade_slide">Fade & Slide</option>
+                    <option value="fade_only">Smooth Fade</option>
+                    <option value="pulse">Pulse In</option>
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] text-gray-600 font-bold uppercase">Destination Click Link (Optional)</label>
+                  <input
+                    type="text"
+                    value={announcementLinkUrl}
+                    onChange={e => setAnnouncementLinkUrl(e.target.value)}
+                    className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
+                    placeholder="e.g. /shop or /blog/offers"
+                    disabled={!announcementShow}
+                  />
+                </div>
+              </div>
+
+              {/* Automatic Active Coupons Toggle */}
+              <div className="border-t border-gray-200/80 pt-3">
+                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={announcementIncludeCoupons}
+                    onChange={e => setAnnouncementIncludeCoupons(e.target.checked)}
+                    className="rounded border-gray-300 text-primary w-4 h-4"
+                    disabled={!announcementShow}
+                  />
+                  <span>Automatically rotate active discount coupons in the announcement bar</span>
+                </label>
+                <p className="text-[10px] text-gray-400 ml-6 mt-0.5">
+                  When enabled, active promotion coupon codes will automatically cycle through the top announcement with instant 1-click copy buttons.
+                </p>
+              </div>
+
             </div>
 
             {/* Newsletter Popup */}
@@ -1197,121 +1501,229 @@ export default function AdminSettings() {
             </div>
 
             {/* Paystack Panel */}
-            <div id="setting-paystack-keys" className="bg-white border border-gray-150 p-4 rounded-xl flex flex-col gap-3">
-              <h4 className="font-semibold text-xs text-gray-800 flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                Paystack Configuration
-              </h4>
+            <div id="setting-paystack-keys" className={`bg-white border rounded-2xl p-5 flex flex-col gap-4 shadow-3xs transition-all ${paystackEnabled ? 'border-emerald-200' : 'border-gray-200 opacity-75'}`}>
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h4 className="font-bold text-xs text-gray-900 flex items-center gap-3">
+                  <div className="h-6 px-2 bg-emerald-50 rounded border border-emerald-200 flex items-center justify-center">
+                    <PaystackLogo className="h-3.5 w-auto" />
+                  </div>
+                  Paystack Gateway (Cards, Transfer & USSD)
+                </h4>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-[11px] font-semibold text-gray-600">{paystackEnabled ? 'Active' : 'Disabled'}</span>
+                  <input
+                    type="checkbox"
+                    checked={paystackEnabled}
+                    onChange={e => setPaystackEnabled(e.target.checked)}
+                    className="w-4.5 h-4.5 text-emerald-600 rounded focus:ring-emerald-500"
+                  />
+                </label>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] text-gray-500 font-bold uppercase">Public Key</label>
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Public Key</label>
                   <input
                     type="text"
                     value={paystackKeyPublic}
                     onChange={e => setPaystackKeyPublic(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white font-mono"
-                    placeholder="pk_test_..."
+                    className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-white font-mono"
+                    placeholder="pk_live_... / pk_test_..."
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] text-gray-500 font-bold uppercase">Secret Key</label>
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Secret Key</label>
                   <input
                     type="password"
                     value={paystackKeySecret}
                     onChange={e => setPaystackKeySecret(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white font-mono"
-                    placeholder="sk_test_..."
+                    className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-white font-mono"
+                    placeholder="sk_live_... / sk_test_..."
                   />
                 </div>
               </div>
-            </div>
-
-            {/* Flutterwave Panel */}
-            <div id="setting-flutterwave-keys" className="bg-white border border-gray-150 p-4 rounded-xl flex flex-col gap-3">
-              <h4 className="font-semibold text-xs text-gray-800 flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                Flutterwave Configuration
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] text-gray-500 font-bold uppercase">Public Key</label>
-                  <input
-                    type="text"
-                    value={flutterwaveKeyPublic}
-                    onChange={e => setFlutterwaveKeyPublic(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white font-mono"
-                    placeholder="FLWPUBK_TEST-..."
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] text-gray-500 font-bold uppercase">Secret Key</label>
-                  <input
-                    type="password"
-                    value={flutterwaveKeySecret}
-                    onChange={e => setFlutterwaveKeySecret(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white font-mono"
-                    placeholder="FLWSECK_TEST-..."
-                  />
-                </div>
-              </div>
+              <p className="text-[10px] text-gray-400">Webhook URL: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-700 font-mono">/api/payment/verify</code></p>
             </div>
 
             {/* Stripe Panel */}
-            <div id="setting-stripe-keys" className="bg-white border border-gray-150 p-4 rounded-xl flex flex-col gap-3">
-              <h4 className="font-semibold text-xs text-gray-800 flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
-                Stripe Configuration
-              </h4>
+            <div id="setting-stripe-keys" className={`bg-white border rounded-2xl p-5 flex flex-col gap-4 shadow-3xs transition-all ${stripeEnabled ? 'border-indigo-200' : 'border-gray-200 opacity-75'}`}>
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h4 className="font-bold text-xs text-gray-900 flex items-center gap-3">
+                  <div className="h-6 px-2 bg-indigo-50 rounded border border-indigo-200 flex items-center justify-center">
+                    <StripeLogo className="h-3 w-auto" />
+                  </div>
+                  Stripe Gateway (Visa, Mastercard, AMEX, Apple Pay)
+                </h4>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-[11px] font-semibold text-gray-600">{stripeEnabled ? 'Active' : 'Disabled'}</span>
+                  <input
+                    type="checkbox"
+                    checked={stripeEnabled}
+                    onChange={e => setStripeEnabled(e.target.checked)}
+                    className="w-4.5 h-4.5 text-indigo-600 rounded focus:ring-indigo-500"
+                  />
+                </label>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] text-gray-500 font-bold uppercase">Publishable Key</label>
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Publishable Key</label>
                   <input
                     type="text"
                     value={stripeKeyPublic}
                     onChange={e => setStripeKeyPublic(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white font-mono"
-                    placeholder="pk_test_..."
+                    className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-white font-mono"
+                    placeholder="pk_live_... / pk_test_..."
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] text-gray-500 font-bold uppercase">Secret Key</label>
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Secret Key</label>
                   <input
                     type="password"
                     value={stripeKeySecret}
                     onChange={e => setStripeKeySecret(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white font-mono"
-                    placeholder="sk_test_..."
+                    className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-white font-mono"
+                    placeholder="sk_live_... / sk_test_..."
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Webhook Signing Secret (Optional)</label>
+                  <input
+                    type="password"
+                    value={stripeWebhookSecret}
+                    onChange={e => setStripeWebhookSecret(e.target.value)}
+                    className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-white font-mono"
+                    placeholder="whsec_..."
                   />
                 </div>
               </div>
             </div>
 
             {/* PayPal Panel */}
-            <div id="setting-paypal-keys" className="bg-white border border-gray-150 p-4 rounded-xl flex flex-col gap-3">
-              <h4 className="font-semibold text-xs text-gray-800 flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                PayPal Configuration
-              </h4>
+            <div id="setting-paypal-keys" className={`bg-white border rounded-2xl p-5 flex flex-col gap-4 shadow-3xs transition-all ${paypalEnabled ? 'border-blue-200' : 'border-gray-200 opacity-75'}`}>
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h4 className="font-bold text-xs text-gray-900 flex items-center gap-3">
+                  <div className="h-6 px-2 bg-blue-50 rounded border border-blue-200 flex items-center justify-center">
+                    <PayPalLogo className="h-3 w-auto" />
+                  </div>
+                  PayPal Express Gateway (Global PayPal Wallets & Cards)
+                </h4>
+                <div className="flex items-center gap-4">
+                  <select
+                    value={paypalMode}
+                    onChange={e => setPaypalMode(e.target.value)}
+                    className="px-2.5 py-1 text-xs rounded-lg border border-gray-200 font-semibold text-gray-700 bg-gray-50"
+                  >
+                    <option value="sandbox">Sandbox (Testing)</option>
+                    <option value="live">Live (Production)</option>
+                  </select>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-[11px] font-semibold text-gray-600">{paypalEnabled ? 'Active' : 'Disabled'}</span>
+                    <input
+                      type="checkbox"
+                      checked={paypalEnabled}
+                      onChange={e => setPaypalEnabled(e.target.checked)}
+                      className="w-4.5 h-4.5 text-blue-600 rounded focus:ring-blue-500"
+                    />
+                  </label>
+                </div>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] text-gray-500 font-bold uppercase">Client ID</label>
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Client ID</label>
                   <input
                     type="text"
                     value={paypalClientId}
                     onChange={e => setPaypalClientId(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white font-mono"
+                    className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-white font-mono"
+                    placeholder="Enter PayPal Client ID"
                   />
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] text-gray-500 font-bold uppercase">Client Secret</label>
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Client Secret</label>
                   <input
                     type="password"
                     value={paypalClientSecret}
                     onChange={e => setPaypalClientSecret(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white font-mono"
+                    className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-white font-mono"
+                    placeholder="Enter PayPal Client Secret"
                   />
                 </div>
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-gray-100">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Payment Intent</label>
+                  <select
+                    value={paypalIntent}
+                    onChange={e => setPaypalIntent(e.target.value)}
+                    className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-white font-semibold text-gray-800"
+                  >
+                    <option value="CAPTURE">Immediate Capture (Direct Settlement)</option>
+                    <option value="AUTHORIZE">Authorize Only (Hold Funds)</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">PayPal Settlement Currency</label>
+                  <select
+                    value={paypalCurrency}
+                    onChange={e => setPaypalCurrency(e.target.value)}
+                    className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-white font-semibold text-gray-800"
+                  >
+                    <option value="USD">USD - US Dollar ($)</option>
+                    <option value="EUR">EUR - Euro (€)</option>
+                    <option value="GBP">GBP - British Pound (£)</option>
+                    <option value="CAD">CAD - Canadian Dollar (C$)</option>
+                    <option value="AUD">AUD - Australian Dollar (A$)</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                    Exchange Rate (1 {systemCurrencyCode} = ? {paypalCurrency})
+                  </label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    min="0.0001"
+                    value={paypalExchangeRate}
+                    onChange={e => setPaypalExchangeRate(e.target.value)}
+                    disabled={paypalCurrency === systemCurrencyCode}
+                    className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-white font-bold text-gray-800 disabled:bg-gray-100 disabled:text-gray-400"
+                    placeholder="1.0"
+                  />
+                  {paypalCurrency === systemCurrencyCode ? (
+                    <span className="text-[10px] text-gray-400">
+                      Not needed — PayPal charges in {systemCurrencyCode}, the same currency your prices are in.
+                    </span>
+                  ) : parseFloat(paypalExchangeRate || 1) === 1 ? (
+                    <span className="text-[10px] font-bold text-red-600 leading-relaxed">
+                      A rate of 1 would charge a {systemCurrencyCode} price as the same number of {paypalCurrency}.
+                      PayPal payments are blocked until you set a real rate, or set the settlement currency to {systemCurrencyCode}.
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-gray-400">
+                      A {systemCurrencyCode}100 order will be charged as {paypalCurrency}{(100 * parseFloat(paypalExchangeRate || 1)).toFixed(2)}.
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Bank Transfer Panel */}
+            <div id="setting-bank-transfer" className={`bg-white border rounded-2xl p-5 flex flex-col gap-4 shadow-3xs transition-all ${bankTransferEnabled ? 'border-amber-200' : 'border-gray-200 opacity-75'}`}>
+              <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                <h4 className="font-bold text-xs text-gray-900 flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-amber-500 shadow-xs"></span>
+                  Manual Bank Wire Transfer
+                </h4>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-[11px] font-semibold text-gray-600">{bankTransferEnabled ? 'Active' : 'Disabled'}</span>
+                  <input
+                    type="checkbox"
+                    checked={bankTransferEnabled}
+                    onChange={e => setBankTransferEnabled(e.target.checked)}
+                    className="w-4.5 h-4.5 text-amber-600 rounded focus:ring-amber-500"
+                  />
+                </label>
+              </div>
+              <p className="text-xs text-gray-500">Bank accounts configured in General Store Settings will be presented to the customer upon choosing Bank Transfer.</p>
             </div>
           </div>
         )}
@@ -1367,7 +1779,7 @@ export default function AdminSettings() {
                   value={smtpUsername}
                   onChange={e => setSmtpUsername(e.target.value)}
                   className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                  placeholder="e.g. mailer@fairqueen.com"
+                  placeholder="e.g. mailer@dansolam.com"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -1390,7 +1802,7 @@ export default function AdminSettings() {
                   value={smtpFromAddress}
                   onChange={e => setSmtpFromAddress(e.target.value)}
                   className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                  placeholder="e.g. notifications@fairqueen.com"
+                  placeholder="e.g. notifications@dansolam.com"
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -1617,10 +2029,10 @@ export default function AdminSettings() {
                 />
                 <div className="flex flex-col gap-1">
                   <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
-                    Enable VIP Fitting Sessions Booking ✨
+                    Enable VIP Skin & Spa Consultation Booking ✨
                   </span>
                   <span className="text-[10px] text-gray-400 leading-normal">
-                    Display a "Book Fitting Session" option under the Contact menu dropdown on the storefront, allowing visitors to request private fitting appointments.
+                    Display a "Book Skin Consultation" option under the Contact menu dropdown on the storefront, allowing visitors to request private skincare consultations and spa sessions.
                   </span>
                 </div>
               </label>

@@ -1,5 +1,5 @@
 import { getCurrencySymbol } from '../../utils/currency';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { toast as systemToast } from '../../components/ui/ToastProvider';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
@@ -14,6 +14,14 @@ export default function AdminProducts() {
   const currencySymbol = getCurrencySymbol();
   const queryClient = useQueryClient();
   const [toast, setToast] = useState(null);
+
+  // Category and Tag Modal scroll & focus refs
+  const catFormRef = useRef(null);
+  const catModalContentRef = useRef(null);
+  const catNameInputRef = useRef(null);
+  const tagFormRef = useRef(null);
+  const tagModalContentRef = useRef(null);
+  const tagNameInputRef = useRef(null);
 
   useEffect(() => {
     if (toast) {
@@ -200,6 +208,20 @@ export default function AdminProducts() {
     setTagImageUrl(t.image_url || '');
     setTagBgColor(t.bg_color || '#f3f4f6');
     setTagTextColor(t.text_color || '#1f2937');
+
+    // Smoothly autoscroll to the edit tag area
+    setTimeout(() => {
+      if (tagModalContentRef.current) {
+        tagModalContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      if (tagFormRef.current) {
+        tagFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      if (tagNameInputRef.current) {
+        tagNameInputRef.current.focus();
+        tagNameInputRef.current.select?.();
+      }
+    }, 60);
   };
 
   const handleDeleteTag = (id, name) => {
@@ -330,6 +352,20 @@ export default function AdminProducts() {
     setCatParentId(cat.parent_id || '');
     setCatImageUrl(cat.image_url || '');
     setCatIsVisible(!!cat.is_visible);
+
+    // Smoothly autoscroll to the edit category area
+    setTimeout(() => {
+      if (catModalContentRef.current) {
+        catModalContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      if (catFormRef.current) {
+        catFormRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      if (catNameInputRef.current) {
+        catNameInputRef.current.focus();
+        catNameInputRef.current.select?.();
+      }
+    }, 60);
   };
 
   const handleDeleteCat = (id, name) => {
@@ -392,7 +428,7 @@ export default function AdminProducts() {
   };
 
   const handleSelectProduct = (id) => {
-    setSelectedProductIds(prev => 
+    setSelectedProductIds(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
@@ -407,7 +443,7 @@ export default function AdminProducts() {
         queryClient.invalidateQueries(['admin-products']);
         const isAdded = data.data?.is_flash_sale;
         setToast({
-          message: isAdded 
+          message: isAdded
             ? `"${data.data?.name || 'Product'}" successfully added to Flash Sale! ⚡`
             : `"${data.data?.name || 'Product'}" removed from Flash Sale.`,
           type: 'success'
@@ -462,7 +498,12 @@ export default function AdminProducts() {
   // Global settings modal states
   const [showFlashSaleModal, setShowFlashSaleModal] = useState(false);
   const [flashSaleShow, setFlashSaleShow] = useState(false);
+  const [flashSaleBadge, setFlashSaleBadge] = useState('');
   const [flashSaleTitle, setFlashSaleTitle] = useState('');
+  const [flashSaleSubtitle, setFlashSaleSubtitle] = useState('');
+  const [flashSaleCtaText, setFlashSaleCtaText] = useState('');
+  const [flashSaleCtaLink, setFlashSaleCtaLink] = useState('');
+  const [flashSaleDiscount, setFlashSaleDiscount] = useState('');
   const [flashSaleEndTime, setFlashSaleEndTime] = useState('');
   const [flashSaleBannerUrl, setFlashSaleBannerUrl] = useState('');
   const [uploadingBanner, setUploadingBanner] = useState(false);
@@ -471,7 +512,12 @@ export default function AdminProducts() {
   useEffect(() => {
     if (settings) {
       setFlashSaleShow(settings.flash_sale_show === 'true' || settings.flash_sale_show === true);
-      setFlashSaleTitle(settings.flash_sale_title || 'Midnight Madness Flash Sale');
+      setFlashSaleBadge(settings.flash_sale_badge || '⚡ FLASH SALE SPOTLIGHT');
+      setFlashSaleTitle(settings.flash_sale_title || 'Signature Organic Skincare Flash Deals');
+      setFlashSaleSubtitle(settings.flash_sale_subtitle || 'Exclusive limited-time flash discounts on our bestselling whitening soaps, discoloration oils, and rejuvenating creams.');
+      setFlashSaleCtaText(settings.flash_sale_cta_text || 'SHOP FLASH DEALS →');
+      setFlashSaleCtaLink(settings.flash_sale_cta_link || '/shop?flash_sale=true');
+      setFlashSaleDiscount(settings.flash_sale_discount_percent || '25% OFF');
       setFlashSaleEndTime(settings.flash_sale_end_time || '');
       setFlashSaleBannerUrl(settings.flash_sale_banner_url || '');
     }
@@ -499,7 +545,12 @@ export default function AdminProducts() {
     e.preventDefault();
     updateSettingsMutation.mutate({
       flash_sale_show: flashSaleShow ? 'true' : 'false',
+      flash_sale_badge: flashSaleBadge,
       flash_sale_title: flashSaleTitle,
+      flash_sale_subtitle: flashSaleSubtitle,
+      flash_sale_cta_text: flashSaleCtaText,
+      flash_sale_cta_link: flashSaleCtaLink,
+      flash_sale_discount_percent: flashSaleDiscount,
       flash_sale_end_time: flashSaleEndTime,
       flash_sale_banner_url: flashSaleBannerUrl
     });
@@ -537,7 +588,7 @@ export default function AdminProducts() {
 
   return (
     <div className="flex flex-col gap-6">
-      
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-serif font-bold text-2xl text-gray-900">Product Management</h2>
@@ -724,7 +775,7 @@ export default function AdminProducts() {
               {paginatedData.length > 0 ? (
                 paginatedData.map((prod) => {
                   const sizes = prod.variants ? [...new Set(prod.variants.map(v => v.size))].filter(Boolean) : [];
-                  
+
                   return (
                     <tr key={prod.id} className="hover:bg-gray-55/20 transition-colors">
                       <td className="px-4 py-4 w-10 text-center">
@@ -790,11 +841,10 @@ export default function AdminProducts() {
                           className="focus:outline-none p-1 rounded hover:bg-gray-100 transition-colors cursor-pointer mx-auto block"
                           title={prod.is_featured ? 'Remove from Featured' : 'Mark as Featured'}
                         >
-                          <Star className={`w-4 h-4 transition-all ${
-                            prod.is_featured 
-                              ? 'fill-amber-400 text-amber-400' 
+                          <Star className={`w-4 h-4 transition-all ${prod.is_featured
+                              ? 'fill-amber-400 text-amber-400'
                               : 'text-gray-300 hover:text-amber-500'
-                          }`} />
+                            }`} />
                         </button>
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -803,18 +853,16 @@ export default function AdminProducts() {
                           className="focus:outline-none p-1 rounded hover:bg-gray-100 transition-colors cursor-pointer mx-auto block"
                           title={prod.is_flash_sale ? 'Remove from Flash Sale' : 'Add to Flash Sale'}
                         >
-                          <Zap className={`w-4 h-4 transition-all ${
-                            prod.is_flash_sale 
-                              ? 'fill-amber-500 text-amber-500 font-bold drop-shadow' 
+                          <Zap className={`w-4 h-4 transition-all ${prod.is_flash_sale
+                              ? 'fill-amber-500 text-amber-500 font-bold drop-shadow'
                               : 'text-gray-300 hover:text-amber-500'
-                          }`} />
+                            }`} />
                         </button>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                          prod.status === 'published' ? 'bg-green-50 text-green-600' :
-                          prod.status === 'draft' ? 'bg-gray-100 text-gray-500' : 'bg-red-50 text-red-500'
-                        }`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${prod.status === 'published' ? 'bg-green-50 text-green-600' :
+                            prod.status === 'draft' ? 'bg-gray-100 text-gray-500' : 'bg-red-50 text-red-500'
+                          }`}>
                           {(prod.status || 'draft').toUpperCase()}
                         </span>
                       </td>
@@ -932,7 +980,7 @@ export default function AdminProducts() {
       {/* CATEGORIES CRUD POPUP MODAL */}
       {showCategoryModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 md:p-6">
-          <div className="bg-white rounded-xl p-6 max-w-5xl w-full shadow-2xl flex flex-col gap-5 border border-gray-100 max-h-[85vh] overflow-y-auto animate-scale-up">
+          <div ref={catModalContentRef} className="bg-white rounded-xl p-6 max-w-5xl w-full shadow-2xl flex flex-col gap-5 border border-gray-100 max-h-[85vh] overflow-y-auto animate-scale-up">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <div className="flex items-center gap-2">
                 <FolderTree className="w-5 h-5 text-primary" />
@@ -951,7 +999,7 @@ export default function AdminProducts() {
 
             <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
               {/* Left Column: Form (Create / Edit) */}
-              <div className="md:col-span-2 flex flex-col gap-4 border-r border-gray-100 pr-0 md:pr-6">
+              <div ref={catFormRef} className="md:col-span-2 flex flex-col gap-4 border-r border-gray-100 pr-0 md:pr-6">
                 <h4 className="font-bold text-xs text-gray-700 uppercase tracking-wider border-b border-gray-50 pb-1.5">
                   {editingCategory ? 'Edit Category' : 'Create Category'}
                 </h4>
@@ -959,6 +1007,7 @@ export default function AdminProducts() {
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] text-gray-500 font-semibold uppercase">Category Name</label>
                     <input
+                      ref={catNameInputRef}
                       type="text"
                       required
                       value={catName}
@@ -987,7 +1036,7 @@ export default function AdminProducts() {
                   {/* Category Image Upload & Manager */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] text-gray-500 font-semibold uppercase">Category Image / Banner</label>
-                    
+
                     {catImageUrl ? (
                       <div className="relative w-full h-28 rounded-xl overflow-hidden border border-gray-200 group bg-gray-50">
                         <img src={catImageUrl} alt="Category Banner" className="w-full h-full object-cover" />
@@ -1098,9 +1147,8 @@ export default function AdminProducts() {
 
                         <div className="flex items-center gap-3">
                           {/* Visibility badge */}
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                            cat.is_visible ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${cat.is_visible ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'
+                            }`}>
                             {cat.is_visible ? 'VISIBLE' : 'HIDDEN'}
                           </span>
 
@@ -1148,7 +1196,7 @@ export default function AdminProducts() {
       {/* PRODUCT TAGS CRUD POPUP MODAL */}
       {showTagModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 md:p-6">
-          <div className="bg-white rounded-xl p-6 max-w-5xl w-full shadow-2xl flex flex-col gap-5 border border-gray-100 max-h-[85vh] overflow-y-auto animate-scale-up">
+          <div ref={tagModalContentRef} className="bg-white rounded-xl p-6 max-w-5xl w-full shadow-2xl flex flex-col gap-5 border border-gray-100 max-h-[85vh] overflow-y-auto animate-scale-up">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3">
               <div className="flex items-center gap-2">
                 <Tag className="w-5 h-5 text-primary" />
@@ -1167,7 +1215,7 @@ export default function AdminProducts() {
 
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               {/* Form panel */}
-              <form onSubmit={handleTagSubmit} className="md:col-span-5 flex flex-col gap-4 border-r border-gray-100 pr-0 md:pr-6">
+              <form ref={tagFormRef} onSubmit={handleTagSubmit} className="md:col-span-5 flex flex-col gap-4 border-r border-gray-100 pr-0 md:pr-6">
                 <h4 className="font-serif font-bold text-gray-800 text-sm">
                   {editingTag ? 'Edit Tag Details' : 'Create New Tag'}
                 </h4>
@@ -1175,6 +1223,7 @@ export default function AdminProducts() {
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-gray-500 font-bold uppercase">Tag Name *</label>
                   <input
+                    ref={tagNameInputRef}
                     type="text"
                     required
                     value={tagName}
@@ -1360,9 +1409,8 @@ export default function AdminProducts() {
                       })()}
                     </span>
                     <span className="text-gray-300">•</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[8.5px] font-bold ${
-                      viewingProduct.status === 'published' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded-full text-[8.5px] font-bold ${viewingProduct.status === 'published' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'
+                      }`}>
                       {(viewingProduct.status || 'draft').toUpperCase()}
                     </span>
                   </div>
@@ -1377,25 +1425,22 @@ export default function AdminProducts() {
             <div className="flex border-b border-gray-100 gap-4 text-xs font-semibold select-none shrink-0">
               <button
                 onClick={() => setActiveHistoryTab('general')}
-                className={`pb-2.5 transition-all border-b-2 px-1 cursor-pointer ${
-                  activeHistoryTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-600'
-                }`}
+                className={`pb-2.5 transition-all border-b-2 px-1 cursor-pointer ${activeHistoryTab === 'general' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-600'
+                  }`}
               >
                 General & Variants
               </button>
               <button
                 onClick={() => setActiveHistoryTab('sales')}
-                className={`pb-2.5 transition-all border-b-2 px-1 cursor-pointer ${
-                  activeHistoryTab === 'sales' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-600'
-                }`}
+                className={`pb-2.5 transition-all border-b-2 px-1 cursor-pointer ${activeHistoryTab === 'sales' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-600'
+                  }`}
               >
                 Sales History ({productHistory.sales_history?.length || 0})
               </button>
               <button
                 onClick={() => setActiveHistoryTab('stock')}
-                className={`pb-2.5 transition-all border-b-2 px-1 cursor-pointer ${
-                  activeHistoryTab === 'stock' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-600'
-                }`}
+                className={`pb-2.5 transition-all border-b-2 px-1 cursor-pointer ${activeHistoryTab === 'stock' ? 'border-primary text-primary' : 'border-transparent text-gray-400 hover:text-gray-600'
+                  }`}
               >
                 Stock Adjustments ({productHistory.stock_history?.length || 0})
               </button>
@@ -1507,10 +1552,9 @@ export default function AdminProducts() {
                                   <td className="px-4 py-2.5 text-gray-650">{currencySymbol}{parseFloat(s.price).toLocaleString()}</td>
                                   <td className="px-4 py-2.5 font-bold text-gray-850">{currencySymbol}{parseFloat(s.total).toLocaleString()}</td>
                                   <td className="px-4 py-2.5">
-                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
-                                      s.status === 'delivered' ? 'bg-green-50 text-green-600' :
-                                      s.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-600'
-                                    }`}>
+                                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${s.status === 'delivered' ? 'bg-green-50 text-green-600' :
+                                        s.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-600'
+                                      }`}>
                                       {s.status.toUpperCase()}
                                     </span>
                                   </td>
@@ -1581,7 +1625,7 @@ export default function AdminProducts() {
       {showFlashSaleModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl border border-gray-100 max-w-md w-full overflow-hidden animate-scale-up">
-            
+
             {/* Header */}
             <div className="bg-gray-55 border-b border-gray-150 px-6 py-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -1599,12 +1643,12 @@ export default function AdminProducts() {
             {/* Form */}
             <form onSubmit={handleSaveFlashSaleSettings}>
               <div className="p-6 flex flex-col gap-4 text-left">
-                
+
                 {/* Toggle Active */}
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-150">
                   <div className="flex flex-col">
-                    <span className="text-xs font-semibold text-gray-900">Enable Flash Sale Popup</span>
-                    <span className="text-[10px] text-gray-450 mt-0.5">Toggle visibility of the home page pop-up</span>
+                    <span className="text-xs font-semibold text-gray-900">Enable Flash Sale / Spotlight Banner</span>
+                    <span className="text-[10px] text-gray-450 mt-0.5">Displays dynamic swiping banner card after the hero section</span>
                   </div>
                   <input
                     type="checkbox"
@@ -1614,35 +1658,94 @@ export default function AdminProducts() {
                   />
                 </div>
 
+                {/* Badge Tag */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Pill Badge Tag</label>
+                  <input
+                    type="text"
+                    value={flashSaleBadge}
+                    onChange={e => setFlashSaleBadge(e.target.value)}
+                    placeholder="e.g. 👑 EDITORIAL SPOTLIGHT or ⚡ FLASH SALE"
+                    className="px-3.5 py-2 border border-gray-200 focus:outline-none focus:border-primary text-xs rounded-lg w-full bg-white text-gray-800 font-medium"
+                  />
+                </div>
+
                 {/* Flash Sale Title */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Flash Sale Title / Banner Text</label>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Headline</label>
                   <input
                     type="text"
                     value={flashSaleTitle}
                     onChange={e => setFlashSaleTitle(e.target.value)}
-                    placeholder="e.g. Midnight Madness Flash Sale"
+                    placeholder="e.g. Signature Organic Skincare Flash Deals"
                     className="px-3.5 py-2 border border-gray-200 focus:outline-none focus:border-primary text-xs rounded-lg w-full bg-white text-gray-800 font-medium"
                     required
                   />
                 </div>
 
-                {/* Expiry Datetime */}
+                {/* Subtitle */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Sale Ends At</label>
-                  <input
-                    type="datetime-local"
-                    value={flashSaleEndTime}
-                    onChange={e => setFlashSaleEndTime(e.target.value)}
-                    className="px-3.5 py-2 border border-gray-200 focus:outline-none focus:border-primary text-xs rounded-lg w-full bg-white text-gray-800 font-medium cursor-pointer"
-                    required
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Subtitle Description</label>
+                  <textarea
+                    rows={2}
+                    value={flashSaleSubtitle}
+                    onChange={e => setFlashSaleSubtitle(e.target.value)}
+                    placeholder="e.g. Exclusive limited-time flash discounts on our bestselling whitening soaps and discoloration oils."
+                    className="px-3.5 py-2 border border-gray-200 focus:outline-none focus:border-primary text-xs rounded-lg w-full bg-white text-gray-800 font-medium resize-none"
                   />
+                </div>
+
+                {/* CTA Text and Link Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">CTA Button Text</label>
+                    <input
+                      type="text"
+                      value={flashSaleCtaText}
+                      onChange={e => setFlashSaleCtaText(e.target.value)}
+                      placeholder="e.g. BOOK SESSION →"
+                      className="px-3.5 py-2 border border-gray-200 focus:outline-none focus:border-primary text-xs rounded-lg w-full bg-white text-gray-800 font-medium"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">CTA Button Link</label>
+                    <input
+                      type="text"
+                      value={flashSaleCtaLink}
+                      onChange={e => setFlashSaleCtaLink(e.target.value)}
+                      placeholder="e.g. /fitting-sessions or /shop"
+                      className="px-3.5 py-2 border border-gray-200 focus:outline-none focus:border-primary text-xs rounded-lg w-full bg-white text-gray-800 font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Expiry Datetime & Discount % */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Countdown Timer Ends At</label>
+                    <input
+                      type="datetime-local"
+                      value={flashSaleEndTime}
+                      onChange={e => setFlashSaleEndTime(e.target.value)}
+                      className="px-3.5 py-2 border border-gray-200 focus:outline-none focus:border-primary text-xs rounded-lg w-full bg-white text-gray-800 font-medium cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Discount Tag (Optional)</label>
+                    <input
+                      type="text"
+                      value={flashSaleDiscount}
+                      onChange={e => setFlashSaleDiscount(e.target.value)}
+                      placeholder="e.g. 30% OFF or SAVE ₦10,000"
+                      className="px-3.5 py-2 border border-gray-200 focus:outline-none focus:border-primary text-xs rounded-lg w-full bg-white text-gray-800 font-medium"
+                    />
+                  </div>
                 </div>
 
                 {/* Banner Upload / URL */}
                 <div className="flex flex-col gap-2">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Flash Sale Banner Image</label>
-                  
+
                   {/* Banner Preview & Upload Box */}
                   <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 flex flex-col items-center justify-center bg-gray-50/50 hover:bg-gray-50 transition-all relative group">
                     {flashSaleBannerUrl ? (
@@ -1726,7 +1829,7 @@ export default function AdminProducts() {
             <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase tracking-wider">Flash Sale</span>
             <p className="text-xs font-bold text-white mt-1 leading-normal">{toast.message}</p>
           </div>
-          <button 
+          <button
             onClick={() => setToast(null)}
             className="p-1 hover:bg-gray-800 text-gray-400 hover:text-white rounded-lg cursor-pointer transition-colors"
           >

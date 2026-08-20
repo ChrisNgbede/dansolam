@@ -35,7 +35,7 @@ const SETTINGS_SEARCH_INDEX = [
   { id: 'setting-email-invoice', title: 'Customer Invoice Email Template', tab: 'templates', tabName: 'Notification Templates', keywords: ['invoice', 'email', 'template', 'billing'], desc: 'Edit customer PDF invoice dispatch email subject and body' },
 
   // Storefront Pages
-  { id: 'setting-page-visibility', title: 'Storefront Pages & Display Toggles', tab: 'pages', tabName: 'Storefront Pages', keywords: ['gallery', 'blog', 'sold', 'count', 'size', 'guide', 'visibility'], desc: 'Toggle visibility for Gallery page, Blog, Sold Count badge, and Size Guide' },
+  { id: 'setting-page-visibility', title: 'Storefront Pages & Display Toggles', tab: 'pages', tabName: 'Storefront Pages', keywords: ['gallery', 'blog', 'sold', 'count', 'tips', 'beauty', 'visibility'], desc: 'Toggle visibility for Gallery page, Blog, Sold Count badge, and Beauty Tips' },
 
   // Modules
   { id: 'setting-module-pos', title: 'Point of Sale (POS) Module', tab: 'modules', tabName: 'Modules', keywords: ['pos', 'terminal', 'receipt', 'thermal', 'a4', 'cashier', 'offline', 'footer'], desc: 'Enable POS module, receipt footer message, offline mode, and auto-sync' },

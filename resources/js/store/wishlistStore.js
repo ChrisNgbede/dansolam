@@ -4,7 +4,7 @@ export const useWishlistStore = create((set, get) => {
   // Helper to load wishlist from localStorage
   const loadInitialWishlist = () => {
     try {
-      const saved = localStorage.getItem('fairqueen_wishlist');
+      const saved = localStorage.getItem('dansolam_wishlist');
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       console.error('Error loading wishlist', e);
@@ -14,7 +14,7 @@ export const useWishlistStore = create((set, get) => {
 
   const saveWishlist = (items) => {
     try {
-      localStorage.setItem('fairqueen_wishlist', JSON.stringify(items));
+      localStorage.setItem('dansolam_wishlist', JSON.stringify(items));
     } catch (e) {
       console.error('Error saving wishlist', e);
     }

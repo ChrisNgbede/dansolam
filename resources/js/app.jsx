@@ -6,16 +6,6 @@ import AppRoutes from './routes';
 import { ToastProvider, toast } from './components/ui/ToastProvider';
 
 const queryClient = new QueryClient({
-  mutationCache: new MutationCache({
-    onSuccess: (data) => {
-      if (data?.success === true) {
-        toast.success(data.message || 'Changes saved successfully.');
-      }
-    },
-    onError: (error) => {
-      toast.error(error?.message || 'The requested change could not be saved.');
-    },
-  }),
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,

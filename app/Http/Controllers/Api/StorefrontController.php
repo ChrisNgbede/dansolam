@@ -21,9 +21,14 @@ use App\Models\Coupon;
 use App\Models\Article;
 use App\Models\GalleryItem;
 use App\Models\Discount;
+use App\Models\Customer;
+use App\Models\CustomerAddress;
 use App\Models\Tax;
 use App\Models\ShippingRate;
 use App\Models\ProductTag;
+use App\Mail\OrderInvoiceMail;
+use Illuminate\Support\Facades\Mail;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -51,13 +56,33 @@ class StorefrontController extends Controller
         foreach ($settingsRaw as $s) {
             $settings[$s->key] = $s->value;
         }
-        unset($settings['instagram_access_token']);
+
+        // This endpoint is public. Never expose server-side credentials: gateway
+        // secrets, API tokens or the maintenance bypass key.
+        foreach (array_keys($settings) as $key) {
+            if (preg_match('/(secret|access_token|private_key|bypass_key)/i', $key)) {
+                unset($settings[$key]);
+            }
+        }
+
+        // Provide a random product image as dynamic fallback if auth_image_url is not customized
+        $randomProductImage = null;
+        if (empty($settings['auth_image_url'])) {
+            $randomImgRecord = \App\Models\ProductImage::whereNotNull('image_url')
+                ->where('image_url', '!=', '')
+                ->inRandomOrder()
+                ->first();
+            if ($randomImgRecord) {
+                $randomProductImage = $randomImgRecord->image_url;
+            }
+        }
 
         return response()->json([
             'success' => true,
             'data' => [
                 'ecommerce' => $ecommerce,
                 'settings' => $settings,
+                'fallback_auth_image_url' => $randomProductImage,
             ]
         ]);
     }
@@ -200,48 +225,62 @@ class StorefrontController extends Controller
         $query = Product::where('status', 'published')
             ->with(['categories', 'images', 'variants', 'tags']);
 
-        // Category filter
-        if ($request->has('category') && $request->category != '') {
-            $query->whereHas('categories', function($q) use ($request) {
-                $q->where('categories.slug', $request->category)
-                  ->orWhere('categories.id', $request->category);
-            });
+        // Category filter (supports single slug, comma-separated slugs, or IDs)
+        if ($request->filled('category')) {
+            $categories = is_array($request->category) ? $request->category : explode(',', $request->category);
+            $categories = array_filter(array_map('trim', $categories));
+            if (!empty($categories)) {
+                $query->whereHas('categories', function($q) use ($categories) {
+                    $q->whereIn('categories.slug', $categories)
+                      ->orWhereIn('categories.id', $categories);
+                });
+            }
         }
 
-        // Collection filter
-        if ($request->has('collection') && $request->collection != '') {
-            $query->whereHas('collections', function($q) use ($request) {
-                $q->where('slug', $request->collection)
-                  ->orWhere('id', $request->collection);
-            });
+        // Collection filter (supports single slug, comma-separated slugs, or IDs)
+        if ($request->filled('collection')) {
+            $collections = is_array($request->collection) ? $request->collection : explode(',', $request->collection);
+            $collections = array_filter(array_map('trim', $collections));
+            if (!empty($collections)) {
+                $query->whereHas('collections', function($q) use ($collections) {
+                    $q->whereIn('collections.slug', $collections)
+                      ->orWhereIn('collections.id', $collections);
+                });
+            }
         }
 
         // Size filter
-        if ($request->has('size') && $request->size != '') {
-            $sizes = explode(',', $request->size);
-            $query->whereHas('variants', function($q) use ($sizes) {
-                $q->whereIn('size', $sizes)->where('stock_quantity', '>', 0);
-            });
+        if ($request->filled('size')) {
+            $sizes = is_array($request->size) ? $request->size : explode(',', $request->size);
+            $sizes = array_filter(array_map('trim', $sizes));
+            if (!empty($sizes)) {
+                $query->whereHas('variants', function($q) use ($sizes) {
+                    $q->whereIn('size', $sizes)->where('stock_quantity', '>', 0);
+                });
+            }
         }
 
         // Color filter
-        if ($request->has('color') && $request->color != '') {
-            $colors = explode(',', $request->color);
-            $query->whereHas('variants', function($q) use ($colors) {
-                $q->whereIn('color', $colors);
-            });
+        if ($request->filled('color')) {
+            $colors = is_array($request->color) ? $request->color : explode(',', $request->color);
+            $colors = array_filter(array_map('trim', $colors));
+            if (!empty($colors)) {
+                $query->whereHas('variants', function($q) use ($colors) {
+                    $q->whereIn('color', $colors);
+                });
+            }
         }
 
         // Price filters
-        if ($request->has('min_price') && $request->min_price != '') {
-            $query->where('price', '>=', $request->min_price);
+        if ($request->filled('min_price')) {
+            $query->where('price', '>=', (float)$request->min_price);
         }
-        if ($request->has('max_price') && $request->max_price != '') {
-            $query->where('price', '<=', $request->max_price);
+        if ($request->filled('max_price')) {
+            $query->where('price', '<=', (float)$request->max_price);
         }
 
         // Availability filter
-        if ($request->has('in_stock') && $request->in_stock == 'true') {
+        if ($request->filled('in_stock') && in_array($request->in_stock, ['true', '1', 1, true], true)) {
             $query->where(function($q) {
                 $q->where('stock_quantity', '>', 0)
                   ->orWhereHas('variants', function($sub) {
@@ -251,20 +290,38 @@ class StorefrontController extends Controller
         }
 
         // Flash sale filter
-        if ($request->has('is_flash_sale') && $request->is_flash_sale == 'true') {
+        if ($request->filled('is_flash_sale') && in_array($request->is_flash_sale, ['true', '1', 1, true], true)) {
             $query->where('is_flash_sale', true);
         }
 
-        // Search query filter
-        if ($request->has('q') && $request->q != '') {
-            $q = $request->q;
+        // Featured filter
+        if (($request->filled('is_featured') && in_array($request->is_featured, ['true', '1', 1, true], true)) ||
+            ($request->filled('featured') && in_array($request->featured, ['true', '1', 1, true], true))) {
+            $query->where('is_featured', true);
+        }
+
+        // Best seller filter
+        if (($request->filled('is_best_seller') && in_array($request->is_best_seller, ['true', '1', 1, true], true)) ||
+            ($request->filled('popular') && in_array($request->popular, ['true', '1', 1, true], true))) {
+            $query->where('is_best_seller', true);
+        }
+
+        // Search query filter (accepts q or search)
+        $searchTerm = $request->get('q', $request->get('search'));
+        if (!empty($searchTerm)) {
+            $q = trim($searchTerm);
             $query->where(function($sub) use ($q) {
                 $sub->where('name', 'LIKE', "%{$q}%")
                    ->orWhere('description', 'LIKE', "%{$q}%")
                    ->orWhere('sku', 'LIKE', "%{$q}%")
                    ->orWhere('short_description', 'LIKE', "%{$q}%")
                    ->orWhereHas('categories', function($cat) use ($q) {
-                       $cat->where('name', 'LIKE', "%{$q}%");
+                       $cat->where('name', 'LIKE', "%{$q}%")
+                          ->orWhere('slug', 'LIKE', "%{$q}%");
+                   })
+                   ->orWhereHas('tags', function($tag) use ($q) {
+                       $tag->where('name', 'LIKE', "%{$q}%")
+                          ->orWhere('slug', 'LIKE', "%{$q}%");
                    });
             });
         }
@@ -273,13 +330,37 @@ class StorefrontController extends Controller
         $sort = $request->get('sort', 'newest');
         switch ($sort) {
             case 'price_low':
+            case 'price_asc':
+            case 'price-asc':
                 $query->orderBy('price', 'asc');
                 break;
             case 'price_high':
+            case 'price_desc':
+            case 'price-desc':
                 $query->orderBy('price', 'desc');
                 break;
             case 'popular':
-                $query->orderBy('is_best_seller', 'desc')->orderBy('created_at', 'desc');
+            case 'bestselling':
+            case 'best-selling':
+                $query->orderBy('is_best_seller', 'desc')->orderBy('is_featured', 'desc')->orderBy('created_at', 'desc');
+                break;
+            case 'rating':
+            case 'rating_desc':
+            case 'rating-desc':
+                $query->orderBy('rating_cache', 'desc')->orderBy('created_at', 'desc');
+                break;
+            case 'name_asc':
+            case 'name-asc':
+            case 'alpha_asc':
+                $query->orderBy('name', 'asc');
+                break;
+            case 'name_desc':
+            case 'name-desc':
+            case 'alpha_desc':
+                $query->orderBy('name', 'desc');
+                break;
+            case 'oldest':
+                $query->orderBy('created_at', 'asc');
                 break;
             case 'newest':
             default:
@@ -287,7 +368,21 @@ class StorefrontController extends Controller
                 break;
         }
 
-        $products = $query->paginate($request->get('limit', 12));
+        $totalCount = (clone $query)->count();
+        $perPageParam = $request->get('per_page', $request->get('limit', 12));
+        if ($perPageParam === 'all' || $perPageParam === 'All' || (is_numeric($perPageParam) && (int)$perPageParam <= 0)) {
+            $perPage = max(1, $totalCount);
+        } else {
+            $perPage = min(500, max(1, (int)$perPageParam));
+        }
+
+        $lastPage = max(1, (int)ceil($totalCount / $perPage));
+        $requestedPage = max(1, (int)$request->get('page', 1));
+        if ($requestedPage > $lastPage && $totalCount > 0) {
+            $requestedPage = $lastPage;
+        }
+
+        $products = $query->paginate($perPage, ['*'], 'page', $requestedPage);
         $products->getCollection()->each(function (Product $product) {
             // Keep the legacy singular field during the multi-category transition.
             $product->setRelation('category', $product->categories->first());
@@ -351,20 +446,44 @@ class StorefrontController extends Controller
                       ->orWhere('sku', 'LIKE', "%{$q}%")
                       ->orWhere('short_description', 'LIKE', "%{$q}%")
                       ->orWhereHas('categories', function($sub) use ($q) {
+                          $sub->where('name', 'LIKE', "%{$q}%")
+                              ->orWhere('slug', 'LIKE', "%{$q}%");
+                      })
+                      ->orWhereHas('collections', function($sub) use ($q) {
+                          $sub->where('name', 'LIKE', "%{$q}%")
+                              ->orWhere('slug', 'LIKE', "%{$q}%");
+                      })
+                      ->orWhereHas('tags', function($sub) use ($q) {
                           $sub->where('name', 'LIKE', "%{$q}%");
                       });
             })
             ->with(['categories', 'images', 'variants'])
-            ->limit(10)
+            ->limit(15)
             ->get();
 
         $products->each(function (Product $product) {
             $product->setRelation('category', $product->categories->first());
         });
 
+        // Also fetch matching categories & collections for typeahead recommendations
+        $categories = Category::where('name', 'LIKE', "%{$q}%")
+            ->orWhere('slug', 'LIKE', "%{$q}%")
+            ->limit(5)
+            ->get();
+
+        $collections = Collection::where('is_published', true)
+            ->where(function($sub) use ($q) {
+                $sub->where('name', 'LIKE', "%{$q}%")
+                    ->orWhere('slug', 'LIKE', "%{$q}%");
+            })
+            ->limit(5)
+            ->get();
+
         return response()->json([
             'success' => true,
-            'data' => $products
+            'data' => $products,
+            'categories' => $categories,
+            'collections' => $collections,
         ]);
     }
 
@@ -373,12 +492,14 @@ class StorefrontController extends Controller
      */
     public function searchAll(Request $request)
     {
-        $q = $request->get('q', '');
+        $q = trim($request->get('q', ''));
         if (empty($q)) {
             return response()->json([
                 'success' => true,
                 'data' => [
                     'products' => [],
+                    'categories' => [],
+                    'collections' => [],
                     'pages' => [],
                     'articles' => []
                 ]
@@ -391,19 +512,46 @@ class StorefrontController extends Controller
                 $query->where('name', 'LIKE', "%{$q}%")
                       ->orWhere('description', 'LIKE', "%{$q}%")
                       ->orWhere('sku', 'LIKE', "%{$q}%")
-                      ->orWhere('short_description', 'LIKE', "%{$q}%");
+                      ->orWhere('short_description', 'LIKE', "%{$q}%")
+                      ->orWhereHas('categories', function($sub) use ($q) {
+                          $sub->where('name', 'LIKE', "%{$q}%")
+                              ->orWhere('slug', 'LIKE', "%{$q}%");
+                      })
+                      ->orWhereHas('collections', function($sub) use ($q) {
+                          $sub->where('name', 'LIKE', "%{$q}%")
+                              ->orWhere('slug', 'LIKE', "%{$q}%");
+                      });
             })
-            ->with(['images'])
+            ->with(['categories', 'images'])
+            ->limit(10)
+            ->get();
+
+        $products->each(function (Product $product) {
+            $product->setRelation('category', $product->categories->first());
+        });
+
+        // 2. Search Categories
+        $categories = Category::where('name', 'LIKE', "%{$q}%")
+            ->orWhere('slug', 'LIKE', "%{$q}%")
             ->limit(5)
             ->get();
 
-        // 2. Search CMS Pages
+        // 3. Search Collections
+        $collections = Collection::where('is_published', true)
+            ->where(function($sub) use ($q) {
+                $sub->where('name', 'LIKE', "%{$q}%")
+                    ->orWhere('slug', 'LIKE', "%{$q}%");
+            })
+            ->limit(5)
+            ->get();
+
+        // 4. Search CMS Pages
         $pages = Page::where('title', 'LIKE', "%{$q}%")
             ->orWhere('content', 'LIKE', "%{$q}%")
             ->limit(5)
             ->get();
 
-        // 3. Search Blog Articles
+        // 5. Search Blog Articles
         $articles = Article::where('status', 'published')
             ->where(function($query) use ($q) {
                 $query->where('title', 'LIKE', "%{$q}%")
@@ -416,6 +564,8 @@ class StorefrontController extends Controller
             'success' => true,
             'data' => [
                 'products' => $products,
+                'categories' => $categories,
+                'collections' => $collections,
                 'pages' => $pages,
                 'articles' => $articles
             ]
@@ -938,10 +1088,19 @@ class StorefrontController extends Controller
             // Generate Order Number
             $orderNumber = 'FQ-' . strtoupper(Str::random(6)) . '-' . rand(100, 999);
 
+            // Identify customer (via sanctum token or by customer_email)
+            $customerId = auth('sanctum')->id();
+            if (!$customerId && !empty($request->customer_email)) {
+                $matchedCustomer = Customer::where('email', $request->customer_email)->first();
+                if ($matchedCustomer) {
+                    $customerId = $matchedCustomer->id;
+                }
+            }
+
             // Create Order
             $order = Order::create([
                 'ecommerce_id' => $ecommerce->id,
-                'customer_id' => auth('sanctum')->id(), // Authenticated customer if available
+                'customer_id' => $customerId,
                 'order_number' => $orderNumber,
                 'customer_name' => $request->customer_name,
                 'customer_email' => $request->customer_email,
@@ -966,10 +1125,56 @@ class StorefrontController extends Controller
                 'notes' => $request->notes,
             ]);
 
+            // Save and sync shipping data to Customer profile and CustomerAddress table for future prefilling
+            if ($customerId) {
+                $cust = Customer::find($customerId);
+                if ($cust) {
+                    if (!empty($request->customer_phone) && $cust->phone !== $request->customer_phone) {
+                        $cust->phone = $request->customer_phone;
+                        $cust->save();
+                    }
+
+                    if ($request->delivery_method === 'delivery' && !empty($request->delivery_address)) {
+                        CustomerAddress::where('customer_id', $cust->id)->update(['is_default' => false]);
+                        
+                        $existingAddr = CustomerAddress::where('customer_id', $cust->id)
+                            ->where('address_line_1', $request->delivery_address)
+                            ->first();
+
+                        if ($existingAddr) {
+                            $existingAddr->update([
+                                'city' => $request->delivery_city ?? '',
+                                'state' => $request->delivery_state ?? '',
+                                'country' => $request->delivery_country ?? '',
+                                'is_default' => true,
+                            ]);
+                        } else {
+                            CustomerAddress::create([
+                                'customer_id' => $cust->id,
+                                'address_line_1' => $request->delivery_address,
+                                'city' => $request->delivery_city ?? '',
+                                'state' => $request->delivery_state ?? '',
+                                'country' => $request->delivery_country ?? '',
+                                'is_default' => true,
+                            ]);
+                        }
+                    }
+                }
+            }
+
             // Save order items
             foreach ($orderItemsToCreate as $oItem) {
                 $oItem['order_id'] = $order->id;
                 OrderItem::create($oItem);
+            }
+
+            // Automatically dispatch Order Placed confirmation email
+            try {
+                if (!empty($order->customer_email)) {
+                    Mail::to($order->customer_email)->send(new OrderInvoiceMail($order, 'order_placed'));
+                }
+            } catch (\Throwable $mailEx) {
+                Log::warning("Could not dispatch order_placed email to {$order->customer_email}: " . $mailEx->getMessage());
             }
 
             // Handle Payment Gateways Initiation (Paystack, Stripe, PayPal, Flutterwave)
@@ -1024,7 +1229,7 @@ class StorefrontController extends Controller
     }
 
     /**
-     * Verify Paystack Transaction
+     * Verify Multi-Gateway Payment Transaction (Paystack, Stripe, PayPal, Flutterwave)
      */
     public function verifyPayment(Request $request)
     {
@@ -1039,18 +1244,20 @@ class StorefrontController extends Controller
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
 
+        $gateway = strtolower($request->gateway ?? $order->payment_method ?? 'paystack');
+
         $payment = Payment::where('transaction_reference', $request->reference)->first();
         if (!$payment) {
             $payment = Payment::create([
                 'order_id' => $order->id,
                 'transaction_reference' => $request->reference,
-                'gateway' => $request->gateway ?? 'paystack',
+                'gateway' => $gateway,
                 'amount' => $order->total_amount,
                 'status' => 'pending',
             ]);
         }
 
-        if ($payment->status === 'success') {
+        if ($payment->status === 'success' && $order->payment_status === 'paid') {
             return response()->json([
                 'success' => true,
                 'message' => 'Payment already verified successfully.',
@@ -1058,86 +1265,158 @@ class StorefrontController extends Controller
             ]);
         }
 
-        // Verify with Paystack API
-        // For development/mock: If reference contains "mock-success", we confirm it automatically
-        if (Str::contains($request->reference, 'mock-success') || config('services.paystack.secret_key') == 'sandbox') {
-            $payment->status = 'success';
-            $payment->gateway_response = ['mock' => true];
-            $payment->save();
-
-            $order->payment_status = 'paid';
-            $order->order_status = 'paid';
-            $order->paid_at = now();
-            $order->save();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Payment verified successfully (Mock Mode).',
-                'data' => $order
-            ]);
+        // Fetch Gateway Settings
+        $settingsRaw = EcommerceSetting::where('ecommerce_id', $order->ecommerce_id ?? 1)->get();
+        $settings = [];
+        foreach ($settingsRaw as $s) {
+            $settings[$s->key] = $s->value;
         }
 
-        // Live API call
-        $secretKey = config('services.paystack.secret_key');
-        if (!$secretKey) {
-            // Default sandbox mock fallback if no keys configured
-            $payment->status = 'success';
-            $payment->save();
-            $order->payment_status = 'paid';
-            $order->order_status = 'paid';
-            $order->paid_at = now();
-            $order->save();
-            return response()->json([
-                'success' => true,
-                'message' => 'Payment verified successfully (Auto-pass).',
-                'data' => $order
-            ]);
-        }
+        $isVerified = false;
+        $gatewayResponse = ['mock' => true];
 
-        try {
-            $response = Http::withToken($secretKey)
-                ->get("https://api.paystack.co/transaction/verify/" . urlencode($request->reference));
+        // 1. STRIPE GATEWAY VERIFICATION
+        if ($gateway === 'stripe') {
+            $stripeSecret = $settings['stripe_key_secret'] ?? config('services.stripe.secret') ?? '';
+            $isMockStripe = Str::contains($request->reference, 'mock') || empty($stripeSecret) || Str::startsWith($stripeSecret, 'sk_test_mock');
 
-            if ($response->successful()) {
-                $resData = $response->json();
-                if ($resData['status'] && $resData['data']['status'] === 'success') {
-                    // Check amount paid (Paystack sends amount in Kobo)
-                    $paidAmount = $resData['data']['amount'] / 100;
-                    
-                    if (abs($paidAmount - $order->total_amount) < 0.01) {
-                        $payment->status = 'success';
-                        $payment->gateway_response = $resData;
-                        $payment->save();
-
-                        $order->payment_status = 'paid';
-                        $order->order_status = 'paid';
-                        $order->paid_at = now();
-                        $order->save();
-
-                        return response()->json([
-                            'success' => true,
-                            'message' => 'Payment verified successfully.',
-                            'data' => $order
-                        ]);
+            if ($isMockStripe) {
+                $isVerified = true;
+                $gatewayResponse = ['gateway' => 'stripe', 'status' => 'succeeded', 'mode' => 'sandbox_mock'];
+            } else {
+                try {
+                    $response = Http::withBasicAuth($stripeSecret, '')
+                        ->get("https://api.stripe.com/v1/payment_intents/" . urlencode($request->reference));
+                    if ($response->successful()) {
+                        $resData = $response->json();
+                        if (in_array($resData['status'] ?? '', ['succeeded', 'processing', 'requires_capture'])) {
+                            $isVerified = true;
+                            $gatewayResponse = $resData;
+                        }
+                    } else {
+                        // Check charges endpoint fallback
+                        $chargeRes = Http::withBasicAuth($stripeSecret, '')
+                            ->get("https://api.stripe.com/v1/charges/" . urlencode($request->reference));
+                        if ($chargeRes->successful() && ($chargeRes->json('status') === 'succeeded' || $chargeRes->json('paid') === true)) {
+                            $isVerified = true;
+                            $gatewayResponse = $chargeRes->json();
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("Stripe verify api call: " . $e->getMessage());
+                    // Fallback to verified if test transaction
+                    if (Str::startsWith($stripeSecret, 'sk_test_')) {
+                        $isVerified = true;
                     }
                 }
             }
+        }
+        // 2. PAYPAL GATEWAY VERIFICATION
+        elseif ($gateway === 'paypal') {
+            $paypalService = app(\App\Services\PayPalService::class);
+            if (Str::contains($request->reference, 'mock') || $paypalService->isMockMode()) {
+                $isVerified = true;
+                $gatewayResponse = [
+                    'gateway' => 'paypal',
+                    'status' => 'COMPLETED',
+                    'mode' => 'sandbox_mock',
+                    'reference' => $request->reference,
+                ];
+            } else {
+                $captureRes = $paypalService->captureOrder($request->reference);
+                if ($captureRes['success']) {
+                    $isVerified = true;
+                    $gatewayResponse = $captureRes['raw'] ?? [];
+                } else {
+                    $details = $paypalService->showOrderDetails($request->reference);
+                    if ($details['success'] && in_array($details['raw']['status'] ?? '', ['COMPLETED', 'APPROVED'])) {
+                        $isVerified = true;
+                        $gatewayResponse = $details['raw'];
+                    }
+                }
+            }
+        }
+        // 3. PAYSTACK / FLUTTERWAVE GATEWAY VERIFICATION
+        else {
+            $paystackSecret = $settings['paystack_key_secret'] ?? config('services.paystack.secret_key') ?? '';
+            $isMockPaystack = Str::contains($request->reference, 'mock') || empty($paystackSecret) || Str::startsWith($paystackSecret, 'sk_test_mock');
 
-            $payment->status = 'failed';
+            if ($isMockPaystack) {
+                $isVerified = true;
+                $gatewayResponse = ['gateway' => 'paystack', 'status' => 'success', 'mode' => 'sandbox_mock'];
+            } else {
+                try {
+                    $response = Http::withToken($paystackSecret)
+                        ->get("https://api.paystack.co/transaction/verify/" . urlencode($request->reference));
+                    if ($response->successful()) {
+                        $resData = $response->json();
+                        if ($resData['status'] && ($resData['data']['status'] ?? '') === 'success') {
+                            $isVerified = true;
+                            $gatewayResponse = $resData;
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("Paystack verify error: " . $e->getMessage());
+                    if (Str::startsWith($paystackSecret, 'sk_test_')) {
+                        $isVerified = true;
+                    }
+                }
+            }
+        }
+
+        // Process outcome
+        if ($isVerified) {
+            $payment->status = 'success';
+            $payment->gateway_response = $gatewayResponse;
             $payment->save();
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Payment verification failed'
-            ], 400);
+            $order->payment_status = 'paid';
+            $order->order_status = 'paid';
+            $order->paid_at = now();
+            $order->save();
 
-        } catch (\Exception $e) {
-            Log::error("Paystack verify error: " . $e->getMessage());
+            // Generate branded PDF Invoice & dispatch invoice email notification
+            try {
+                $pdfPath = null;
+                $ecommerce = Ecommerce::first();
+                $data = [
+                    'order' => $order,
+                    'ecommerceName' => $ecommerce->name ?? 'Dansolam',
+                    'storeAddress' => $settings['store_address'] ?? 'Customer Care SHOP',
+                    'whatsappNumber' => $settings['store_whatsapp'] ?? ($settings['store_phone'] ?? '+234 800 000 0000'),
+                    'themeColor' => $settings['theme_primary_color'] ?? '#5D3E85',
+                    'logoUrl' => !empty($settings['store_logo_url']) ? asset($settings['store_logo_url']) : null,
+                ];
+
+                $pdfDir = storage_path('app/invoices');
+                if (!file_exists($pdfDir)) {
+                    mkdir($pdfDir, 0755, true);
+                }
+                $pdfPath = "{$pdfDir}/invoice_{$order->order_number}.pdf";
+                $pdf = Pdf::loadView('exports.invoice', $data);
+                $pdf->save($pdfPath);
+
+                if (!empty($order->customer_email)) {
+                    Mail::to($order->customer_email)->send(new OrderInvoiceMail($order, 'invoice', $pdfPath));
+                }
+            } catch (\Throwable $ex) {
+                Log::warning("Could not dispatch invoice email for order #{$order->order_number}: " . $ex->getMessage());
+            }
+
             return response()->json([
-                'success' => false,
-                'message' => 'Internal server error verifying payment'
-            ], 500);
+                'success' => true,
+                'message' => 'Payment verified successfully with ' . ucfirst($gateway) . '.',
+                'data' => $order
+            ]);
         }
+
+        $payment->status = 'failed';
+        $payment->save();
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Payment verification failed with ' . ucfirst($gateway) . '. Please check transaction.'
+        ], 400);
     }
 
     /**
@@ -1147,15 +1426,26 @@ class StorefrontController extends Controller
     {
         $request->validate([
             'order_number' => 'required|string',
-            'contact' => 'required|string', // phone or email
+            'contact' => 'nullable|string', // phone or email (optional)
         ]);
 
-        $order = Order::where('order_number', $request->order_number)
-            ->where(function($query) use ($request) {
-                $query->where('customer_email', $request->contact)
-                      ->orWhere('customer_phone', $request->contact);
-            })
-            ->with(['items'])
+        $orderNumber = trim($request->order_number);
+        $contact = trim($request->contact ?? '');
+
+        $query = Order::where(function($q) use ($orderNumber) {
+            $q->where('order_number', $orderNumber)
+              ->orWhere('order_number', 'LIKE', "%{$orderNumber}%");
+        });
+
+        if (!empty($contact)) {
+            $query->where(function($q) use ($contact) {
+                $q->where('customer_email', $contact)
+                  ->orWhere('customer_phone', $contact)
+                  ->orWhere('customer_phone', 'LIKE', "%{$contact}%");
+            });
+        }
+
+        $order = $query->with(['items.product', 'items.variant'])
             ->first();
 
         if (!$order) {
@@ -1271,7 +1561,8 @@ class StorefrontController extends Controller
      */
     public function getArticles()
     {
-        $articles = Article::where('status', 'published')
+        $articles = Article::with(['category', 'tags'])
+            ->where('status', 'published')
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -1286,7 +1577,8 @@ class StorefrontController extends Controller
      */
     public function getArticleDetails($slug)
     {
-        $article = Article::where('slug', $slug)
+        $article = Article::with(['category', 'tags'])
+            ->where('slug', $slug)
             ->where('status', 'published')
             ->firstOrFail();
 
@@ -1360,14 +1652,52 @@ class StorefrontController extends Controller
 
     public function getReviews(Request $request)
     {
-        $reviews = \App\Models\Review::with('product')
-            ->where('is_approved', true)
-            ->orderBy('created_at', 'desc')
-            ->paginate($request->get('limit', 9));
-            
+        $query = \App\Models\Review::with('product')
+            ->where('is_approved', true);
+
+        // Sorting
+        $sort = $request->get('sort', 'recent');
+        if ($sort === 'highest') {
+            $query->orderBy('rating', 'desc')->orderBy('created_at', 'desc');
+        } elseif ($sort === 'lowest') {
+            $query->orderBy('rating', 'asc')->orderBy('created_at', 'desc');
+        } else {
+            $query->orderBy('created_at', 'desc');
+        }
+
+        // Photos filter
+        if ($request->boolean('with_photos')) {
+            $query->whereNotNull('image_url');
+        }
+
+        // Product filter
+        if ($request->filled('product_id')) {
+            $query->where('product_id', $request->product_id);
+        }
+
+        $reviews = $query->paginate($request->get('limit', 12));
+
+        // Compute overall metrics across all approved reviews
+        $allApproved = \App\Models\Review::where('is_approved', true)->get(['rating']);
+        $totalCount = $allApproved->count();
+        $avgRating = $totalCount > 0 ? round($allApproved->avg('rating'), 1) : 5.0;
+
+        $starCounts = [
+            5 => $allApproved->where('rating', 5)->count(),
+            4 => $allApproved->where('rating', 4)->count(),
+            3 => $allApproved->where('rating', 3)->count(),
+            2 => $allApproved->where('rating', 2)->count(),
+            1 => $allApproved->where('rating', 1)->count(),
+        ];
+
         return response()->json([
             'success' => true,
-            'data' => $reviews
+            'data' => $reviews,
+            'summary' => [
+                'total_count' => $totalCount,
+                'average_rating' => $avgRating,
+                'star_counts' => $starCounts,
+            ]
         ]);
     }
 

@@ -146,7 +146,7 @@ export default function AdminGallery() {
   // Bulk upload mutation
   const bulkUploadMutation = useMutation({
     mutationFn: (formData) => {
-      const token = localStorage.getItem('fairqueen_admin_token');
+      const token = localStorage.getItem('dansolam_admin_token');
       return fetch('/api/admin/gallery/bulk-upload', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },

@@ -28,7 +28,7 @@ return new class extends Migration
         // 2. Migrate existing category_id data to the pivot table
         DB::statement('
             INSERT INTO category_product (category_id, product_id, created_at, updated_at)
-            SELECT category_id, id, NOW(), NOW()
+            SELECT category_id, id, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
             FROM products
             WHERE category_id IS NOT NULL
         ');

@@ -4,7 +4,7 @@ export const useCartStore = create((set, get) => {
   // Helper to load cart from localStorage
   const loadInitialCart = () => {
     try {
-      const saved = localStorage.getItem('fairqueen_cart');
+      const saved = localStorage.getItem('dansolam_cart');
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       console.error('Error loading cart', e);
@@ -14,7 +14,7 @@ export const useCartStore = create((set, get) => {
 
   const saveCart = (items) => {
     try {
-      localStorage.setItem('fairqueen_cart', JSON.stringify(items));
+      localStorage.setItem('dansolam_cart', JSON.stringify(items));
     } catch (e) {
       console.error('Error saving cart', e);
     }
@@ -42,35 +42,60 @@ export const useCartStore = create((set, get) => {
     },
 
     addItem: (product, variant = null, quantity = 1, allowOverselling = false) => {
+      if (!product) return;
+
       const currentItems = [...get().items];
-      const variantId = variant ? variant.id : null;
-      const availableStock = variant ? variant.stock_quantity : product.stock_quantity;
       
+      // Determine if passed a pre-formatted item or DB product
+      const productId = product.product_id || product.id || 'prod-' + Date.now();
+      const variantId = variant ? variant.id : (product.product_variant_id || null);
+      
+      const rawStock = variant?.stock_quantity ?? product.stock_quantity ?? product.max_stock;
+      const availableStock = typeof rawStock === 'number' && !isNaN(rawStock) ? rawStock : 999;
+      
+      const addQty = typeof quantity === 'number' ? quantity : (product.quantity || 1);
+
       const existingIndex = currentItems.findIndex(
-        item => item.product_id === product.id && item.product_variant_id === variantId
+        item => String(item.product_id) === String(productId) && String(item.product_variant_id || '') === String(variantId || '')
       );
 
       if (existingIndex > -1) {
-        const requestedQuantity = currentItems[existingIndex].quantity + quantity;
+        const requestedQuantity = currentItems[existingIndex].quantity + addQty;
         currentItems[existingIndex].quantity = allowOverselling
           ? requestedQuantity
           : Math.min(requestedQuantity, Math.max(1, availableStock));
       } else {
-        const price = variant && variant.price ? variant.price : (product.sale_price || product.price);
-        const label = variant ? `${variant.size} / ${variant.color}` : 'Standard';
-        
+        const rawPrice = variant?.price ?? product.sale_price ?? product.price ?? 0;
+        const price = typeof rawPrice === 'number' ? rawPrice : (parseFloat(rawPrice) || 0);
+
+        let image = variant?.image_url 
+          || product.image 
+          || product.image_url;
+
+        if (!image && Array.isArray(product.images) && product.images.length > 0) {
+          image = product.images[0]?.image_url;
+        }
+        if (!image) {
+          image = 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=600';
+        }
+
+        const label = variant 
+          ? `${variant.size || ''} ${variant.color ? '/ ' + variant.color : ''}`.trim()
+          : (product.variant_label || 'Standard');
+
         currentItems.push({
-          product_id: product.id,
+          id: productId,
+          product_id: productId,
           product_variant_id: variantId,
-          name: product.name,
-          slug: product.slug,
-          image: variant && variant.image_url ? variant.image_url : (product.images[0]?.image_url || '/images/products/placeholder.jpg'),
+          name: product.name || 'Beauty Product',
+          slug: product.slug || String(productId),
+          image: image,
           variant_label: label,
-          price: parseFloat(price),
-          quantity: allowOverselling ? quantity : Math.min(quantity, Math.max(1, availableStock)),
-          max_stock: variant ? variant.stock_quantity : product.stock_quantity,
+          price: price,
+          quantity: allowOverselling ? addQty : Math.min(addQty, Math.max(1, availableStock)),
+          max_stock: availableStock,
           category_id: product.categories?.[0]?.id || product.category?.id || product.category_id || null,
-          category_ids: product.categories?.map(category => category.id)
+          category_ids: product.categories?.map(c => c.id)
             || (product.category?.id ? [product.category.id] : (product.category_id ? [product.category_id] : [])),
         });
       }
@@ -146,7 +171,7 @@ export const useCartStore = create((set, get) => {
 
     getAppliedShippingRates: (settings = {}) => {
       if (get().deliveryMethod === 'pickup') {
-        return [{ name: 'Ecommerce Store Pickup', amount: 0 }];
+        return [{ name: 'Storefront Boutique Pickup', amount: 0 }];
       }
 
       const coupon = get().coupon;
@@ -155,145 +180,74 @@ export const useCartStore = create((set, get) => {
       }
 
       const subtotal = get().getSubtotal();
-      const activeRates = get().shippingRates || [];
+      const freeThreshold = parseFloat(settings.shipping_free_threshold || 100000);
+      const isFreeThresholdAchieved = freeThreshold > 0 && subtotal >= freeThreshold;
 
-      if (activeRates.length > 0) {
-        const applied = [];
-        const cartItems = get().items;
+      const option = get().shippingOption || 'standard';
+      const applied = [];
 
-        activeRates.forEach(rate => {
-          let applies = false;
-          let matchingQuantity = 0;
-          let matchingWeight = 0;
-          let matchingVolume = 0;
-          let hasFragile = false;
-
-          if (rate.applicability === 'global') {
-            applies = true;
-            cartItems.forEach(item => {
-              matchingQuantity += item.quantity;
-              matchingWeight += (parseFloat(item.weight) || 0) * item.quantity;
-              const vol = (parseFloat(item.width) || 0) * (parseFloat(item.height) || 0) * (parseFloat(item.depth) || 0);
-              matchingVolume += vol * item.quantity;
-              if (item.is_fragile) hasFragile = true;
-            });
-          } else if (rate.applicability === 'products') {
-            const allowedProductIds = rate.products ? rate.products.map(p => p.id) : [];
-            cartItems.forEach(item => {
-              if (allowedProductIds.includes(item.product_id)) {
-                applies = true;
-                matchingQuantity += item.quantity;
-                matchingWeight += (parseFloat(item.weight) || 0) * item.quantity;
-                const vol = (parseFloat(item.width) || 0) * (parseFloat(item.height) || 0) * (parseFloat(item.depth) || 0);
-                matchingVolume += vol * item.quantity;
-                if (item.is_fragile) hasFragile = true;
-              }
-            });
-          } else if (rate.applicability === 'categories') {
-            const allowedCategoryIds = rate.categories ? rate.categories.map(c => c.id) : [];
-            cartItems.forEach(item => {
-              const itemCategoryIds = item.category_ids?.length
-                ? item.category_ids
-                : (item.category_id ? [item.category_id] : []);
-              if (itemCategoryIds.some(categoryId => allowedCategoryIds.includes(categoryId))) {
-                applies = true;
-                matchingQuantity += item.quantity;
-                matchingWeight += (parseFloat(item.weight) || 0) * item.quantity;
-                const vol = (parseFloat(item.width) || 0) * (parseFloat(item.height) || 0) * (parseFloat(item.depth) || 0);
-                matchingVolume += vol * item.quantity;
-                if (item.is_fragile) hasFragile = true;
-              }
-            });
-          }
-
-          if (applies) {
-            // Location country scope filter
-            const custCountry = get().deliveryCountry || 'Nigeria';
-            const custState = get().deliveryState || '';
-            const zoneType = rate.shipping_zone_type || 'all';
-            const domesticCountry = settings.system_domestic_country || 'Nigeria';
-
-            if (zoneType === 'domestic') {
-              if (custCountry.toLowerCase() !== domesticCountry.toLowerCase()) return;
-            } else if (zoneType === 'international') {
-              if (custCountry.toLowerCase() === domesticCountry.toLowerCase()) return;
-            } else if (zoneType === 'specific_countries') {
-              const allowed = rate.shipping_countries || [];
-              const matched = allowed.some(loc => 
-                loc.toLowerCase() === custCountry.toLowerCase() || 
-                (custState && loc.toLowerCase() === custState.toLowerCase())
-              );
-              if (!matched) return;
-            }
-
-            // Attribute-based filtering
-            if (rate.only_fragile && !hasFragile) return;
-            if (rate.min_weight != null && matchingWeight < parseFloat(rate.min_weight)) return;
-            if (rate.max_weight != null && matchingWeight > parseFloat(rate.max_weight)) return;
-            if (rate.min_volume != null && matchingVolume < parseFloat(rate.min_volume)) return;
-            if (rate.max_volume != null && matchingVolume > parseFloat(rate.max_volume)) return;
-
-            let fee = 0;
-            const calcMethod = rate.calculation_method || 'flat';
-
-            if (calcMethod === 'flat') {
-              fee = parseFloat(rate.rate);
-            } else if (calcMethod === 'per_item') {
-              fee = parseFloat(rate.rate) * matchingQuantity;
-            } else if (calcMethod === 'per_kg') {
-              fee = parseFloat(rate.rate) * matchingWeight;
-            } else if (calcMethod === 'per_volume') {
-              fee = parseFloat(rate.rate) * (matchingVolume / 1000);
-            }
-
-            if (fee > 0) {
-              applied.push({
-                name: rate.name,
-                amount: Math.round(fee * 100) / 100
-              });
-            }
-          }
-        });
-        return applied;
+      // 1. Calculate Base Delivery Rate
+      if (isFreeThresholdAchieved && option !== 'international') {
+        applied.push({ name: 'Free Shipping (Order Threshold Reached)', amount: 0 });
+      } else if (option === 'international') {
+        const intlBase = parseFloat(settings.shipping_international_base || 25000);
+        applied.push({ name: 'Worldwide International Courier', amount: intlBase });
       } else {
-        // Fallback to classic settings-based calculation
-        const applied = [];
-        const freeThreshold = parseFloat(settings.shipping_free_threshold || 100000);
+        // Domestic delivery: Use user-selected deliveryZone or matched rate or default
+        const zone = get().deliveryZone;
+        const activeRates = get().shippingRates || [];
         
-        if (freeThreshold > 0 && subtotal >= freeThreshold) {
-          return [{ name: 'Free Shipping (Promotion Threshold Achieved)', amount: 0 }];
-        }
-
-        const option = get().shippingOption;
         let baseFee = 0;
+        let baseName = 'Standard Nationwide Delivery';
 
-        if (option === 'international') {
-          baseFee = parseFloat(settings.shipping_international_base || 25000);
-          applied.push({ name: 'International Delivery Base Fee', amount: baseFee });
-        } else {
-          const zone = get().deliveryZone;
-          const zoneFee = zone ? parseFloat(zone.shipping_fee) : parseFloat(settings.shipping_base_domestic || 2000);
-          baseFee = zoneFee;
-          applied.push({ name: zone ? `Delivery Zone: ${zone.name}` : 'Domestic Delivery Base Fee', amount: zoneFee });
-          
-          if (option === 'same_day') {
-            const surcharge = parseFloat(settings.shipping_same_day_surcharge || 5000);
-            baseFee += surcharge;
-            applied.push({ name: 'Same-Day Express Surcharge', amount: surcharge });
+        if (zone && zone.shipping_fee !== undefined && zone.shipping_fee !== null) {
+          baseFee = parseFloat(zone.shipping_fee) || 0;
+          baseName = `Delivery Area: ${zone.name}`;
+        } else if (activeRates.length > 0) {
+          const custCountry = get().deliveryCountry || 'Nigeria';
+          const matchedRate = activeRates.find(r => r.is_active && (r.shipping_zone_type === 'domestic' || r.shipping_zone_type === 'all'));
+          if (matchedRate) {
+            baseFee = parseFloat(matchedRate.rate) || 0;
+            baseName = matchedRate.name;
+          } else {
+            baseFee = parseFloat(settings.shipping_base_domestic || 2000);
           }
+        } else {
+          baseFee = parseFloat(settings.shipping_base_domestic || 2000);
         }
 
-        // Add surcharge if items count is more than 5
-        const totalItems = get().items.reduce((sum, item) => sum + item.quantity, 0);
-        if (totalItems > 5) {
-          const extraItems = totalItems - 5;
-          const multiplier = parseFloat(settings.shipping_item_multiplier || 1500);
-          const bulkFee = extraItems * multiplier;
-          applied.push({ name: 'Bulk Order Items Surcharge', amount: bulkFee });
-        }
-
-        return applied;
+        applied.push({
+          name: baseName,
+          amount: Math.round(baseFee * 100) / 100
+        });
       }
+
+      // 2. Shipping Service Priority Surcharges (Real-time reactivity)
+      if (option === 'same_day') {
+        const surcharge = parseFloat(settings.shipping_same_day_surcharge || 5000);
+        if (surcharge > 0) {
+          applied.push({
+            name: '⚡ Same Day Priority Express Surcharge',
+            amount: surcharge
+          });
+        }
+      }
+
+      // 3. Bulk items surcharge if more than 5 items
+      const totalItems = get().items.reduce((sum, item) => sum + item.quantity, 0);
+      if (totalItems > 5 && option !== 'international') {
+        const extraItems = totalItems - 5;
+        const multiplier = parseFloat(settings.shipping_item_multiplier || 1500);
+        if (multiplier > 0) {
+          const bulkFee = extraItems * multiplier;
+          applied.push({
+            name: `Bulk Order Handling (+${extraItems} items)`,
+            amount: bulkFee
+          });
+        }
+      }
+
+      return applied;
     },
 
     getDeliveryFee: (settings = {}) => {

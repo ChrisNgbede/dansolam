@@ -1503,9 +1503,9 @@ export default function PosTerminal() {
                   <div className="text-center">
                     <h3 className="text-xs font-bold font-serif">DANSOLAM</h3>
                     {lastTransaction.offline_pending && <p className="text-[8px] font-bold text-amber-700">OFFLINE SALE · PENDING SYNC</p>}
-                    <p className="text-[8px] text-gray-500">Premium Fashion Brand</p>
-                    <p className="text-[8px] text-gray-500">Wuse II, Abuja, Nigeria</p>
-                    <p className="text-[8px] text-gray-500">Tel: +44 7488 376955</p>
+                    <p className="text-[8px] text-gray-500">Luxury Beauty SHOP</p>
+                    <p className="text-[8px] text-gray-500">Plot 1234, SHOP Boulevard</p>
+                    <p className="text-[8px] text-gray-500">Tel: +234 800 000 0000</p>
                   </div>
 
                   <div className="divider border-t border-dashed border-gray-400 my-2"></div>

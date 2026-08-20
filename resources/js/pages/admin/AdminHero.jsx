@@ -15,10 +15,11 @@ const emptySlide = {
   primary_cta_label: 'Explore Shop',
   secondary_cta_label: 'WhatsApp Order',
   secondary_cta_url: '',
-  top_kicker: 'Private Edit',
-  top_text: 'Made for your entrance.',
-  bottom_kicker: 'Worldwide delivery',
-  bottom_text: 'Curated in Abuja',
+  top_kicker: '4.9',
+  top_text: '2,400 reviews',
+  bottom_kicker: 'PRISM Glow Serum',
+  bottom_text: 'Bestseller',
+  layout_mode: 'default', // 'default' (split hero layout) or 'full' (full-bleed hero banner)
   is_active: true,
   sort_order: 0,
 };
@@ -135,9 +136,14 @@ export default function AdminHero() {
               <div className="relative aspect-[16/7] bg-gray-100 overflow-hidden">
                 <img loading="lazy" decoding="async" src={slide.image_url} alt={slide.title} className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-                <span className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[9px] font-bold uppercase ${slide.is_active ? 'bg-emerald-500 text-white' : 'bg-gray-800/80 text-white'}`}>
-                  {slide.is_active ? 'Visible' : 'Hidden'}
-                </span>
+                <div className="flex items-center gap-2 absolute top-4 right-4">
+                  <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider ${slide.layout_mode === 'full' ? 'bg-[#5D3E85] text-white shadow-xs' : 'bg-white/90 text-[#221B2B] backdrop-blur-md'}`}>
+                    {slide.layout_mode === 'full' ? 'Full Bleed' : 'Default Split'}
+                  </span>
+                  <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase ${slide.is_active ? 'bg-emerald-500 text-white' : 'bg-gray-800/80 text-white'}`}>
+                    {slide.is_active ? 'Visible' : 'Hidden'}
+                  </span>
+                </div>
                 <div className="absolute left-5 right-5 bottom-5 text-white">
                   <p className="text-[9px] uppercase tracking-widest opacity-75">{slide.eyebrow}</p>
                   <h2 className="font-serif text-2xl font-bold leading-tight">{slide.title} <span className="text-amber-300">{slide.accent_title}</span></h2>
@@ -146,7 +152,11 @@ export default function AdminHero() {
               <div className="p-5 flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-xs text-gray-500 truncate">{slide.subtitle || 'No description supplied'}</p>
-                  <p className="text-[10px] font-bold text-gray-400 mt-1">Display order: {slide.sort_order}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-[10px] font-bold text-gray-400">Display order: {slide.sort_order}</p>
+                    <span className="text-gray-300 text-[10px]">•</span>
+                    <p className="text-[10px] font-semibold text-primary">{slide.layout_mode === 'full' ? 'Fill entire hero section' : 'Section split layout'}</p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button onClick={() => openEdit(slide)} className="p-2.5 rounded-full border border-gray-200 text-gray-600 hover:text-primary cursor-pointer" title="Edit slide"><Edit3 className="w-4 h-4" /></button>
@@ -189,34 +199,66 @@ export default function AdminHero() {
 
             <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-7">
               <div className="space-y-5">
+                <SectionTitle>Hero Layout Style</SectionTitle>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label className={`border-2 rounded-2xl p-4 cursor-pointer transition-all flex flex-col gap-1.5 ${form.layout_mode !== 'full' ? 'border-[#5D3E85] bg-[#5D3E85]/5 shadow-xs' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-900">Default Split</span>
+                      <input
+                        type="radio"
+                        name="layout_mode"
+                        value="default"
+                        checked={form.layout_mode !== 'full'}
+                        onChange={() => updateField('layout_mode', 'default')}
+                        className="accent-[#5D3E85] w-4 h-4"
+                      />
+                    </div>
+                    <p className="text-[11px] text-gray-500 leading-snug">Text on left, borderless image on right (clean & balanced default).</p>
+                  </label>
+                  <label className={`border-2 rounded-2xl p-4 cursor-pointer transition-all flex flex-col gap-1.5 ${form.layout_mode === 'full' ? 'border-[#5D3E85] bg-[#5D3E85]/5 shadow-xs' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-gray-900">Full Bleed Hero</span>
+                      <input
+                        type="radio"
+                        name="layout_mode"
+                        value="full"
+                        checked={form.layout_mode === 'full'}
+                        onChange={() => updateField('layout_mode', 'full')}
+                        className="accent-[#5D3E85] w-4 h-4"
+                      />
+                    </div>
+                    <p className="text-[11px] text-gray-500 leading-snug">Image fills entire heading hero section with text & CTAs overlaid.</p>
+                  </label>
+                </div>
+
                 <SectionTitle>Campaign content</SectionTitle>
                 <Field label="Eyebrow / badge" value={form.eyebrow} onChange={(v) => updateField('eyebrow', v)} placeholder="New Season Drops" />
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field required label="Main heading" value={form.title} onChange={(v) => updateField('title', v)} placeholder="Step Into Your" />
-                  <Field label="Gold heading line" value={form.accent_title} onChange={(v) => updateField('accent_title', v)} placeholder="Signature Style" />
+                  <Field required label="Main heading" value={form.title} onChange={(v) => updateField('title', v)} placeholder="A quieter kind of luxury for" />
+                  <Field label="Accent / highlight line" value={form.accent_title} onChange={(v) => updateField('accent_title', v)} placeholder="your skin." />
                 </div>
                 <label className="block">
                   <span className="admin-field-label">Description</span>
                   <textarea value={form.subtitle || ''} onChange={(e) => updateField('subtitle', e.target.value)} rows="4" maxLength="500" className="admin-field-input resize-none" placeholder="Describe this campaign…" />
                 </label>
-                <ImageUploadField required label="Hero campaign image" value={form.image_url} onChange={(v) => updateField('image_url', v)} aspect="video" hint="Landscape image recommended" />
+                <ImageUploadField required label="Hero campaign image" value={form.image_url} onChange={(v) => updateField('image_url', v)} aspect="video" hint="High-resolution image recommended (appears without borders/shadows)" />
               </div>
 
               <div className="space-y-5">
                 <SectionTitle>Buttons and destinations</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Primary button label" value={form.primary_cta_label} onChange={(v) => updateField('primary_cta_label', v)} />
+                  <Field label="Primary button label" value={form.primary_cta_label} onChange={(v) => updateField('primary_cta_label', v)} placeholder="Shop new arrivals" />
                   <Field label="Primary button URL" value={form.link_url} onChange={(v) => updateField('link_url', v)} placeholder="/shop" />
-                  <Field label="Secondary button label" value={form.secondary_cta_label} onChange={(v) => updateField('secondary_cta_label', v)} />
-                  <Field label="Secondary button URL" value={form.secondary_cta_url} onChange={(v) => updateField('secondary_cta_url', v)} placeholder="https://wa.me/…" />
+                  <Field label="Secondary button label" value={form.secondary_cta_label} onChange={(v) => updateField('secondary_cta_label', v)} placeholder="Book a consultation" />
+                  <Field label="Secondary button URL" value={form.secondary_cta_url} onChange={(v) => updateField('secondary_cta_url', v)} placeholder="/pages/about-us" />
                 </div>
 
-                <SectionTitle>Image overlay labels</SectionTitle>
+                <SectionTitle>Floating Highlights & Stats</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="Top label" value={form.top_kicker} onChange={(v) => updateField('top_kicker', v)} />
-                  <Field label="Top message" value={form.top_text} onChange={(v) => updateField('top_text', v)} />
-                  <Field label="Bottom label" value={form.bottom_kicker} onChange={(v) => updateField('bottom_kicker', v)} />
-                  <Field label="Bottom message" value={form.bottom_text} onChange={(v) => updateField('bottom_text', v)} />
+                  <Field label="Rating / Stat 1 value" value={form.top_kicker} onChange={(v) => updateField('top_kicker', v)} placeholder="4.9" />
+                  <Field label="Rating / Stat 1 label" value={form.top_text} onChange={(v) => updateField('top_text', v)} placeholder="2,400 reviews" />
+                  <Field label="Card badge / Title" value={form.bottom_kicker} onChange={(v) => updateField('bottom_kicker', v)} placeholder="PRISM Glow Serum" />
+                  <Field label="Card subtitle / Category" value={form.bottom_text} onChange={(v) => updateField('bottom_text', v)} placeholder="Bestseller" />
                 </div>
 
                 <SectionTitle>Publishing</SectionTitle>

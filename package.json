@@ -17,6 +17,7 @@
     },
     "dependencies": {
         "@tanstack/react-query": "^5.101.2",
+        "country-state-city": "^3.2.1",
         "gsap": "^3.15.0",
         "jsbarcode": "^3.12.3",
         "lucide-react": "^1.23.0",

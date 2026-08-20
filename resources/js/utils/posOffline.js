@@ -1,5 +1,5 @@
-const QUEUE_KEY = 'fairqueen_pos_offline_queue_v1';
-const CACHE_KEY = 'fairqueen_pos_offline_cache_v1';
+const QUEUE_KEY = 'dansolam_pos_offline_queue_v1';
+const CACHE_KEY = 'dansolam_pos_offline_cache_v1';
 
 const readJson = (key, fallback) => {
   try { return JSON.parse(localStorage.getItem(key) || '') || fallback; } catch { return fallback; }

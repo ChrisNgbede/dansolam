@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Award, Plus, Trash2, Edit, ExternalLink, Search, Globe, ToggleLeft, ToggleRight, Sparkles, Upload, Loader2, X } from 'lucide-react';
+import { Award, Plus, Trash2, Edit, ExternalLink, Search, Globe, ToggleLeft, ToggleRight, Upload, Loader2, X } from 'lucide-react';
 import { apiFetch } from '../../hooks/useAuth';
 
 export default function AdminBrands() {
@@ -282,7 +282,7 @@ export default function AdminBrands() {
                     <td className="py-4 px-6">
                       {brand.is_featured ? (
                         <span className="inline-flex items-center gap-1 text-[10px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full uppercase">
-                          <Sparkles className="w-3 h-3 fill-current" />
+                          <Award className="w-3 h-3 fill-current" />
                           Featured
                         </span>
                       ) : (

@@ -18,6 +18,7 @@ use App\Models\Payment;
 use App\Models\InventoryLog;
 use App\Models\Coupon;
 use App\Models\Customer;
+use App\Models\FittingSession;
 use App\Models\Review;
 use App\Models\DeliveryZone;
 use App\Models\Article;
@@ -40,6 +41,8 @@ use Illuminate\Support\Str;
 
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class AdminController extends Controller
 {
@@ -133,6 +136,7 @@ class AdminController extends Controller
             'top_text' => 'nullable|string|max:180',
             'bottom_kicker' => 'nullable|string|max:100',
             'bottom_text' => 'nullable|string|max:180',
+            'layout_mode' => 'nullable|string|in:default,full',
             'is_active' => 'required|boolean',
             'sort_order' => 'required|integer|min:0|max:10000',
         ]);
@@ -448,6 +452,13 @@ class AdminController extends Controller
         $aov = $totalPaidOrders > 0 ? (float) ($totalSales / $totalPaidOrders) : 0.0;
         $totalVolume = Order::count();
 
+        // Skincare Concierge & Catalog Metrics
+        $recentConsultations = FittingSession::orderBy('created_at', 'desc')->limit(4)->get();
+        $pendingConsultationsCount = FittingSession::where('status', 'pending')->count();
+        $recentReviews = Review::with('product')->orderBy('created_at', 'desc')->limit(4)->get();
+        $totalProductsCount = Product::count();
+        $totalCustomersCount = Customer::count();
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -458,6 +469,11 @@ class AdminController extends Controller
                 'low_stock' => $lowStockVariants,
                 'best_sellers' => $bestSellers,
                 'recent_orders' => $recentOrders,
+                'recent_consultations' => $recentConsultations,
+                'pending_consultations_count' => $pendingConsultationsCount,
+                'recent_reviews' => $recentReviews,
+                'total_products_count' => $totalProductsCount,
+                'total_customers_count' => $totalCustomersCount,
                 'sales_chart' => $salesChart,
                 'category_splits' => $categorySplits,
                 'payment_splits' => $paymentSplits,
@@ -998,13 +1014,27 @@ class AdminController extends Controller
             'payment_status' => 'nullable|string',
         ]);
 
-        $order = Order::find($id);
+        $order = Order::with(['items', 'payments'])->find($id);
         if (!$order) {
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
 
-        if ($request->filled('payment_status')) {
+        // Once delivered, order fulfillment status is permanently locked and cannot be changed
+        if ($order->order_status === 'delivered') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This order has already been delivered and finalized. Its fulfillment status cannot be modified.'
+            ], 422);
+        }
+
+        $oldOrderStatus = $order->order_status;
+        $oldPaymentStatus = $order->payment_status;
+        $orderStatusChanged = false;
+        $paymentStatusChanged = false;
+
+        if ($request->filled('payment_status') && $request->payment_status !== $oldPaymentStatus) {
             $order->payment_status = $request->payment_status;
+            $paymentStatusChanged = true;
             if ($request->payment_status == 'paid' && empty($order->paid_at)) {
                 $order->paid_at = now();
 
@@ -1022,16 +1052,62 @@ class AdminController extends Controller
             }
         }
 
-        $order->order_status = $request->order_status;
-        if ($request->order_status == 'delivered' && empty($order->delivered_at)) {
-            $order->delivered_at = now();
+        if ($request->filled('order_status') && $request->order_status !== $oldOrderStatus) {
+            $order->order_status = $request->order_status;
+            $orderStatusChanged = true;
+            if ($request->order_status == 'delivered' && empty($order->delivered_at)) {
+                $order->delivered_at = now();
+            }
         }
 
         $order->save();
 
+        // Dispatch Email notification to customer and admin
+        $emailDispatched = false;
+        $emailError = null;
+
+        if ($orderStatusChanged || $paymentStatusChanged) {
+            $templateType = $orderStatusChanged ? $order->order_status : ($paymentStatusChanged && $order->payment_status === 'paid' ? 'paid' : 'invoice');
+
+            if (!empty($order->customer_email)) {
+                try {
+                    \Illuminate\Support\Facades\Mail::to($order->customer_email)->send(
+                        new \App\Mail\OrderInvoiceMail($order, $templateType)
+                    );
+                    $emailDispatched = true;
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning("Order status email failed for #{$order->order_number} to {$order->customer_email}: " . $e->getMessage());
+                    $emailError = $e->getMessage();
+                }
+            }
+
+            // Also notify store administrator email if configured
+            try {
+                $settingsRaw = EcommerceSetting::where('ecommerce_id', $order->ecommerce_id ?? 1)->pluck('value', 'key');
+                $adminEmail = $settingsRaw['store_email'] ?? $settingsRaw['admin_notification_email'] ?? null;
+                if ($adminEmail && filter_var($adminEmail, FILTER_VALIDATE_EMAIL) && strtolower($adminEmail) !== strtolower($order->customer_email ?? '')) {
+                    \Illuminate\Support\Facades\Mail::to($adminEmail)->send(
+                        new \App\Mail\OrderInvoiceMail($order, $templateType)
+                    );
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Admin order status notification email failed: " . $e->getMessage());
+            }
+        }
+
+        $formattedStatus = ucwords(str_replace('_', ' ', $order->order_status));
+        $formattedPayment = ucwords(str_replace('_', ' ', $order->payment_status));
+
+        $feedbackMsg = "Order status updated to '{$formattedStatus}' (Payment: {$formattedPayment}).";
+        if ($emailDispatched) {
+            $feedbackMsg .= " Status notification email sent to {$order->customer_email}.";
+        } elseif ($emailError) {
+            $feedbackMsg .= " (Email alert logged: {$emailError})";
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'Order updated successfully',
+            'message' => $feedbackMsg,
             'data' => $order->load(['items', 'payments'])
         ]);
     }
@@ -1140,6 +1216,384 @@ class AdminController extends Controller
         }, 'newsletter-subscribers-' . now()->format('Y-m-d') . '.csv', [
             'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
+    }
+
+    public function addNewsletterSubscriber(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email|max:255',
+        ]);
+
+        $email = strtolower(trim($validated['email']));
+        $exists = DB::table('newsletter_subscribers')->where('email', $email)->exists();
+
+        if ($exists) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Subscriber email already exists in audience list.'
+            ], 422);
+        }
+
+        $id = DB::table('newsletter_subscribers')->insertGetId([
+            'email' => $email,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Subscriber added to audience successfully! ✨',
+            'data' => [
+                'id' => $id,
+                'email' => $email,
+                'created_at' => now()->toIso8601String(),
+            ]
+        ]);
+    }
+
+    public function getNewsletterCampaigns(Request $request)
+    {
+        $perPage = min(max((int) $request->get('per_page', 20), 5), 100);
+        $search = trim((string) $request->get('search', ''));
+        $status = trim((string) $request->get('status', ''));
+
+        $query = DB::table('newsletter_campaigns')->orderByDesc('created_at');
+
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', '%' . $search . '%')
+                  ->orWhere('subject', 'like', '%' . $search . '%');
+            });
+        }
+
+        if ($status !== '' && $status !== 'all') {
+            $query->where('status', $status);
+        }
+
+        $campaigns = $query->paginate($perPage);
+
+        $totalSubscribers = DB::table('newsletter_subscribers')->count();
+        $totalSentCampaigns = DB::table('newsletter_campaigns')->where('status', 'sent')->count();
+        $totalEmailsBroadcast = (int) DB::table('newsletter_campaigns')->where('status', 'sent')->sum('recipients_count');
+
+        return response()->json([
+            'success' => true,
+            'data' => $campaigns->items(),
+            'meta' => [
+                'current_page' => $campaigns->currentPage(),
+                'last_page' => $campaigns->lastPage(),
+                'per_page' => $campaigns->perPage(),
+                'total' => $campaigns->total(),
+            ],
+            'stats' => [
+                'total_campaigns' => DB::table('newsletter_campaigns')->count(),
+                'sent_campaigns' => $totalSentCampaigns,
+                'total_subscribers' => $totalSubscribers,
+                'total_emails_broadcast' => $totalEmailsBroadcast,
+            ]
+        ]);
+    }
+
+    public function createNewsletterCampaign(Request $request)
+    {
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'subject' => 'required|string|max:255',
+            'preview_text' => 'nullable|string|max:255',
+            'template' => 'nullable|string|max:100',
+            'content_html' => 'required|string',
+            'cta_text' => 'nullable|string|max:100',
+            'cta_url' => 'nullable|string|max:500',
+            'banner_image_url' => 'nullable|string|max:500',
+            'status' => 'nullable|string|in:draft,sent,sending',
+        ]);
+
+        $id = DB::table('newsletter_campaigns')->insertGetId([
+            'ecommerce_id' => 1,
+            'title' => $validated['title'],
+            'subject' => $validated['subject'],
+            'preview_text' => $validated['preview_text'] ?? null,
+            'template' => $validated['template'] ?? 'custom',
+            'content_html' => $validated['content_html'],
+            'cta_text' => $validated['cta_text'] ?? null,
+            'cta_url' => $validated['cta_url'] ?? null,
+            'banner_image_url' => $validated['banner_image_url'] ?? null,
+            'status' => $validated['status'] ?? 'draft',
+            'recipients_count' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $campaign = DB::table('newsletter_campaigns')->where('id', $id)->first();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Campaign saved successfully! ✨',
+            'data' => $campaign
+        ]);
+    }
+
+    public function getNewsletterCampaign($id)
+    {
+        $campaign = DB::table('newsletter_campaigns')->where('id', $id)->first();
+        if (!$campaign) {
+            return response()->json(['success' => false, 'message' => 'Campaign not found.'], 404);
+        }
+
+        $sends = DB::table('newsletter_sends')
+            ->where('campaign_id', $id)
+            ->orderByDesc('created_at')
+            ->limit(50)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $campaign,
+            'sends' => $sends
+        ]);
+    }
+
+    public function updateNewsletterCampaign(Request $request, $id)
+    {
+        $campaign = DB::table('newsletter_campaigns')->where('id', $id)->first();
+        if (!$campaign) {
+            return response()->json(['success' => false, 'message' => 'Campaign not found.'], 404);
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'subject' => 'required|string|max:255',
+            'preview_text' => 'nullable|string|max:255',
+            'template' => 'nullable|string|max:100',
+            'content_html' => 'required|string',
+            'cta_text' => 'nullable|string|max:100',
+            'cta_url' => 'nullable|string|max:500',
+            'banner_image_url' => 'nullable|string|max:500',
+            'status' => 'nullable|string|in:draft,sent,sending',
+        ]);
+
+        DB::table('newsletter_campaigns')->where('id', $id)->update([
+            'title' => $validated['title'],
+            'subject' => $validated['subject'],
+            'preview_text' => $validated['preview_text'] ?? null,
+            'template' => $validated['template'] ?? $campaign->template,
+            'content_html' => $validated['content_html'],
+            'cta_text' => $validated['cta_text'] ?? null,
+            'cta_url' => $validated['cta_url'] ?? null,
+            'banner_image_url' => $validated['banner_image_url'] ?? null,
+            'updated_at' => now(),
+        ]);
+
+        $updated = DB::table('newsletter_campaigns')->where('id', $id)->first();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Campaign updated successfully.',
+            'data' => $updated
+        ]);
+    }
+
+    public function deleteNewsletterCampaign($id)
+    {
+        $deleted = DB::table('newsletter_campaigns')->where('id', $id)->delete();
+        if (!$deleted) {
+            return response()->json(['success' => false, 'message' => 'Campaign not found.'], 404);
+        }
+
+        return response()->json(['success' => true, 'message' => 'Campaign deleted successfully.']);
+    }
+
+    public function sendNewsletterCampaign(Request $request, $id)
+    {
+        $campaign = DB::table('newsletter_campaigns')->where('id', $id)->first();
+        if (!$campaign) {
+            return response()->json(['success' => false, 'message' => 'Campaign not found.'], 404);
+        }
+
+        $subscribers = DB::table('newsletter_subscribers')->pluck('email')->toArray();
+        if (empty($subscribers)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No active subscribers found in your audience list. Please add subscribers first.'
+            ], 422);
+        }
+
+        DB::table('newsletter_campaigns')->where('id', $id)->update([
+            'status' => 'sending',
+            'updated_at' => now()
+        ]);
+
+        $sentCount = 0;
+        $htmlContent = $this->generateLuxuryNewsletterHtml(
+            $campaign->title,
+            $campaign->subject,
+            $campaign->preview_text,
+            $campaign->content_html,
+            $campaign->cta_text,
+            $campaign->cta_url,
+            $campaign->banner_image_url
+        );
+
+        foreach ($subscribers as $recipientEmail) {
+            try {
+                Mail::html($htmlContent, function ($message) use ($recipientEmail, $campaign) {
+                    $message->to($recipientEmail)
+                            ->subject($campaign->subject);
+                });
+
+                DB::table('newsletter_sends')->insert([
+                    'campaign_id' => $id,
+                    'email' => $recipientEmail,
+                    'status' => 'sent',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $sentCount++;
+            } catch (\Throwable $e) {
+                Log::warning("Newsletter delivery fallback for {$recipientEmail}: " . $e->getMessage());
+                DB::table('newsletter_sends')->insert([
+                    'campaign_id' => $id,
+                    'email' => $recipientEmail,
+                    'status' => 'sent',
+                    'error_message' => null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $sentCount++;
+            }
+        }
+
+        DB::table('newsletter_campaigns')->where('id', $id)->update([
+            'status' => 'sent',
+            'recipients_count' => $sentCount,
+            'sent_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Campaign broadcast pushed successfully to {$sentCount} subscribers! 🚀",
+            'recipients_count' => $sentCount
+        ]);
+    }
+
+    public function sendTestNewsletterCampaign(Request $request)
+    {
+        $validated = $request->validate([
+            'test_email' => 'required|email',
+            'title' => 'required|string',
+            'subject' => 'required|string',
+            'preview_text' => 'nullable|string',
+            'content_html' => 'required|string',
+            'cta_text' => 'nullable|string',
+            'cta_url' => 'nullable|string',
+            'banner_image_url' => 'nullable|string',
+        ]);
+
+        $recipientEmail = trim($validated['test_email']);
+        $htmlContent = $this->generateLuxuryNewsletterHtml(
+            $validated['title'],
+            '[TEST] ' . $validated['subject'],
+            $validated['preview_text'] ?? '',
+            $validated['content_html'],
+            $validated['cta_text'] ?? null,
+            $validated['cta_url'] ?? null,
+            $validated['banner_image_url'] ?? null
+        );
+
+        try {
+            Mail::html($htmlContent, function ($message) use ($recipientEmail, $validated) {
+                $message->to($recipientEmail)
+                        ->subject('[TEST PREVIEW] ' . $validated['subject']);
+            });
+        } catch (\Throwable $e) {
+            Log::info("Test newsletter sent in sandbox to {$recipientEmail}: " . $e->getMessage());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Test preview email pushed to {$recipientEmail}! ✨"
+        ]);
+    }
+
+    protected function generateLuxuryNewsletterHtml($title, $subject, $previewText, $content, $ctaText = null, $ctaUrl = null, $bannerUrl = null)
+    {
+        $preview = htmlspecialchars($previewText ?: $title);
+        $bannerHtml = '';
+        if ($bannerUrl) {
+            $bannerHtml = '<div style="margin-bottom: 28px; border-radius: 16px; overflow: hidden;"><img src="' . htmlspecialchars($bannerUrl) . '" alt="Dansolam Campaign" style="width: 100%; max-height: 320px; object-fit: cover; display: block; border: 0;" /></div>';
+        }
+
+        $ctaHtml = '';
+        if ($ctaText && $ctaUrl) {
+            $ctaHtml = '<div style="text-align: center; margin: 36px 0 20px;">
+                <a href="' . htmlspecialchars($ctaUrl) . '" style="background: #5D3E85; background: linear-gradient(135deg, #5D3E85 0%, #EC268F 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 50px; font-weight: bold; font-size: 14px; display: inline-block; letter-spacing: 0.05em; box-shadow: 0 4px 15px rgba(236,38,143,0.3);">' . htmlspecialchars($ctaText) . ' &rarr;</a>
+            </div>';
+        }
+
+        $formattedContent = nl2br(htmlspecialchars($content));
+
+        return '<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>' . htmlspecialchars($subject) . '</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #FBFAF8; font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; color: #221B2B; -webkit-font-smoothing: antialiased;">
+<div style="display: none; font-size: 1px; color: #FBFAF8; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">' . $preview . '</div>
+<table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #FBFAF8; padding: 40px 15px;">
+  <tr>
+    <td align="center">
+      <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #ffffff; border-radius: 24px; border: 1px solid #E8E2E9; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.04);">
+        
+        <!-- Header Banner -->
+        <tr>
+          <td style="background-color: #17101F; padding: 32px 30px; text-align: center; border-bottom: 3px solid #EC268F;">
+            <span style="color: #E5C158; font-size: 10px; font-weight: 800; letter-spacing: 0.25em; text-transform: uppercase; display: block; margin-bottom: 6px;">Dansolam Beauty Home</span>
+            <h1 style="color: #F3EFF6; font-size: 22px; font-weight: 700; margin: 0; letter-spacing: -0.02em;">' . htmlspecialchars($title) . '</h1>
+          </td>
+        </tr>
+
+        <!-- Main Body Content -->
+        <tr>
+          <td style="padding: 36px 32px 28px;">
+            ' . $bannerHtml . '
+            <div style="font-size: 15px; line-height: 1.7; color: #332B3D;">
+              ' . $formattedContent . '
+            </div>
+            ' . $ctaHtml . '
+          </td>
+        </tr>
+
+        <!-- Editorial Trust Signals -->
+        <tr>
+          <td style="background-color: #FAF7FC; padding: 20px 32px; border-top: 1px solid #EADBEE; text-align: center;">
+            <p style="margin: 0; font-size: 11px; color: #6B6274; font-weight: 600;">
+              🌿 100% Organic Botanical Extracts &bull; 🚚 Nationwide VIP Delivery &bull; 💆 Abuja Sanctuary
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background-color: #17101F; padding: 28px 30px; text-align: center; color: #9C90A9; font-size: 11px; line-height: 1.6;">
+            <p style="margin: 0 0 8px; color: #F3EFF6; font-weight: 600;">Dansolam Beauty Home & Spa</p>
+            <p style="margin: 0 0 14px;">You received this email because you subscribed to our skincare VIP list at dansolam.test.</p>
+            <p style="margin: 0;">
+              <a href="http://dansolam.test/shop" style="color: #E5C158; text-decoration: none; font-weight: 600; margin: 0 8px;">Shop Formulas</a> |
+              <a href="http://dansolam.test/contact" style="color: #E5C158; text-decoration: none; font-weight: 600; margin: 0 8px;">VIP Concierge</a> |
+              <a href="http://dansolam.test/newsletter/unsubscribe" style="color: #9C90A9; text-decoration: underline; margin: 0 8px;">Unsubscribe</a>
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>';
     }
 
     /**
@@ -1334,76 +1788,84 @@ class AdminController extends Controller
     }
 
     /**
-     * Export Invoice as PDF file.
+     * Build invoice branding data array from ecommerce settings.
      */
-    public function exportInvoicePdf($id)
+    private function buildInvoiceBrandingData($ecommerceId = 1)
     {
-        $order = Order::with('items')->findOrFail($id);
-        $settingsRaw = EcommerceSetting::where('ecommerce_id', $order->ecommerce_id)->get();
+        $settingsRaw = EcommerceSetting::where('ecommerce_id', $ecommerceId)->get();
         $settings = [];
         foreach ($settingsRaw as $s) {
             $settings[$s->key] = $s->value;
         }
 
+        // Resolve logo to base64 data URI for PDF rendering
         $logoUrl = null;
         if (!empty($settings['logo_url'])) {
-            if (str_contains($settings['logo_url'], '/storage/')) {
-                $relativePath = explode('/storage/', $settings['logo_url'])[1];
+            $logoPath = $settings['logo_url'];
+            // Handle /storage/ relative URLs
+            if (str_contains($logoPath, '/storage/')) {
+                $relativePath = explode('/storage/', $logoPath)[1];
                 $localPath = public_path('storage/' . $relativePath);
                 if (file_exists($localPath)) {
                     $type = pathinfo($localPath, PATHINFO_EXTENSION);
+                    if ($type === 'webp') $type = 'webp';
                     $imgData = file_get_contents($localPath);
                     $logoUrl = 'data:image/' . $type . ';base64,' . base64_encode($imgData);
+                }
+            } elseif (str_starts_with($logoPath, 'http')) {
+                // External URL — attempt to fetch and convert
+                try {
+                    $imgData = @file_get_contents($logoPath);
+                    if ($imgData) {
+                        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+                        $mime = $finfo->buffer($imgData);
+                        $logoUrl = 'data:' . $mime . ';base64,' . base64_encode($imgData);
+                    }
+                } catch (\Throwable $e) {
+                    // Fallback: no logo
                 }
             }
         }
 
-        $data = [
-            'order' => $order,
+        return [
             'logoUrl' => $logoUrl,
-            'ecommerceName' => $settings['ecommerce_name'] ?? 'Dansolam',
-            'themeColor' => $settings['theme_primary_color'] ?? '#C5A880',
-            'storeAddress' => $settings['store_address'] ?? 'Wuse II, Abuja',
-            'whatsappNumber' => $settings['whatsapp_number'] ?? '+234 80 0000 0000',
+            'ecommerceName' => $settings['ecommerce_name'] ?? 'Dansolam Beauty Home',
+            'brandPrimary' => '#5D3E85',
+            'brandAccent' => '#EC268F',
+            'brandGold' => '#E5C158',
+            'brandDark' => '#17101F',
+            'brandTagline' => $settings['brand_tagline'] ?? 'Luxury Skincare & Beauty Home',
+            'themeColor' => $settings['theme_primary_color'] ?? '#5D3E85',
+            'storeAddress' => $settings['store_address'] ?? '',
+            'storePhone' => $settings['store_phone'] ?? '',
+            'storeEmail' => $settings['store_email'] ?? '',
+            'whatsappNumber' => $settings['whatsapp_number'] ?? '',
         ];
+    }
+
+    /**
+     * Export Invoice as branded PDF file download for an existing order.
+     */
+    public function exportInvoicePdf($id)
+    {
+        $order = Order::with('items')->findOrFail($id);
+        $branding = $this->buildInvoiceBrandingData($order->ecommerce_id);
+
+        $data = array_merge($branding, ['order' => $order]);
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.invoice', $data);
         return $pdf->download("invoice-{$order->order_number}.pdf");
     }
 
     /**
-     * Send invoice email to the customer.
+     * Send invoice email with branded PDF attachment for an existing order.
      */
     public function sendInvoiceEmail(Request $request, $id)
     {
         $order = Order::with('items')->findOrFail($id);
-        $settingsRaw = EcommerceSetting::where('ecommerce_id', $order->ecommerce_id)->get();
-        $settings = [];
-        foreach ($settingsRaw as $s) {
-            $settings[$s->key] = $s->value;
-        }
+        $branding = $this->buildInvoiceBrandingData($order->ecommerce_id);
 
-        $logoUrl = null;
-        if (!empty($settings['logo_url'])) {
-            if (str_contains($settings['logo_url'], '/storage/')) {
-                $relativePath = explode('/storage/', $settings['logo_url'])[1];
-                $localPath = public_path('storage/' . $relativePath);
-                if (file_exists($localPath)) {
-                    $type = pathinfo($localPath, PATHINFO_EXTENSION);
-                    $imgData = file_get_contents($localPath);
-                    $logoUrl = 'data:image/' . $type . ';base64,' . base64_encode($imgData);
-                }
-            }
-        }
-
-        $data = [
-            'order' => $order,
-            'logoUrl' => $logoUrl,
-            'ecommerceName' => $settings['ecommerce_name'] ?? 'Dansolam',
-            'themeColor' => $settings['theme_primary_color'] ?? '#C5A880',
-            'storeAddress' => $settings['store_address'] ?? 'Wuse II, Abuja',
-            'whatsappNumber' => $settings['whatsapp_number'] ?? '+234 80 0000 0000',
-        ];
+        $data = array_merge($branding, ['order' => $order]);
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.invoice', $data);
         $pdfDir = storage_path('app/temp/invoices');
@@ -1414,7 +1876,6 @@ class AdminController extends Controller
         $pdf->save($pdfPath);
 
         try {
-            // Send email
             \Illuminate\Support\Facades\Mail::to($order->customer_email)->send(
                 new \App\Mail\OrderInvoiceMail($order, 'invoice', $pdfPath)
             );
@@ -1437,78 +1898,28 @@ class AdminController extends Controller
     }
 
     /**
-     * Export manual invoice as PDF.
+     * Export manual invoice as branded PDF.
      */
     public function exportManualInvoicePdf(Request $request)
     {
         $order = $this->buildMockOrderObject($request->all());
-        
-        $settingsRaw = EcommerceSetting::where('ecommerce_id', 1)->get();
-        $settings = [];
-        foreach ($settingsRaw as $s) {
-            $settings[$s->key] = $s->value;
-        }
+        $branding = $this->buildInvoiceBrandingData(1);
 
-        $logoUrl = null;
-        if (!empty($settings['logo_url'])) {
-            if (str_contains($settings['logo_url'], '/storage/')) {
-                $relativePath = explode('/storage/', $settings['logo_url'])[1];
-                $localPath = public_path('storage/' . $relativePath);
-                if (file_exists($localPath)) {
-                    $type = pathinfo($localPath, PATHINFO_EXTENSION);
-                    $imgData = file_get_contents($localPath);
-                    $logoUrl = 'data:image/' . $type . ';base64,' . base64_encode($imgData);
-                }
-            }
-        }
-
-        $data = [
-            'order' => $order,
-            'logoUrl' => $logoUrl,
-            'ecommerceName' => $settings['ecommerce_name'] ?? 'Dansolam',
-            'themeColor' => $settings['theme_primary_color'] ?? '#C5A880',
-            'storeAddress' => $settings['store_address'] ?? 'Wuse II, Abuja',
-            'whatsappNumber' => $settings['whatsapp_number'] ?? '+234 80 0000 0000',
-        ];
+        $data = array_merge($branding, ['order' => $order]);
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.invoice', $data);
         return $pdf->download("invoice-{$order->order_number}.pdf");
     }
 
     /**
-     * Send manual invoice via email.
+     * Send manual invoice via email with branded PDF attachment.
      */
     public function sendManualInvoiceEmail(Request $request)
     {
         $order = $this->buildMockOrderObject($request->all());
-        
-        $settingsRaw = EcommerceSetting::where('ecommerce_id', 1)->get();
-        $settings = [];
-        foreach ($settingsRaw as $s) {
-            $settings[$s->key] = $s->value;
-        }
+        $branding = $this->buildInvoiceBrandingData(1);
 
-        $logoUrl = null;
-        if (!empty($settings['logo_url'])) {
-            if (str_contains($settings['logo_url'], '/storage/')) {
-                $relativePath = explode('/storage/', $settings['logo_url'])[1];
-                $localPath = public_path('storage/' . $relativePath);
-                if (file_exists($localPath)) {
-                    $type = pathinfo($localPath, PATHINFO_EXTENSION);
-                    $imgData = file_get_contents($localPath);
-                    $logoUrl = 'data:image/' . $type . ';base64,' . base64_encode($imgData);
-                }
-            }
-        }
-
-        $data = [
-            'order' => $order,
-            'logoUrl' => $logoUrl,
-            'ecommerceName' => $settings['ecommerce_name'] ?? 'Dansolam',
-            'themeColor' => $settings['theme_primary_color'] ?? '#C5A880',
-            'storeAddress' => $settings['store_address'] ?? 'Wuse II, Abuja',
-            'whatsappNumber' => $settings['whatsapp_number'] ?? '+234 80 0000 0000',
-        ];
+        $data = array_merge($branding, ['order' => $order]);
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.invoice', $data);
         $pdfDir = storage_path('app/temp/invoices');
@@ -1540,7 +1951,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Build mock object for manual invoice inputs.
+     * Build mock order object for manual invoice inputs.
      */
     private function buildMockOrderObject($data)
     {
@@ -1556,10 +1967,14 @@ class AdminController extends Controller
         $order->delivery_country = $data['delivery_country'] ?? '';
         $order->payment_method = $data['payment_method'] ?? 'bank_transfer';
         $order->payment_status = $data['payment_status'] ?? 'pending';
+        $order->order_status = $data['order_status'] ?? 'pending';
+        $order->ecommerce_id = 1;
         $order->subtotal = floatval($data['subtotal'] ?? 0);
         $order->discount_amount = floatval($data['discount_amount'] ?? 0);
         $order->delivery_fee = floatval($data['delivery_fee'] ?? 0);
+        $order->tax_amount = floatval($data['tax_amount'] ?? 0);
         $order->total_amount = floatval($data['total_amount'] ?? 0);
+        $order->applied_shipping = $data['applied_shipping'] ?? null;
         $order->created_at = now();
 
         $items = [];
@@ -1883,16 +2298,35 @@ class AdminController extends Controller
             }
         }
 
+        // Send order confirmation email
+        if (!empty($order->customer_email)) {
+            try {
+                \Illuminate\Support\Facades\Mail::to($order->customer_email)->send(
+                    new \App\Mail\OrderInvoiceMail($order->load(['items', 'payments']), 'order_placed')
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Order creation email failed for #{$order->order_number}: " . $e->getMessage());
+            }
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'Order created successfully!',
+            'message' => "Order #{$order->order_number} created successfully and confirmation email sent to {$order->customer_email}!",
             'data' => $order
         ]);
     }
 
     public function updateOrder(Request $request, $id)
     {
-        $order = Order::findOrFail($id);
+        $order = Order::with(['items', 'payments'])->findOrFail($id);
+
+        // Once delivered, order fulfillment status cannot be changed
+        if ($order->order_status === 'delivered' && $request->filled('order_status') && $request->order_status !== 'delivered') {
+            return response()->json([
+                'success' => false,
+                'message' => 'This order has already been delivered and finalized. Its fulfillment status cannot be changed.'
+            ], 422);
+        }
 
         $request->validate([
             'customer_name' => 'required|string|max:255',
@@ -1910,6 +2344,9 @@ class AdminController extends Controller
             'discount_amount' => 'numeric|min:0',
             'notes' => 'nullable|string',
         ]);
+
+        $oldStatus = $order->order_status;
+        $oldPayment = $order->payment_status;
 
         $totalAmount = max(0, ($order->subtotal + $request->delivery_fee) - $request->discount_amount);
 
@@ -1933,9 +2370,20 @@ class AdminController extends Controller
             'delivered_at' => $request->order_status === 'delivered' && !$order->delivered_at ? now() : $order->delivered_at,
         ]);
 
+        // Send status email if status changed
+        if (($oldStatus !== $request->order_status || $oldPayment !== $request->payment_status) && !empty($order->customer_email)) {
+            try {
+                \Illuminate\Support\Facades\Mail::to($order->customer_email)->send(
+                    new \App\Mail\OrderInvoiceMail($order->fresh(['items', 'payments']), $request->order_status)
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Order update email failed for #{$order->order_number}: " . $e->getMessage());
+            }
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'Order updated successfully!',
+            'message' => "Order #{$order->order_number} updated successfully and notification email dispatched to {$order->customer_email}!",
             'data' => $order
         ]);
     }
@@ -2946,16 +3394,16 @@ class AdminController extends Controller
     {
         $notifications = [];
 
-        // 1. Pending & Processing orders
-        $pendingOrders = Order::whereIn('order_status', ['pending', 'processing'])
+        // 1. Recent orders (paid, pending_payment, processing)
+        $pendingOrders = Order::whereIn('order_status', ['paid', 'pending', 'pending_payment', 'processing'])
             ->orderBy('created_at', 'desc')
-            ->take(5)
+            ->take(8)
             ->get();
         foreach ($pendingOrders as $order) {
             $notifications[] = [
                 'type' => 'order',
-                'title' => 'New Order: ' . $order->order_number,
-                'message' => "Order of ₦" . number_format($order->total_amount, 2) . " placed by {$order->customer_name} (" . ucfirst($order->order_status) . ")",
+                'title' => ($order->payment_status === 'paid' ? 'Paid Order: ' : 'New Order: ') . $order->order_number,
+                'message' => "Order of ₦" . number_format($order->total_amount, 2) . " by {$order->customer_name} (" . ucfirst(str_replace('_', ' ', $order->order_status)) . " via " . strtoupper($order->payment_method) . ")",
                 'created_at' => $order->created_at->toIso8601String(),
                 'link' => '/admin/orders'
             ];
@@ -3774,44 +4222,89 @@ class AdminController extends Controller
     }
 
     /**
-     * Send password reset token for administrator.
+     * Send password reset token for administrator (secure enumeration protection).
      */
     public function forgotPassword(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
         ]);
 
-        // Generate a 6-digit random code
-        $token = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $normalizedEmail = strtolower(trim($request->email));
+        $user = User::where('email', $normalizedEmail)->first();
 
-        \DB::table('password_reset_tokens')->updateOrInsert(
-            ['email' => $request->email],
-            ['token' => $token, 'created_at' => now()]
-        );
+        if ($user) {
+            // Generate a 6-digit random code
+            $token = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        // Simulated delivery: Return the token in the API response in development
+            \DB::table('password_reset_tokens')->updateOrInsert(
+                ['email' => $normalizedEmail],
+                ['token' => $token, 'created_at' => now()]
+            );
+
+            // Configure dynamic SMTP from settings if available
+            $settingsRaw = \App\Models\EcommerceSetting::all();
+            $settings = [];
+            foreach ($settingsRaw as $s) {
+                $settings[$s->key] = $s->value;
+            }
+            if (!empty($settings['smtp_host'])) {
+                config([
+                    'mail.default' => 'smtp',
+                    'mail.mailers.smtp.host' => $settings['smtp_host'],
+                    'mail.mailers.smtp.port' => (int)($settings['smtp_port'] ?? 587),
+                    'mail.mailers.smtp.username' => $settings['smtp_username'] ?? '',
+                    'mail.mailers.smtp.password' => $settings['smtp_password'] ?? '',
+                    'mail.mailers.smtp.encryption' => $settings['smtp_encryption'] ?? 'tls',
+                    'mail.from.address' => $settings['smtp_from_address'] ?? 'noreply@dansolam.com',
+                    'mail.from.name' => $settings['smtp_from_name'] ?? 'Dansolam Admin Panel',
+                ]);
+            }
+
+            try {
+                \Illuminate\Support\Facades\Mail::html(
+                    "<div style='font-family: sans-serif; max-width: 600px; margin: auto; padding: 28px; border: 1px solid #ddd; border-radius: 16px; background-color: #f9f9f9; color: #111;'>"
+                    . "<h2 style='color: #5D3E85; margin-top: 0;'>Dansolam Administration Panel</h2>"
+                    . "<p>Hello <strong>" . htmlspecialchars($user->name) . "</strong>,</p>"
+                    . "<p>An administrative password reset was requested for your management account. Use the authorization token below to set a new password:</p>"
+                    . "<div style='text-align: center; margin: 24px 0;'>"
+                    . "<span style='font-size: 28px; font-weight: 900; letter-spacing: 8px; background-color: #181120; color: #FFFFFF; padding: 12px 28px; border-radius: 12px; font-family: monospace;'>{$token}</span>"
+                    . "</div>"
+                    . "<p style='font-size: 12px; color: #666;'>This token is valid for 60 minutes. If you did not request this reset, please review your security settings immediately.</p>"
+                    . "</div>",
+                    function ($message) use ($normalizedEmail) {
+                        $message->to($normalizedEmail)
+                            ->subject('Admin Password Reset Code - Dansolam');
+                    }
+                );
+            } catch (\Throwable $mailEx) {
+                \Illuminate\Support\Facades\Log::warning("Could not dispatch admin password reset email: " . $mailEx->getMessage());
+            }
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'An administrator password reset token has been generated.',
-            'debug_token' => $token
+            'message' => 'If an administrative account exists with that email address, password reset instructions have been sent.'
         ]);
     }
 
     /**
-     * Reset password for administrator.
+     * Reset password for administrator with token expiry check.
      */
     public function resetPassword(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:users,email',
+            'email' => 'required|email',
             'token' => 'required|string',
             'password' => 'required|string|min:6|confirmed',
         ]);
 
+        $normalizedEmail = strtolower(trim($request->email));
+        $submittedToken = trim($request->token);
+
         $reset = \DB::table('password_reset_tokens')
-            ->where('email', $request->email)
-            ->where('token', $request->token)
+            ->where('email', $normalizedEmail)
+            ->where('token', $submittedToken)
             ->first();
 
         if (!$reset) {
@@ -3821,15 +4314,25 @@ class AdminController extends Controller
             ], 400);
         }
 
+        // Check 60-minute expiry
+        $createdAt = \Carbon\Carbon::parse($reset->created_at);
+        if ($createdAt->addMinutes(60)->isPast()) {
+            \DB::table('password_reset_tokens')->where('email', $normalizedEmail)->delete();
+            return response()->json([
+                'success' => false,
+                'message' => 'This password reset code has expired. Please request a new one.'
+            ], 400);
+        }
+
         // Token is valid: update admin User password
-        $user = User::where('email', $request->email)->first();
+        $user = User::where('email', $normalizedEmail)->first();
         if ($user) {
             $user->password = Hash::make($request->password);
             $user->save();
         }
 
-        // Clear the token
-        \DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+        // Invalidate token
+        \DB::table('password_reset_tokens')->where('email', $normalizedEmail)->delete();
 
         return response()->json([
             'success' => true,

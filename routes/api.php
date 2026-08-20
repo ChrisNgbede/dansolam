@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CustomerAuthController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\PosController;
 use App\Http\Controllers\Api\BusinessOperationsController;
+use App\Http\Controllers\Api\PayPalController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,7 +32,14 @@ Route::post('/coupon/verify', [StorefrontController::class, 'verifyCoupon']);
 Route::get('/coupons/active', [StorefrontController::class, 'getActiveCoupons']);
 Route::post('/checkout', [StorefrontController::class, 'checkout']);
 Route::post('/payment/verify', [StorefrontController::class, 'verifyPayment']);
-Route::post('/track-order', [StorefrontController::class, 'trackOrder']);
+
+// PayPal Express Checkout endpoints
+Route::get('/paypal/client-config', [PayPalController::class, 'clientConfig']);
+Route::post('/paypal/create-order', [PayPalController::class, 'createOrder']);
+Route::post('/paypal/capture-order', [PayPalController::class, 'captureOrder']);
+Route::post('/paypal/authorize-order', [PayPalController::class, 'authorizeOrder']);
+Route::match(['get', 'post'], '/track-order', [StorefrontController::class, 'trackOrder']);
+Route::match(['get', 'post'], '/orders/track', [StorefrontController::class, 'trackOrder']);
 Route::post('/products/{id}/reviews', [StorefrontController::class, 'addReview']);
 Route::post('/reviews', [StorefrontController::class, 'addReview']);
 Route::get('/pages/{slug}', [StorefrontController::class, 'getPage']);
@@ -41,6 +49,8 @@ Route::post('/contact-inquiries', [StorefrontController::class, 'submitContactIn
 Route::get('/gallery', [StorefrontController::class, 'getGalleryItems']);
 Route::get('/blog', [StorefrontController::class, 'getArticles']);
 Route::get('/blog/{slug}', [StorefrontController::class, 'getArticleDetails']);
+Route::get('/articles', [StorefrontController::class, 'getArticles']);
+Route::get('/articles/{slug}', [StorefrontController::class, 'getArticleDetails']);
 Route::get('/brands', [StorefrontController::class, 'getBrands']);
 Route::get('/reviews', [StorefrontController::class, 'getReviews']);
 Route::post('/fitting-sessions', [StorefrontController::class, 'storeFittingSession']);
@@ -150,10 +160,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/admin/fitting-sessions/{id}', [AdminController::class, 'updateFittingSession']);
     Route::delete('/admin/fitting-sessions/{id}', [AdminController::class, 'deleteFittingSession']);
 
-    // Newsletter subscribers
+    // Newsletter subscribers & campaigns
     Route::get('/admin/newsletter-subscribers', [AdminController::class, 'getNewsletterSubscribers']);
+    Route::post('/admin/newsletter-subscribers', [AdminController::class, 'addNewsletterSubscriber']);
     Route::get('/admin/newsletter-subscribers/export', [AdminController::class, 'exportNewsletterSubscribers']);
     Route::delete('/admin/newsletter-subscribers/{id}', [AdminController::class, 'deleteNewsletterSubscriber']);
+    
+    Route::get('/admin/newsletter-campaigns', [AdminController::class, 'getNewsletterCampaigns']);
+    Route::post('/admin/newsletter-campaigns', [AdminController::class, 'createNewsletterCampaign']);
+    Route::get('/admin/newsletter-campaigns/{id}', [AdminController::class, 'getNewsletterCampaign']);
+    Route::put('/admin/newsletter-campaigns/{id}', [AdminController::class, 'updateNewsletterCampaign']);
+    Route::delete('/admin/newsletter-campaigns/{id}', [AdminController::class, 'deleteNewsletterCampaign']);
+    Route::post('/admin/newsletter-campaigns/{id}/send', [AdminController::class, 'sendNewsletterCampaign']);
+    Route::post('/admin/newsletter-campaigns/test-send', [AdminController::class, 'sendTestNewsletterCampaign']);
     
     // FAQs CRUD
     Route::get('/admin/faqs', [AdminController::class, 'getFaqs']);
@@ -285,6 +304,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/admin/demo-data/seed', [AdminController::class, 'seedDemoData']);
     Route::post('/admin/demo-data/reset', [AdminController::class, 'resetDemoData']);
+
+    // Admin PayPal Refund & Capture management
+    Route::post('/admin/paypal/refund', [PayPalController::class, 'refundOrder']);
+    Route::get('/admin/paypal/capture-details/{capture_id}', [PayPalController::class, 'getCaptureDetails']);
 
     // Reports
     Route::get('/admin/reports', [AdminController::class, 'getReportsData']);

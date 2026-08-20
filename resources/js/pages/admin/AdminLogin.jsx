@@ -20,12 +20,12 @@ export default function AdminLogin() {
   const settings = settingsData?.data?.settings || {};
 
   const [adminView, setAdminView] = useState('login'); // login, forgot, reset
-  const [email, setEmail] = useState(() => localStorage.getItem('fairqueen_remembered_admin_email') || '');
+  const [email, setEmail] = useState(() => localStorage.getItem('dansolam_remembered_admin_email') || '');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem('fairqueen_remembered_admin_email'));
+  const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem('dansolam_remembered_admin_email'));
 
   // Forgot password form states
   const [forgotEmail, setForgotEmail] = useState('');
@@ -88,9 +88,6 @@ export default function AdminLogin() {
 
       if (data.success) {
         setForgotSuccessMsg(data.message);
-        if (data.debug_token) {
-          setDebugCode(data.debug_token);
-        }
       } else {
         setForgotErrorMsg(data.message || 'Unable to request password reset.');
       }
@@ -140,72 +137,81 @@ export default function AdminLogin() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-6 text-gray-800">
-      
-      {/* Return store button */}
-      <Link to="/" className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-900 transition-colors mb-6 self-start md:self-auto max-w-4xl w-full">
-        <ArrowLeft className="w-3.5 h-3.5" />
-        Return to Storefront
-      </Link>
+  const fallbackAuthImage = settingsData?.data?.fallback_auth_image_url;
+  const authImageSrc = settings.auth_image_url || fallbackAuthImage || "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=800";
 
-      <div className="w-full max-w-4xl bg-white rounded-3xl overflow-hidden shadow-xs flex flex-col md:flex-row min-h-[500px] border border-gray-100/50">
+  return (
+    <div className="min-h-screen bg-[#FAF7FC] flex flex-col justify-center items-center p-6 font-sans">
+      
+      {/* Return store button container */}
+      <div className="w-full max-w-4xl mb-4 flex items-center justify-start">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-gray-200 text-xs font-bold text-gray-700 hover:text-white hover:bg-[#5D3E85] hover:border-[#5D3E85] shadow-xs transition-all duration-300 cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Return to Storefront
+        </Link>
+      </div>
+
+      <div className="w-full max-w-4xl bg-white rounded-[36px] overflow-hidden shadow-2xl flex flex-col md:flex-row min-h-[550px] border border-[#EADBEE]">
         {/* Left Column: Image/Banner (hidden on mobile) */}
-        <div className="hidden md:flex md:w-1/2 relative bg-gray-900 items-end p-8 text-left">
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent z-10" />
+        <div className="hidden md:flex md:w-1/2 relative bg-[#181120] items-end p-10 text-left">
+          <div className="absolute inset-0 bg-gradient-to-t from-[#181120] via-[#5D3E85]/40 to-transparent z-10" />
           <img loading="eager" decoding="async" fetchPriority="high"
-            src={settings.auth_image_url || "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=800"}
-            alt="Ecommerce Management Administration"
+            src={authImageSrc}
+            alt="Dansolam Beauty Home Administration"
             className="absolute inset-0 w-full h-full object-cover opacity-80"
           />
-          <div className="relative z-20 text-white flex flex-col gap-2">
-            <span className="text-[9px] uppercase tracking-widest text-primary font-bold bg-primary/10 px-2.5 py-1 rounded-full border border-primary/15 self-start">
+          <div className="relative z-20 text-white flex flex-col gap-3">
+            <span className="text-[10px] uppercase tracking-widest text-[#EC268F] font-extrabold bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 self-start">
               Admin Portal
             </span>
-            <h2 className="font-serif font-bold text-2xl lg:text-3.5xl leading-tight">
+            <h2 className="font-extrabold text-3xl leading-tight">
               {settings.auth_title || "Dansolam Admin Panel"}
             </h2>
-            <p className="text-[11px] text-gray-300 font-medium max-w-xs leading-relaxed opacity-90">
+            <p className="text-xs text-white/80 font-medium max-w-xs leading-relaxed">
               {settings.auth_subtitle || "Sign in with your authorized administrator credentials to manage catalog, orders, and sales reports."}
             </p>
           </div>
         </div>
 
         {/* Right Column: Auth Form */}
-        <div className="w-full md:w-1/2 p-6 md:p-10 flex flex-col justify-center bg-white">
-          <div className="flex flex-col items-center text-center mb-2">
+        <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white">
+          <div className="flex flex-col items-center text-center mb-4">
             {settings.logo_url ? (
               <img loading="eager" decoding="async" fetchPriority="high" src={settings.logo_url} alt={settings.ecommerce_name || "Logo"} className="h-10 object-contain mb-4 mx-auto" />
             ) : (
-              <div className="w-11 h-11 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-serif font-bold text-xl mb-4 mx-auto">
-                F
+              <div className="flex flex-col leading-none text-center mb-4">
+                <span className="font-extrabold text-[#181120] text-xl tracking-tight">Dansolam</span>
+                <span className="text-[10px] font-bold text-[#EC268F] tracking-wider uppercase">Beauty Home</span>
               </div>
             )}
           </div>
 
           {adminView === 'login' && (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4.5 w-full">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-5 w-full">
               <div className="text-center">
-                <h1 className="font-serif font-bold text-xl text-gray-905 leading-none">Admin Authentication</h1>
-                <p className="text-xs text-gray-400 mt-2">Access key metrics, catalog listings, and order fullfilments.</p>
+                <h1 className="font-extrabold text-2xl text-[#181120] leading-none">Admin Authentication</h1>
+                <p className="text-xs text-gray-400 mt-2">Access key metrics, catalog listings, and order fulfillments.</p>
               </div>
 
               <div className="flex flex-col gap-1.5 mt-2">
-                <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Email Address</label>
+                <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Email Address</label>
                 <input
                   type="email"
                   required
                   value={email}
                   onChange={e => setEmail(e.target.value)}
-                  className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary text-xs bg-[#FAF9F6] text-gray-800 shadow-3xs w-full"
-                  placeholder="admin@fairqueen.com"
+                  className="px-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] text-gray-800 font-semibold w-full"
+                  placeholder="admin@dansolam.com"
                 />
               </div>
 
               <div className="flex flex-col gap-1.5 relative">
                 <div className="flex justify-between items-center">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Password</label>
-                  <button type="button" onClick={() => setAdminView('forgot')} className="text-[10px] text-primary hover:underline font-bold cursor-pointer">
+                  <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Password</label>
+                  <button type="button" onClick={() => setAdminView('forgot')} className="text-[10px] text-[#EC268F] hover:underline font-extrabold cursor-pointer">
                     Forgot Password?
                   </button>
                 </div>
@@ -215,13 +221,13 @@ export default function AdminLogin() {
                     required
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="pl-3 pr-10 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary text-xs bg-[#FAF9F6] text-gray-800 shadow-3xs w-full"
+                    className="pl-4 pr-10 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] text-gray-800 font-semibold w-full"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-655 cursor-pointer"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-655 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -234,7 +240,7 @@ export default function AdminLogin() {
                   id="rememberMeAdmin"
                   checked={rememberMe}
                   onChange={e => setRememberMe(e.target.checked)}
-                  className="accent-primary rounded text-white border-gray-300 focus:ring-primary w-3.5 h-3.5 cursor-pointer"
+                  className="accent-[#5D3E85] rounded text-white border-gray-300 focus:ring-[#5D3E85] w-4 h-4 cursor-pointer"
                 />
                 <label htmlFor="rememberMeAdmin" className="text-[10px] text-gray-500 font-bold select-none cursor-pointer">
                   Remember Me
@@ -246,7 +252,7 @@ export default function AdminLogin() {
               <button
                 type="submit"
                 disabled={loginLoading}
-                className="w-full py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all duration-300 uppercase tracking-wider mt-1 cursor-pointer"
+                className="w-full py-3.5 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold rounded-full flex items-center justify-center gap-2 shadow-lg transition-all duration-300 uppercase tracking-wider mt-1 cursor-pointer"
               >
                 {loginLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Log In to Panel'}
               </button>
@@ -254,23 +260,23 @@ export default function AdminLogin() {
           )}
 
           {adminView === 'forgot' && (
-            <form onSubmit={handleForgotSubmit} className="flex flex-col gap-4.5 w-full">
+            <form onSubmit={handleForgotSubmit} className="flex flex-col gap-5 w-full">
               <div className="text-center">
-                <h1 className="font-serif font-bold text-xl text-gray-905 leading-none">Admin Recovery</h1>
+                <h1 className="font-extrabold text-2xl text-[#181120] leading-none">Admin Recovery</h1>
                 <p className="text-xs text-gray-400 mt-2">Enter your email and we'll generate a 6-digit recovery code.</p>
               </div>
 
               {!forgotSuccessMsg ? (
                 <>
                   <div className="flex flex-col gap-1.5 mt-2">
-                    <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Email Address</label>
+                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Email Address</label>
                     <input
                       type="email"
                       required
                       value={forgotEmail}
                       onChange={e => setForgotEmail(e.target.value)}
-                      className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary text-xs bg-[#FAF9F6] text-gray-800 shadow-3xs w-full"
-                      placeholder="admin@fairqueen.com"
+                      className="px-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] text-gray-800 font-semibold w-full"
+                      placeholder="admin@dansolam.com"
                     />
                   </div>
 
@@ -279,38 +285,37 @@ export default function AdminLogin() {
                   <button
                     type="submit"
                     disabled={forgotLoading}
-                    className="w-full py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all duration-300 uppercase tracking-wider mt-1 cursor-pointer"
+                    className="w-full py-3.5 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold rounded-full flex items-center justify-center gap-2 shadow-lg transition-all duration-300 uppercase tracking-wider mt-1 cursor-pointer"
                   >
                     {forgotLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Send Reset Code'}
                   </button>
                 </>
               ) : (
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 text-center">
+                  <div className="w-12 h-12 mx-auto rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                    <Mail className="w-6 h-6" />
+                  </div>
                   <p className="text-xs text-emerald-600 font-semibold">{forgotSuccessMsg}</p>
-                  
-                  {debugCode && (
-                    <div className="bg-[#FAF3E8]/40 rounded-2xl p-4 border border-primary/10 shadow-3xs flex flex-col gap-2">
-                      <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Admin Reset Code:</span>
-                      <span className="font-mono text-xl font-bold tracking-widest text-primary text-center my-1">{debugCode}</span>
-                    </div>
-                  )}
+                  <p className="text-[11px] text-gray-500 leading-relaxed">
+                    Check your administrator inbox. If registered, a 6-digit verification code has been dispatched.
+                  </p>
 
                   <button
                     type="button"
                     onClick={() => {
-                      setResetToken(debugCode);
+                      setResetToken('');
                       setAdminView('reset');
                     }}
-                    className="w-full py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all duration-300 uppercase tracking-wider cursor-pointer"
+                    className="w-full py-3.5 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold rounded-full flex items-center justify-center gap-2 shadow-lg transition-all duration-300 uppercase tracking-wider cursor-pointer mt-1"
                   >
-                    Go to Reset Form
+                    Enter Reset Code
                   </button>
                 </div>
               )}
 
-              <p className="text-xs text-gray-550 text-center mt-3">
+              <p className="text-xs text-gray-500 text-center mt-3 font-medium">
                 Remembered credentials?{' '}
-                <button type="button" onClick={() => setAdminView('login')} className="text-primary font-bold hover:underline cursor-pointer">
+                <button type="button" onClick={() => setAdminView('login')} className="text-[#EC268F] font-extrabold hover:underline cursor-pointer">
                   Back to Login
                 </button>
               </p>
@@ -318,42 +323,42 @@ export default function AdminLogin() {
           )}
 
           {adminView === 'reset' && (
-            <form onSubmit={handleResetSubmit} className="flex flex-col gap-4.5 w-full">
+            <form onSubmit={handleResetSubmit} className="flex flex-col gap-5 w-full">
               <div className="text-center">
-                <h1 className="font-serif font-bold text-xl text-gray-905 leading-none">Reset Admin Password</h1>
+                <h1 className="font-extrabold text-2xl text-[#181120] leading-none">Reset Admin Password</h1>
                 <p className="text-xs text-gray-400 mt-2">Enter your 6-digit recovery code and new password.</p>
               </div>
 
               {!resetSuccessMsg ? (
                 <>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Reset Code (Token)</label>
+                    <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Reset Code (Token)</label>
                     <input
                       type="text"
                       required
                       value={resetToken}
                       onChange={e => setResetToken(e.target.value)}
-                      className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary text-xs bg-[#FAF9F6] text-gray-800 shadow-3xs w-full font-mono text-center tracking-widest text-base"
+                      className="px-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] text-gray-800 font-bold w-full font-mono text-center tracking-widest text-base"
                       placeholder="000000"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3.5">
                     <div className="flex flex-col gap-1.5 relative">
-                      <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">New Password</label>
+                      <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">New Password</label>
                       <div className="relative">
                         <input
                           type={showResetPassword ? 'text' : 'password'}
                           required
                           value={newPassword}
                           onChange={e => setNewPassword(e.target.value)}
-                          className="pl-3 pr-10 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary text-xs bg-[#FAF9F6] text-gray-800 shadow-3xs w-full"
+                          className="pl-4 pr-10 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] text-gray-800 font-semibold w-full"
                           placeholder="Min 6 chars"
                         />
                         <button
                           type="button"
                           onClick={() => setShowResetPassword(!showResetPassword)}
-                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-655"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-655"
                         >
                           {showResetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -361,20 +366,20 @@ export default function AdminLogin() {
                     </div>
 
                     <div className="flex flex-col gap-1.5 relative">
-                      <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Confirm Password</label>
+                      <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Confirm Password</label>
                       <div className="relative">
                         <input
                           type={showResetPasswordConf ? 'text' : 'password'}
                           required
                           value={newPasswordConf}
                           onChange={e => setNewPasswordConf(e.target.value)}
-                          className="pl-3 pr-10 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary text-xs bg-[#FAF9F6] text-gray-800 shadow-3xs w-full"
+                          className="pl-4 pr-10 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] text-gray-800 font-semibold w-full"
                           placeholder="Confirm"
                         />
                         <button
                           type="button"
                           onClick={() => setShowResetPasswordConf(!showResetPasswordConf)}
-                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-655"
+                          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-655"
                         >
                           {showResetPasswordConf ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -387,7 +392,7 @@ export default function AdminLogin() {
                   <button
                     type="submit"
                     disabled={resetLoading}
-                    className="w-full py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all duration-300 uppercase tracking-wider mt-1 cursor-pointer"
+                    className="w-full py-3.5 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold rounded-full flex items-center justify-center gap-2 shadow-lg transition-all duration-300 uppercase tracking-wider mt-1 cursor-pointer"
                   >
                     {resetLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reset Password'}
                   </button>
@@ -401,16 +406,16 @@ export default function AdminLogin() {
                       setAdminView('login');
                       setResetSuccessMsg('');
                     }}
-                    className="w-full py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all duration-300 uppercase tracking-wider cursor-pointer"
+                    className="w-full py-3.5 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold rounded-full flex items-center justify-center gap-2 shadow-lg transition-all duration-300 uppercase tracking-wider cursor-pointer"
                   >
                     Go to Sign In
                   </button>
                 </div>
               )}
 
-              <p className="text-xs text-gray-555 text-center mt-3">
+              <p className="text-xs text-gray-500 text-center mt-3 font-medium">
                 Remembered credentials?{' '}
-                <button type="button" onClick={() => setAdminView('login')} className="text-primary font-bold hover:underline cursor-pointer">
+                <button type="button" onClick={() => setAdminView('login')} className="text-[#EC268F] font-extrabold hover:underline cursor-pointer">
                   Back to Login
                 </button>
               </p>

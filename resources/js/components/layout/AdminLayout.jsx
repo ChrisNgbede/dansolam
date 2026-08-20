@@ -4,7 +4,7 @@ import {
   LayoutDashboard, ShoppingCart, Package, Settings, LogOut, ArrowLeft, 
   FolderHeart, Tag, Star, Users, ClipboardList, FileText, Image, BookOpen, 
   Percent, Coins, BarChart3, Menu, X, Search, Bell, Inbox, Mail, HelpCircle, Truck, Sun, Moon,
-  ChevronLeft, ChevronRight, Loader2, ChevronDown, ChevronUp, Award, Monitor, ReceiptText, PackagePlus, Sparkles
+  ChevronLeft, ChevronRight, Loader2, ChevronDown, ChevronUp, Award, Monitor, ReceiptText, PackagePlus, Calendar
 } from 'lucide-react';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -33,7 +33,7 @@ export default function AdminLayout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   // Sidebar expand/collapse state
   const [isCollapsed, setIsCollapsed] = useState(() => {
-    return localStorage.getItem('fairqueen_sidebar_collapsed') === 'true';
+    return localStorage.getItem('dansolam_sidebar_collapsed') === 'true';
   });
   // Top-bar search states
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,13 +45,13 @@ export default function AdminLayout() {
 
   // Dark Mode state
   const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('fairqueen_admin_dark_mode') === 'true';
+    return localStorage.getItem('dansolam_admin_dark_mode') === 'true';
   });
 
   const toggleDarkMode = () => {
     setIsDarkMode(prev => {
       const val = !prev;
-      localStorage.setItem('fairqueen_admin_dark_mode', val ? 'true' : 'false');
+      localStorage.setItem('dansolam_admin_dark_mode', val ? 'true' : 'false');
       return val;
     });
   };
@@ -78,7 +78,7 @@ export default function AdminLayout() {
   useEffect(() => {
     if (settingsRes?.data?.settings) {
       const s = settingsRes.data.settings;
-      localStorage.setItem('fairqueen_currency_symbol', s.system_currency_symbol || '₦');
+      localStorage.setItem('dansolam_currency_symbol', s.system_currency_symbol || '₦');
     }
   }, [settingsRes]);
 
@@ -172,7 +172,7 @@ export default function AdminLayout() {
       { to: '/admin/inventory', label: 'Inventory Logs', icon: ClipboardList, color: 'text-cyan-450' },
       { to: '/admin/invoices', label: 'Manual Invoices', icon: FileText, color: 'text-slate-400' },
       { to: '/admin/inquiries', label: 'Inquiries', icon: Inbox, color: 'text-lime-500' },
-      { to: '/admin/fitting-sessions', label: 'Fitting Sessions', icon: Sparkles, color: 'text-yellow-400' },
+      { to: '/admin/fitting-sessions', label: 'Spa Consultations', icon: Calendar, color: 'text-amber-500' },
       { to: '/admin/brands', label: 'Brands', icon: Award, color: 'text-rose-455' },
       { to: '/admin/users', label: 'Users', icon: Users, color: 'text-violet-400' },
       { to: '/admin/reports', label: 'Reports', icon: BarChart3, color: 'text-purple-450' },
@@ -412,8 +412,43 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className={`flex bg-gray-50 min-h-screen text-gray-800 font-sans animate-fade-in ${isDarkMode ? 'dark bg-gray-950 text-gray-100' : ''}`}>
+    <div className={`admin-shell flex bg-gray-50 min-h-screen text-gray-800 font-sans animate-fade-in ${isDarkMode ? 'dark bg-gray-950 text-gray-100' : ''}`}>
       <style>{`
+        /* Systematic Visible Borders for All Admin Inputs & Dropdowns (Pages, Views & Modals) */
+        .admin-shell input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
+        .admin-shell select,
+        .admin-shell textarea,
+        .admin-shell .rich-editor,
+        .admin-shell [contenteditable="true"],
+        .fixed input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
+        .fixed select,
+        .fixed textarea,
+        .fixed .rich-editor,
+        .fixed [contenteditable="true"],
+        div[role="dialog"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
+        div[role="dialog"] select,
+        div[role="dialog"] textarea {
+          border: 1.5px solid #94A3B8 !important; /* Visible high-definition slate-400 border */
+          background-color: #FFFFFF !important;
+          color: #0F172A !important;
+          border-radius: 0.625rem !important;
+          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+        }
+
+        .admin-shell input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]):focus,
+        .admin-shell select:focus,
+        .admin-shell textarea:focus,
+        .fixed input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]):focus,
+        .fixed select:focus,
+        .fixed textarea:focus,
+        div[role="dialog"] input:focus,
+        div[role="dialog"] select:focus,
+        div[role="dialog"] textarea:focus {
+          outline: none !important;
+          border-color: #5D3E85 !important;
+          box-shadow: 0 0 0 3px rgba(93, 62, 133, 0.22) !important;
+        }
+
         .dark {
           background-color: #030712 !important;
           color: #f3f4f6 !important;
@@ -430,15 +465,21 @@ export default function AdminLayout() {
         .dark .border-gray-100 {
           border-color: #1f2937 !important;
         }
-        .dark input, 
-        .dark select, 
-        .dark textarea,
-        .dark .rich-editor,
-        .dark .bg-gray-50, 
-        .dark .bg-gray-55 {
+        .dark .admin-shell input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
+        .dark .admin-shell select,
+        .dark .admin-shell textarea,
+        .dark .admin-shell .rich-editor,
+        .dark .admin-shell [contenteditable="true"],
+        .dark .fixed input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
+        .dark .fixed select,
+        .dark .fixed textarea,
+        .dark div[role="dialog"] input,
+        .dark div[role="dialog"] select,
+        .dark div[role="dialog"] textarea {
+          border: 1.5px solid #64748B !important;
           background-color: #1f2937 !important;
           color: #f3f4f6 !important;
-          border-color: #374151 !important;
+          border-color: #64748B !important;
         }
         .dark input::placeholder, 
         .dark textarea::placeholder,
@@ -517,7 +558,7 @@ export default function AdminLayout() {
               onClick={() => {
                 setIsCollapsed(prev => {
                   const val = !prev;
-                  localStorage.setItem('fairqueen_sidebar_collapsed', val ? 'true' : 'false');
+                  localStorage.setItem('dansolam_sidebar_collapsed', val ? 'true' : 'false');
                   return val;
                 });
               }}
@@ -532,7 +573,7 @@ export default function AdminLayout() {
               onClick={() => {
                 setIsCollapsed(prev => {
                   const val = !prev;
-                  localStorage.setItem('fairqueen_sidebar_collapsed', val ? 'true' : 'false');
+                  localStorage.setItem('dansolam_sidebar_collapsed', val ? 'true' : 'false');
                   return val;
                 });
               }}
@@ -667,7 +708,8 @@ export default function AdminLayout() {
             </button>
 
             {/* Search Input Shortcut (Pill Shaped) */}
-            <div className="relative hidden sm:block w-72">
+            <div className="relative hidden sm:flex items-center w-80">
+              <Search className="w-4 h-4 text-slate-400 dark:text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10 shrink-0" />
               <input
                 type="text"
                 placeholder="Search admin (orders, items...)"
@@ -677,15 +719,14 @@ export default function AdminLayout() {
                   setShowSearchDropdown(true);
                 }}
                 onFocus={() => setShowSearchDropdown(true)}
-                className="w-full pl-11 pr-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-full focus:outline-none focus:border-primary text-xs bg-white text-gray-800 dark:bg-gray-800 dark:text-gray-100 transition-all focus:ring-2 focus:ring-primary/20"
+                className="w-full !pl-10 !pr-4 !py-2 border border-slate-300 dark:border-gray-700 !rounded-full focus:outline-none focus:border-primary text-xs bg-white text-gray-800 dark:bg-gray-800 dark:text-gray-100 transition-all focus:ring-2 focus:ring-primary/20"
               />
-              <Search className="w-3.5 h-3.5 text-gray-400 absolute left-3.5 top-2.5" />
 
               {/* Floating Dropdown Results */}
               {showSearchDropdown && (searchQuery.trim().length > 0 || searchLoading) && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setShowSearchDropdown(false)}></div>
-                  <div className="absolute left-0 mt-2 w-96 bg-white border border-gray-150 rounded-2xl shadow-xl py-3 z-50 animate-scale-up text-xs max-h-[380px] overflow-y-auto custom-sidebar-scroll dark:bg-gray-800 dark:border-gray-700">
+                  <div className="absolute left-0 top-[calc(100%+0.5rem)] w-96 bg-white border border-gray-150 rounded-2xl shadow-xl py-3 z-50 animate-scale-up text-xs max-h-[380px] overflow-y-auto custom-sidebar-scroll dark:bg-gray-800 dark:border-gray-700">
                     {searchLoading ? (
                       <div className="flex items-center justify-center py-6 text-gray-400 gap-1.5 font-semibold">
                         <Loader2 className="w-4 h-4 animate-spin text-primary" /> Searching...
@@ -902,7 +943,7 @@ export default function AdminLayout() {
                   <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-150 rounded-2xl shadow-xl py-1.5 z-30 animate-scale-up text-xs dark:bg-gray-800 dark:border-gray-750">
                     <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700 mb-1 text-left">
                       <p className="font-bold text-gray-800 dark:text-gray-200">{admin?.name || "Admin User"}</p>
-                      <p className="text-[10px] text-gray-400">{admin?.email || "admin@fairqueen.com"}</p>
+                      <p className="text-[10px] text-gray-400">{admin?.email || "admin@dansolam.com"}</p>
                     </div>
                     <Link
                       to="/admin/profile"

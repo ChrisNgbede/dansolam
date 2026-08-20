@@ -1,18 +1,23 @@
 import { getCurrencySymbol } from '../../utils/currency';
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { toast as systemToast } from '../../components/ui/ToastProvider';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, CreditCard, Landmark, CheckCircle, Loader2, Banknote } from 'lucide-react';
+import { ArrowLeft, CreditCard, Landmark, CheckCircle, Loader2, Banknote, User, Lock, Mail, Phone, ShieldCheck, LogIn, UserPlus, Check, Sparkles, AlertCircle } from 'lucide-react';
 import { useCartStore } from '../../store/cartStore';
+import { useAuth } from '../../hooks/useAuth';
 import SEO from '../../components/seo/SEO';
 import CheckoutStepper from '../../components/storefront/CheckoutStepper';
 import { COUNTRIES, getStates } from '../../utils/geoData';
 import CaptchaWidget from '../../components/ui/CaptchaWidget';
+import { PaystackLogo, StripeLogo, PayPalLogo } from '../../components/storefront/PaymentGatewayLogos';
+import PayPalCardFields from '../../components/storefront/PayPalCardFields';
 
 export default function Checkout() {
   const currencySymbol = getCurrencySymbol();
   const navigate = useNavigate();
+  const { customer, loading: authLoading, customerLogin, customerRegister, customerLogout } = useAuth();
   
   // Zustand State hooks
   const items = useCartStore(state => state.items);
@@ -32,19 +37,31 @@ export default function Checkout() {
   const setShippingOption = useCartStore(state => state.setShippingOption);
   const setDeliveryCountry = useCartStore(state => state.setDeliveryCountry);
 
+  // Authentication Mode on Checkout (for guest users)
+  const [authTab, setAuthTab] = useState('login'); // 'login' or 'register'
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authName, setAuthName] = useState('');
+  const [authPhone, setAuthPhone] = useState('');
+  const [authPasswordConfirm, setAuthPasswordConfirm] = useState('');
+  const [authRemember, setAuthRemember] = useState(true);
+  const [authSubmitting, setAuthSubmitting] = useState(false);
+  const [authError, setAuthError] = useState('');
+
   // Form states
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
-  const [state, setState] = useState('Abuja');
-  const [country, setCountry] = useState('Nigeria');
+  const [state, setState] = useState('');
+  const [country, setCountry] = useState('');
   const [checkoutCaptchaVerified, setCheckoutCaptchaVerified] = useState(false);
 
   useEffect(() => {
     setDeliveryCountry(country);
   }, [country, setDeliveryCountry]);
+
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
   const [notes, setNotes] = useState('');
 
@@ -52,10 +69,34 @@ export default function Checkout() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
-  // Mock Paystack Modal State
+  // Modal Payment Gateway States
   const [showPaystackModal, setShowPaystackModal] = useState(false);
   const [createdOrderDetails, setCreatedOrderDetails] = useState(null);
   const [paystackLoading, setPaystackLoading] = useState(false);
+  const [paypalSubMethod, setPaypalSubMethod] = useState('paypal_balance');
+  // Set when PayPal's inline card fields are unavailable for this merchant account,
+  // so the card option falls back to the hosted redirect instead of dead-ending.
+  const [cardFieldsUnavailable, setCardFieldsUnavailable] = useState(false);
+
+  const handlePayPalCardSuccess = () => {
+    setShowPaystackModal(false);
+    clearCart();
+    navigate(`/order-tracking?order_number=${createdOrderDetails.order_number}&contact=${encodeURIComponent(email)}&paypal_success=true`);
+  };
+
+  // Lock background scroll when payment modal is open
+  useEffect(() => {
+    if (showPaystackModal) {
+      const origBodyOverflow = document.body.style.overflow;
+      const origHtmlOverflow = document.documentElement.style.overflow;
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = origBodyOverflow;
+        document.documentElement.style.overflow = origHtmlOverflow;
+      };
+    }
+  }, [showPaystackModal]);
 
   // Fetch settings for bank transfers details
   const { data: settingsRes } = useQuery({
@@ -63,6 +104,7 @@ export default function Checkout() {
     queryFn: () => fetch('/api/settings').then(res => res.json())
   });
 
+  const ecommerce = settingsRes?.data?.ecommerce || { name: 'Dansolam Beauty Home' };
   const settings = settingsRes?.data?.settings || {
     bank_name: 'Access Bank',
     bank_account_number: '1234567890',
@@ -111,48 +153,164 @@ export default function Checkout() {
     }
   }, [settings]);
 
-  // Pre-fill fields if customer logged in
+  // Pre-fill customer info whenever authenticated customer state is updated
   useEffect(() => {
-    const fetchProfile = async () => {
-      const token = localStorage.getItem('fairqueen_customer_token');
-      if (token) {
-        try {
-          const res = await fetch('/api/customer/profile', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const data = await res.json();
-          if (data.success) {
-            setName(data.data.name);
-            setEmail(data.data.email);
-            setPhone(data.data.phone || '');
-            
-            // Fetch default address
+    if (customer) {
+      if (customer.name) setName(customer.name);
+      if (customer.email) setEmail(customer.email);
+      if (customer.phone) setPhone(customer.phone);
+
+      // Check customer.addresses first (from login / profile payload)
+      if (customer.addresses && customer.addresses.length > 0) {
+        const defaultAddr = customer.addresses.find(a => a.is_default) || customer.addresses[0];
+        if (defaultAddr) {
+          if (defaultAddr.address_line_1) setAddress(defaultAddr.address_line_1);
+          if (defaultAddr.city) setCity(defaultAddr.city);
+          if (defaultAddr.state) setState(defaultAddr.state);
+          if (defaultAddr.country) setCountry(defaultAddr.country);
+        }
+      } else {
+        // Fallback: check locally stored last-used shipping data for this customer
+        const cached = localStorage.getItem(`dansolam_shipping_${customer.email}`);
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (parsed.address) setAddress(parsed.address);
+            if (parsed.city) setCity(parsed.city);
+            if (parsed.state) setState(parsed.state);
+            if (parsed.country) setCountry(parsed.country);
+            if (parsed.phone && !customer.phone) setPhone(parsed.phone);
+          } catch (e) {
+            console.error(e);
+          }
+        }
+      }
+
+      const fetchCustomerAddress = async () => {
+        const token = localStorage.getItem('dansolam_customer_token') || sessionStorage.getItem('dansolam_customer_token');
+        if (token) {
+          try {
             const addrRes = await fetch('/api/customer/addresses', {
               headers: { 'Authorization': `Bearer ${token}` }
             });
             const addrData = await addrRes.json();
             const defaultAddr = addrData.data?.find(a => a.is_default) || addrData.data?.[0];
             if (defaultAddr) {
-              setAddress(defaultAddr.address_line_1);
-              setCity(defaultAddr.city);
-              setState(defaultAddr.state);
-              setCountry(defaultAddr.country);
+              if (defaultAddr.address_line_1) setAddress(defaultAddr.address_line_1);
+              if (defaultAddr.city) setCity(defaultAddr.city);
+              if (defaultAddr.state) setState(defaultAddr.state);
+              if (defaultAddr.country) setCountry(defaultAddr.country);
+
+              localStorage.setItem(`dansolam_shipping_${customer.email}`, JSON.stringify({
+                address: defaultAddr.address_line_1 || '',
+                city: defaultAddr.city || '',
+                state: defaultAddr.state || '',
+                country: defaultAddr.country || '',
+                phone: customer.phone || ''
+              }));
             }
+          } catch (e) {
+            console.error(e);
           }
-        } catch (e) {
-          console.error(e);
         }
-      }
-    };
-    fetchProfile();
-  }, []);
+      };
+
+      fetchCustomerAddress();
+    }
+  }, [customer]);
 
   if (items.length === 0) {
     return <Navigate to="/cart" replace />;
   }
 
+  // Handle Inline Customer Login
+  const handleInlineLogin = async (e) => {
+    e.preventDefault();
+    if (!authEmail.trim() || !authPassword.trim()) {
+      setAuthError('Please enter your email and password');
+      return;
+    }
+    setAuthSubmitting(true);
+    setAuthError('');
+    try {
+      const result = await customerLogin(authEmail.trim(), authPassword, authRemember);
+      if (result.success) {
+        systemToast.success('Logged in successfully! Welcome back.');
+        const u = result.customer;
+        if (u) {
+          if (u.name) setName(u.name);
+          if (u.email) setEmail(u.email);
+          if (u.phone) setPhone(u.phone);
+          const defaultAddr = u.addresses?.find(a => a.is_default) || u.addresses?.[0];
+          if (defaultAddr) {
+            if (defaultAddr.address_line_1) setAddress(defaultAddr.address_line_1);
+            if (defaultAddr.city) setCity(defaultAddr.city);
+            if (defaultAddr.state) setState(defaultAddr.state);
+            if (defaultAddr.country) setCountry(defaultAddr.country);
+          } else {
+            const cached = localStorage.getItem(`dansolam_shipping_${u.email}`);
+            if (cached) {
+              try {
+                const parsed = JSON.parse(cached);
+                if (parsed.address) setAddress(parsed.address);
+                if (parsed.city) setCity(parsed.city);
+                if (parsed.state) setState(parsed.state);
+                if (parsed.country) setCountry(parsed.country);
+              } catch (err) {
+                console.error(err);
+              }
+            }
+          }
+        }
+      } else {
+        setAuthError(result.message || 'Invalid email or password.');
+      }
+    } catch (err) {
+      setAuthError('Connection error. Please try again.');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  // Handle Inline Customer Registration
+  const handleInlineRegister = async (e) => {
+    e.preventDefault();
+    if (!authName.trim() || !authEmail.trim() || !authPassword.trim()) {
+      setAuthError('Please fill in all required fields.');
+      return;
+    }
+    if (authPassword.length < 6) {
+      setAuthError('Password must be at least 6 characters.');
+      return;
+    }
+    if (authPassword !== authPasswordConfirm) {
+      setAuthError('Passwords do not match.');
+      return;
+    }
+    setAuthSubmitting(true);
+    setAuthError('');
+    try {
+      const result = await customerRegister(authName.trim(), authEmail.trim(), authPhone.trim(), authPassword, authPasswordConfirm);
+      if (result.success) {
+        systemToast.success('Account created successfully! You can now complete your order.');
+      } else {
+        setAuthError(result.message || 'Registration failed.');
+      }
+    } catch (err) {
+      setAuthError('Connection error. Please try again.');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!customer) {
+      setErrorMsg('Please log in or create an account above to proceed with your order.');
+      return;
+    }
+
     const isCaptchaEnabled = settings.captcha_enabled === 'true' || settings.captcha_enabled === true;
     const isCheckoutEnabled = settings.captcha_on_checkout === undefined ? true : (settings.captcha_on_checkout === 'true' || settings.captcha_on_checkout === true);
     if (isCaptchaEnabled && isCheckoutEnabled && !checkoutCaptchaVerified) {
@@ -162,7 +320,7 @@ export default function Checkout() {
     setLoading(true);
     setErrorMsg('');
 
-    const token = localStorage.getItem('fairqueen_customer_token');
+    const token = localStorage.getItem('dansolam_customer_token') || sessionStorage.getItem('dansolam_customer_token');
     const headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
@@ -171,10 +329,22 @@ export default function Checkout() {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    // Save shipping data locally for instant retrieval
+    const activeEmail = email || customer?.email;
+    if (activeEmail) {
+      localStorage.setItem(`dansolam_shipping_${activeEmail}`, JSON.stringify({
+        address,
+        city,
+        state,
+        country,
+        phone: phone || customer?.phone || ''
+      }));
+    }
+
     const payload = {
-      customer_name: name,
-      customer_email: email,
-      customer_phone: phone,
+      customer_name: name || customer.name,
+      customer_email: email || customer.email,
+      customer_phone: phone || customer.phone,
       delivery_address: address,
       delivery_city: city,
       delivery_state: state,
@@ -201,7 +371,33 @@ export default function Checkout() {
       const data = await res.json();
 
       if (data.success) {
-        if (['paystack', 'stripe', 'paypal', 'flutterwave'].includes(paymentMethod)) {
+        if (paymentMethod === 'paypal') {
+          // Initialize PayPal Order via Orders API v2
+          try {
+            const paypalRes = await fetch('/api/paypal/create-order', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ order_number: data.data.order_number })
+            });
+            const paypalData = await paypalRes.json();
+            if (paypalData.success) {
+              setCreatedOrderDetails({
+                ...data.data,
+                paypal_order_id: paypalData.data.paypal_order_id,
+                approve_url: paypalData.data.approve_url,
+                paypal_amount: paypalData.data.amount,
+                paypal_currency: paypalData.data.currency,
+                is_mock: paypalData.data.mock
+              });
+              setShowPaystackModal(true);
+            } else {
+              setErrorMsg(paypalData.message || 'Failed to initialize PayPal order.');
+            }
+          } catch (ppErr) {
+            setErrorMsg('Server connection error initializing PayPal.');
+          }
+          setLoading(false);
+        } else if (['paystack', 'stripe', 'flutterwave'].includes(paymentMethod)) {
           // Open mock payment simulation modal
           setCreatedOrderDetails(data.data);
           setShowPaystackModal(true);
@@ -225,22 +421,61 @@ export default function Checkout() {
     }
   };
 
-  // Simulating payment completion on mock Gateway dialog
+  // Gateway Payment Completion Handler
   const handleCompletePaystackPayment = async () => {
     if (!createdOrderDetails) return;
     setPaystackLoading(true);
 
-    const payload = {
-      reference: `${createdOrderDetails.reference}-mock-success`,
-      order_number: createdOrderDetails.order_number,
-      gateway: paymentMethod
-    };
+    if (paymentMethod === 'paypal' && createdOrderDetails.paypal_order_id) {
+      // PayPal requires buyer approval first — redirect to PayPal's approve_url.
+      // After approval, PayPal redirects back to return_url with ?token=PAYPAL_ORDER_ID
+      // which is handled by the useEffect below to auto-capture.
+      if (createdOrderDetails.approve_url) {
+        // Store order details in sessionStorage so we can capture after PayPal redirect
+        sessionStorage.setItem('paypal_pending_order', JSON.stringify({
+          order_number: createdOrderDetails.order_number,
+          paypal_order_id: createdOrderDetails.paypal_order_id,
+          email: createdOrderDetails.email || email,
+        }));
+        // Redirect buyer to PayPal to approve the payment
+        window.location.href = createdOrderDetails.approve_url;
+      } else {
+        // Mock mode or no approve_url — capture directly
+        try {
+          const captureRes = await fetch('/api/paypal/capture-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              paypal_order_id: createdOrderDetails.paypal_order_id,
+              order_number: createdOrderDetails.order_number
+            })
+          });
+          const captureData = await captureRes.json();
+          setPaystackLoading(false);
+
+          if (captureData.success) {
+            setShowPaystackModal(false);
+            clearCart();
+            navigate(`/order-tracking?order_number=${createdOrderDetails.order_number}&contact=${encodeURIComponent(email)}&paypal_success=true`);
+          } else {
+            systemToast.error(captureData.message || 'PayPal capture failed.');
+          }
+        } catch (err) {
+          setPaystackLoading(false);
+          systemToast.error('PayPal authorization error.');
+        }
+      }
+      return;
+    }
 
     try {
       const res = await fetch('/api/payment/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({
+          order_number: createdOrderDetails.order_number,
+          reference: `TEST-REF-${Date.now()}`
+        })
       });
       const data = await res.json();
 
@@ -258,453 +493,944 @@ export default function Checkout() {
     }
   };
 
+  // Auto-capture PayPal order when buyer returns from PayPal approval redirect
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paypalToken = urlParams.get('token'); // PayPal appends ?token=PAYPAL_ORDER_ID on return
+    const paypalReturn = urlParams.get('paypal_return');
+    const paypalCancel = urlParams.get('paypal_cancel');
+    const urlOrderNumber = urlParams.get('order_number');
+
+    if (paypalCancel) {
+      systemToast.error('PayPal payment was cancelled. You can try again.');
+      window.history.replaceState({}, '', '/checkout');
+      return;
+    }
+
+    // Only proceed if we have a token (from PayPal redirect) or explicit paypal_return flag
+    if (paypalToken || paypalReturn) {
+      const pendingStr = sessionStorage.getItem('paypal_pending_order');
+      const pending = pendingStr ? JSON.parse(pendingStr) : null;
+      sessionStorage.removeItem('paypal_pending_order');
+
+      const orderNumber = pending?.order_number || urlOrderNumber;
+      const paypalOrderId = pending?.paypal_order_id || paypalToken;
+      const contactEmail = pending?.email || email;
+
+      if (!orderNumber || !paypalOrderId) {
+        // Not enough info to capture — shouldn't normally happen
+        return;
+      }
+
+      // Auto-capture the approved order
+      (async () => {
+        try {
+          const captureRes = await fetch('/api/paypal/capture-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              paypal_order_id: paypalOrderId,
+              order_number: orderNumber,
+            })
+          });
+          const captureData = await captureRes.json();
+
+          if (captureData.success) {
+            clearCart();
+            navigate(`/order-tracking?order_number=${orderNumber}&contact=${encodeURIComponent(contactEmail)}&paypal_success=true`);
+          } else {
+            systemToast.error(captureData.message || 'PayPal payment capture failed after approval.');
+            window.history.replaceState({}, '', '/checkout');
+          }
+        } catch (err) {
+          systemToast.error('Network error capturing PayPal payment.');
+          window.history.replaceState({}, '', '/checkout');
+        }
+      })();
+    }
+  }, []); // Run once on mount
+
   return (
-    <div className="checkout-page max-w-6xl mx-auto px-4 md:px-8 pt-6 md:pt-8 pb-16 flex flex-col gap-6">
-      <SEO title="Secure Checkout" description="Secure payment and delivery checkout options for Dansolam." />
+    <div className="checkout-page relative min-h-screen w-full">
+      {/* Ambient decorative glow */}
+      <div
+        className="fixed top-0 right-0 w-[950px] h-[950px] rounded-full pointer-events-none z-0 blur-3xl opacity-75 -translate-y-1/3 translate-x-1/4"
+        style={{ background: 'radial-gradient(circle, rgba(236,38,143,0.20) 0%, rgba(93,62,133,0.16) 42%, transparent 70%)' }}
+      />
+
+      <div className="max-w-6xl mx-auto px-4 md:px-8 pt-24 sm:pt-28 md:pt-32 pb-16 flex flex-col gap-8 relative z-10">
+        <SEO title="Secure Checkout" description="Secure payment and delivery checkout options for Dansolam." />
       
-      {/* Step Progress Bar */}
-      <CheckoutStepper currentStep={2} />
+        {/* Step Progress Bar */}
+        <CheckoutStepper currentStep={2} />
 
-      <Link
-        to="/cart"
-        className="group inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white dark:bg-[#1a1a1a] border border-gray-200/80 dark:border-gray-800 text-xs font-bold text-gray-700 dark:text-gray-200 hover:text-gray-950 dark:hover:text-gray-950 hover:bg-yellow-400 dark:hover:bg-yellow-400 hover:border-yellow-400 dark:hover:border-yellow-400 shadow-3xs hover:shadow-xs transition-all duration-300 self-start mt-1"
-      >
-        <ArrowLeft className="w-3.5 h-3.5 text-gray-500 group-hover:text-gray-950 group-hover:-translate-x-0.5 transition-all duration-300" />
-        <span>Back to Cart</span>
-      </Link>
+        <Link
+          to="/cart"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 text-xs font-bold text-[#221B2B] dark:text-[#F3EFF6] hover:text-[#EC268F] shadow-xs transition-all duration-300 self-start btn-spring"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Cart</span>
+        </Link>
 
-      <div className="border-b border-gray-100/60 pb-5 text-left">
-        <span className="text-[9px] font-bold uppercase tracking-widest text-primary bg-primary/10 px-2.5 py-1 rounded-full self-start mb-2.5 inline-block">
-          Secure Payment
-        </span>
-        <h1 className="font-serif font-bold text-3xl md:text-4xl text-gray-900 tracking-tight leading-none">
-          Checkout Shipping & Payment
-        </h1>
-        <p className="text-[11px] text-gray-400 mt-2 font-medium">
-          Confirm details and choose a convenient gateway to complete your ecommerce order.
-        </p>
-      </div>
-
-      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
-        
-        {/* Left Column: Form details */}
-        <form onSubmit={handleCheckoutSubmit} className="flex-1 w-full bg-white rounded-3xl p-6 md:p-8 shadow-xs flex flex-col gap-6 border-0 text-left">
-          <h3 className="font-serif font-bold text-xs text-gray-900 uppercase tracking-widest border-b border-gray-100/60 pb-2">Customer Details</h3>
+        {/* 2-Column Responsive Checkout Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative">
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Full Name</label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={e => setName(e.target.value)}
-                className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary text-xs bg-[#FAF9F6] text-gray-800 shadow-3xs w-full"
-                placeholder="e.g. Fatima Abubakar"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Phone Number</label>
-              <input
-                type="tel"
-                required
-                value={phone}
-                onChange={e => setPhone(e.target.value)}
-                className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary text-xs bg-[#FAF9F6] text-gray-800 shadow-3xs w-full"
-                placeholder="e.g. +234 80 1234 5678"
-              />
-            </div>
-          </div>
+          {/* Left Main Content (Forms & Flows) */}
+          <div className="lg:col-span-8 flex flex-col gap-6 w-full">
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Email Address</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary text-xs bg-[#FAF9F6] text-gray-800 shadow-3xs w-full"
-              placeholder="e.g. fatima@example.com"
-            />
-          </div>
-
-          {/* Delivery Method Options */}
-          <div className="flex flex-col gap-2 border-t border-gray-100 pt-4">
-            <span className="font-serif font-bold text-xs text-gray-900 uppercase tracking-widest border-b border-gray-100/60 pb-2">Delivery Options</span>
-            <div className="grid grid-cols-2 gap-2.5 mt-2">
-              <button
-                type="button"
-                onClick={() => setDeliveryMethod('delivery')}
-                className={`py-2.5 rounded-xl border text-center font-bold text-xs transition-all cursor-pointer shadow-3xs ${
-                  deliveryMethod === 'delivery' ? 'border-primary bg-primary/5 text-primary' : 'border-gray-200 text-gray-500 hover:bg-gray-55'
-                }`}
-              >
-                Home Delivery
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeliveryMethod('pickup')}
-                className={`py-2.5 rounded-xl border text-center font-bold text-xs transition-all cursor-pointer shadow-3xs ${
-                  deliveryMethod === 'pickup' ? 'border-primary bg-primary/5 text-primary' : 'border-gray-200 text-gray-500 hover:bg-gray-55'
-                }`}
-              >
-                Store Pickup
-              </button>
-            </div>
-          </div>
-
-          {/* Shipping option & zone selectors if Home Delivery is selected */}
-          {deliveryMethod === 'delivery' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#FAF9F6] p-5 rounded-2xl border-0 shadow-3xs w-full">
-              <div className="flex flex-col gap-1.5 text-left">
-                <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Shipping Type</label>
-                <select
-                  value={shippingOption}
-                  onChange={(e) => setShippingOption(e.target.value)}
-                  className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary bg-white text-xs text-gray-800 font-medium h-10 w-full cursor-pointer shadow-3xs"
-                >
-                  <option value="standard">Standard Domestic Delivery</option>
-                  <option value="same_day">Same Day Express (+{currencySymbol}{parseFloat(settings.shipping_same_day_surcharge || 5000).toLocaleString()})</option>
-                  <option value="international">International Shipping ({currencySymbol}{parseFloat(settings.shipping_international_base || 25000).toLocaleString()})</option>
-                </select>
-              </div>
-
-              {shippingOption !== 'international' && zones.length > 0 && (
-                <div className="flex flex-col gap-1.5 text-left">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Delivery Area / Zone</label>
-                  <select
-                    value={deliveryZone?.id || ''}
-                    onChange={(e) => {
-                      const z = zones.find(x => x.id === parseInt(e.target.value));
-                      if (z) setDeliveryZone(z);
-                    }}
-                    className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary bg-white text-xs text-gray-800 font-medium h-10 w-full cursor-pointer shadow-3xs"
-                  >
-                    <option value="" disabled>-- Select Zone --</option>
-                    {zones.map((z) => (
-                      <option key={z.id} value={z.id}>
-                        {z.name} (+{currencySymbol}{parseFloat(z.shipping_fee).toLocaleString()})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </div>
-          )}
-
-          {deliveryMethod === 'delivery' && (
-            <>
-              <h3 className="font-serif font-bold text-xs text-gray-900 uppercase tracking-widest border-b border-gray-100/60 pb-2 mt-2">Delivery Address</h3>
-              
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Address Line 1</label>
-                <input
-                  type="text"
-                  required
-                  value={address}
-                  onChange={e => setAddress(e.target.value)}
-                  className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary text-xs bg-[#FAF9F6] text-gray-800 shadow-3xs w-full"
-                  placeholder="e.g. Plot 12, Wuse II"
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">City</label>
-                  <input
-                    type="text"
-                    required
-                    value={city}
-                    onChange={e => setCity(e.target.value)}
-                    className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary text-xs bg-[#FAF9F6] text-gray-800 shadow-3xs w-full"
-                    placeholder="e.g. Abuja"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Country</label>
-                  <select
-                    value={country}
-                    onChange={e => { setCountry(e.target.value); setState(''); }}
-                    className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary text-xs bg-[#FAF9F6] text-gray-800 cursor-pointer h-[38px] w-full shadow-3xs font-medium"
-                  >
-                    {COUNTRIES.map(c => (
-                      <option key={c.code} value={c.name}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">State</label>
-                  <select
-                    value={state}
-                    onChange={e => setState(e.target.value)}
-                    className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary text-xs bg-[#FAF9F6] text-gray-800 cursor-pointer h-[38px] w-full shadow-3xs font-medium"
-                  >
-                    <option value="">Select State</option>
-                    {getStates(country).map(s => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </>
-          )}
-
-          <h3 className="font-serif font-bold text-xs text-gray-900 uppercase tracking-widest border-b border-gray-100/60 pb-2 mt-2">Payment Method</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-            {/* Configure Active Default Online Gateway */}
-            {storefrontEnabled('payment_card_channel') && settings.payment_gateway_active && settings.payment_gateway_active !== 'bank_transfer' && (
-              <label className={`border rounded-2xl p-5 flex items-center justify-between cursor-pointer transition-all shadow-3xs ${
-                paymentMethod === settings.payment_gateway_active ? 'border-primary bg-primary/5 text-primary' : 'border-gray-200 text-gray-650 hover:bg-gray-55'
-              }`}>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    name="payment"
-                    checked={paymentMethod === settings.payment_gateway_active}
-                    onChange={() => setPaymentMethod(settings.payment_gateway_active)}
-                    className="text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                  />
-                  <div>
-                    <span className="font-bold text-xs block capitalize text-gray-800">
-                      {settings.payment_gateway_active === 'paystack' && 'Paystack Online Checkout'}
-                      {settings.payment_gateway_active === 'stripe' && 'Stripe Credit Card Payment'}
-                      {settings.payment_gateway_active === 'paypal' && 'PayPal Express Checkout'}
-                      {settings.payment_gateway_active === 'flutterwave' && 'Flutterwave Checkout'}
-                    </span>
-                    <span className="text-[9px] text-gray-400 block mt-0.5">
-                      {settings.payment_gateway_active === 'paystack' && 'Pay securely with Cards or Transfer'}
-                      {settings.payment_gateway_active === 'stripe' && 'Visa, Mastercard, AMEX'}
-                      {settings.payment_gateway_active === 'paypal' && 'Pay with PayPal Wallet or Cards'}
-                      {settings.payment_gateway_active === 'flutterwave' && 'Multi-Currency card processing'}
-                    </span>
+            {/* STEP 1: AUTHENTICATION GATE (Required to proceed) */}
+            {!customer ? (
+              <div className="bg-white dark:bg-[#1E1528] border-2 border-[#5D3E85]/20 dark:border-[#EC268F]/30 rounded-3xl p-6 sm:p-8 shadow-md flex flex-col gap-6 text-left relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-[#5D3E85]/10 to-transparent rounded-bl-full pointer-events-none" />
+                
+                <div className="flex flex-col gap-1.5 border-b border-gray-100 dark:border-white/10 pb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-[#5D3E85] dark:bg-[#EC268F] text-white font-extrabold text-xs flex items-center justify-center">1</span>
+                    <h2 className="font-extrabold text-xl text-[#221B2B] dark:text-[#F3EFF6]">Account Authentication</h2>
                   </div>
+                  <p className="text-xs text-gray-500 dark:text-[#9B8EA9] pl-8">
+                    To complete your purchase, please log in to your account or create a new one. Your order tracking and receipts will be secured to your profile.
+                  </p>
                 </div>
-                <CreditCard className="w-4 h-4 text-primary shrink-0" />
-              </label>
-            )}
 
-            {storefrontEnabled('payment_transfer_channel') && <label className={`border rounded-2xl p-5 flex items-center justify-between cursor-pointer transition-all shadow-3xs ${
-              paymentMethod === 'bank_transfer' ? 'border-primary bg-primary/5 text-primary' : 'border-gray-200 text-gray-655 hover:bg-gray-55'
-            }`}>
-              <div className="flex items-center gap-3">
-                <input
-                  type="radio"
-                  name="payment"
-                  checked={paymentMethod === 'bank_transfer'}
-                  onChange={() => setPaymentMethod('bank_transfer')}
-                  className="text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                />
-                <div>
-                  <span className="font-bold text-xs block text-gray-800">Bank Transfer (Manual)</span>
-                  <span className="text-[9px] text-gray-400 block mt-0.5">Transfer directly to our account</span>
+                {/* Account Type Selector Tabs */}
+                <div className="grid grid-cols-2 p-1 bg-[#FAF7FC] dark:bg-white/5 rounded-2xl border border-gray-200/80 dark:border-white/10 max-w-md">
+                  <button
+                    type="button"
+                    onClick={() => { setAuthTab('login'); setAuthError(''); }}
+                    className={`py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      authTab === 'login'
+                        ? 'bg-white dark:bg-[#281C36] text-[#5D3E85] dark:text-[#EC268F] shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    <span>Existing Customer (Login)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAuthTab('register'); setAuthError(''); }}
+                    className={`py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      authTab === 'register'
+                        ? 'bg-white dark:bg-[#281C36] text-[#5D3E85] dark:text-[#EC268F] shadow-sm'
+                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                    }`}
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>New Customer (Register)</span>
+                  </button>
                 </div>
-              </div>
-              <Landmark className="w-4 h-4 text-primary shrink-0" />
-            </label>}
 
-            {storefrontEnabled('payment_cash_channel') && settings.cod_enabled === 'true' && (
-              <label className={`border rounded-2xl p-5 flex items-center justify-between cursor-pointer transition-all shadow-3xs ${
-                paymentMethod === 'cash_on_delivery' ? 'border-primary bg-primary/5 text-primary' : 'border-gray-200 text-gray-655 hover:bg-gray-55'
-              }`}>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    name="payment"
-                    checked={paymentMethod === 'cash_on_delivery'}
-                    onChange={() => setPaymentMethod('cash_on_delivery')}
-                    className="text-primary focus:ring-primary w-4 h-4 cursor-pointer"
-                  />
-                  <div>
-                    <span className="font-bold text-xs block text-gray-800">Cash on Delivery (COD)</span>
-                    <span className="text-[9px] text-gray-400 block mt-0.5">Pay when your order is delivered</span>
+                {authError && (
+                  <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-2xl p-4 text-xs font-semibold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{authError}</span>
                   </div>
-                </div>
-                <Banknote className="w-4 h-4 text-primary shrink-0" />
-              </label>
-            )}
-          </div>
+                )}
 
-          {/* Conditional Bank Details display */}
-          {paymentMethod === 'bank_transfer' && (
-            <div className="bg-[#FAF3E8]/40 rounded-2xl p-5 text-xs text-gray-650 flex flex-col gap-2 leading-relaxed animate-fade-in border-0 shadow-3xs">
-              <span className="font-serif font-bold text-gray-900 text-xs tracking-wider border-b border-primary/10 pb-1.5 uppercase">Our Bank Details:</span>
-              <p className="mt-1">🏦 <strong>Bank:</strong> {settings.bank_name}</p>
-              <p>🔢 <strong>Account Number:</strong> {settings.bank_account_number}</p>
-              <p>👤 <strong>Account Name:</strong> {settings.bank_account_name}</p>
-              <p className="text-[10px] text-gray-400 mt-1 leading-normal border-t border-primary/5 pt-1.5">⚠️ Please transfer the exact amount and track your order to get payment approval details.</p>
-            </div>
-          )}
+                {/* LOGIN TAB FORM */}
+                {authTab === 'login' && (
+                  <form onSubmit={handleInlineLogin} className="flex flex-col gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Email Address</label>
+                        <div className="relative">
+                          <input
+                            type="email"
+                            required
+                            value={authEmail}
+                            onChange={e => setAuthEmail(e.target.value)}
+                            placeholder="e.g. amina@example.com"
+                            className="w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                          />
+                          <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Password</label>
+                        <div className="relative">
+                          <input
+                            type="password"
+                            required
+                            value={authPassword}
+                            onChange={e => setAuthPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                          />
+                          <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        </div>
+                      </div>
+                    </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Order Notes (Optional)</label>
-            <textarea
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-              rows="2"
-              className="px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-primary text-xs bg-[#FAF9F6] text-gray-800 shadow-3xs w-full resize-none leading-relaxed h-20"
-              placeholder="e.g. Size adjustments, delivery landmarks, or call-before-delivery instructions..."
-            ></textarea>
-          </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-600 dark:text-gray-300 font-medium">
+                        <input
+                          type="checkbox"
+                          checked={authRemember}
+                          onChange={e => setAuthRemember(e.target.checked)}
+                          className="rounded text-[#5D3E85] focus:ring-[#5D3E85]"
+                        />
+                        <span>Remember me</span>
+                      </label>
+                      <Link to="/forgot-password" className="text-xs text-[#5D3E85] dark:text-[#EC268F] font-bold hover:underline">
+                        Forgot Password?
+                      </Link>
+                    </div>
 
-          <CaptchaWidget
-            settings={settings}
-            formType="checkout"
-            verified={checkoutCaptchaVerified}
-            setVerified={setCheckoutCaptchaVerified}
-          />
+                    <button
+                      type="submit"
+                      disabled={authSubmitting}
+                      className="w-full sm:w-auto self-start px-8 py-3 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold tracking-wider rounded-full flex items-center justify-center gap-2 shadow-md transition-all btn-spring cursor-pointer mt-2"
+                    >
+                      {authSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
+                      <span>Login & Continue to Checkout</span>
+                    </button>
+                  </form>
+                )}
 
-          {errorMsg && (
-            <div className="bg-red-50 border border-red-100 text-red-500 rounded-xl p-4 text-xs font-semibold">
-              {errorMsg}
-            </div>
-          )}
+                {/* REGISTER TAB FORM */}
+                {authTab === 'register' && (
+                  <form onSubmit={handleInlineRegister} className="flex flex-col gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Full Name</label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            required
+                            value={authName}
+                            onChange={e => setAuthName(e.target.value)}
+                            placeholder="e.g. Amina Mohammed"
+                            className="w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                          />
+                          <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Email Address</label>
+                        <div className="relative">
+                          <input
+                            type="email"
+                            required
+                            value={authEmail}
+                            onChange={e => setAuthEmail(e.target.value)}
+                            placeholder="e.g. amina@example.com"
+                            className="w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                          />
+                          <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        </div>
+                      </div>
+                    </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-all duration-300 hover:scale-101 cursor-pointer uppercase tracking-wider"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Processing Order...
-              </>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Phone (Optional)</label>
+                        <div className="relative">
+                          <input
+                            type="tel"
+                            value={authPhone}
+                            onChange={e => setAuthPhone(e.target.value)}
+                            placeholder="e.g. +234 801 234 5678"
+                            className="w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                          />
+                          <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Password</label>
+                        <div className="relative">
+                          <input
+                            type="password"
+                            required
+                            value={authPassword}
+                            onChange={e => setAuthPassword(e.target.value)}
+                            placeholder="Min 6 characters"
+                            className="w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                          />
+                          <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Confirm Password</label>
+                        <div className="relative">
+                          <input
+                            type="password"
+                            required
+                            value={authPasswordConfirm}
+                            onChange={e => setAuthPasswordConfirm(e.target.value)}
+                            placeholder="Repeat password"
+                            className="w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                          />
+                          <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={authSubmitting}
+                      className="w-full sm:w-auto self-start px-8 py-3 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold tracking-wider rounded-full flex items-center justify-center gap-2 shadow-md transition-all btn-spring cursor-pointer mt-2"
+                    >
+                      {authSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                      <span>Create Account & Continue to Checkout</span>
+                    </button>
+                  </form>
+                )}
+              </div>
             ) : (
-              ['paystack', 'stripe', 'paypal', 'flutterwave'].includes(paymentMethod)
-                ? 'Proceed to Pay Online'
-                : paymentMethod === 'cash_on_delivery'
-                  ? 'Place Order via Cash on Delivery'
-                  : 'Place Order via Bank Transfer'
-            )}
-          </button>
-        </form>
-
-        {/* Right Column: Mini Invoice Tally */}
-        <div className="w-full lg:w-80 shrink-0 bg-white dark:bg-[#111111] border border-gray-100 dark:border-transparent rounded-2xl p-6 shadow-sm flex flex-col gap-4 text-left lg:sticky lg:top-24 self-start max-h-[calc(100vh-7rem)]">
-          <h3 className="font-serif font-bold text-gray-800 dark:text-gray-100 text-lg border-b border-gray-100 dark:border-transparent pb-3 shrink-0">Your Order</h3>
-          
-          <div className="flex flex-col gap-2 max-h-[38vh] overflow-y-auto pr-1.5 overscroll-contain">
-            {items.map((item) => (
-              <div key={`${item.product_id}-${item.product_variant_id}`} className="flex justify-between items-center gap-3 text-xs p-2.5 bg-gray-50/80 dark:bg-gray-800/40 rounded-xl border border-gray-100/50 dark:border-transparent shadow-3xs">
-                <div className="min-w-0 flex-1">
-                  <span className="font-semibold text-gray-850 truncate block leading-tight">{item.name}</span>
-                  <span className="text-[9px] text-gray-400 block mt-1 truncate">{item.variant_label || 'Standard selection'}</span>
+              /* LOGGED IN CUSTOMER BADGE */
+              <div className="bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-3xl p-5 flex items-center justify-between gap-4 text-left">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-sm shadow-xs">
+                    <Check className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-extrabold  tracking-wider block">Authenticated Customer</span>
+                    <h4 className="font-extrabold text-sm text-gray-900 dark:text-white leading-snug">{customer.name} ({customer.email})</h4>
+                  </div>
                 </div>
-                <div className="shrink-0 text-right flex flex-col items-end gap-1">
-                  <span className="font-bold text-gray-900">{currencySymbol}{(item.price * item.quantity).toLocaleString()}</span>
-                  <span className="inline-flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-primary/12 text-primary text-[9px] font-bold">×{item.quantity}</span>
-                </div>
+                <button
+                  type="button"
+                  onClick={customerLogout}
+                  className="px-4 py-1.5 rounded-full border border-gray-300 dark:border-white/20 text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 transition-all cursor-pointer"
+                >
+                  Switch Account
+                </button>
               </div>
-            ))}
+            )}
+
+            {/* STEP 2: CHECKOUT DETAILS & DELIVERY FORM (Visible only when authenticated) */}
+            {customer && (
+              <form onSubmit={handleCheckoutSubmit} className="bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-3xl p-6 md:p-8 shadow-xs flex flex-col gap-6 text-left animate-slide-in">
+                
+                <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/10 pb-4">
+                  <div className="flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-[#5D3E85] dark:bg-[#EC268F] text-white font-extrabold text-xs flex items-center justify-center">2</span>
+                    <div>
+                      <h2 className="font-extrabold text-xl md:text-2xl text-[#221B2B] dark:text-[#F3EFF6]">Delivery & Payment</h2>
+                      <p className="text-xs text-gray-400 dark:text-[#9B8EA9] mt-0.5">Choose your delivery destination and preferred payment method.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                <div className="flex flex-col gap-3">
+                  <h3 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase tracking-widest border-b border-gray-100 dark:border-white/10 pb-2">Recipient Contact Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Full Name</label>
+                      <input
+                        type="text"
+                        required
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium"
+                        placeholder="e.g. Amina Mohammed"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Phone Number</label>
+                      <input
+                        type="tel"
+                        required
+                        value={phone}
+                        onChange={e => setPhone(e.target.value)}
+                        className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium"
+                        placeholder="e.g. +1 (555) 000-0000"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Email (Receipts & Tracking)</label>
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium"
+                        placeholder="e.g. alex@example.com"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Delivery Method Options */}
+                <div className="flex flex-col gap-3 border-t border-gray-100 dark:border-white/10 pt-4">
+                  <h3 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase tracking-widest border-b border-gray-100 dark:border-white/10 pb-2">Fulfillment Method</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryMethod('delivery')}
+                      className={`py-3 rounded-2xl border text-center font-bold text-xs transition-all cursor-pointer shadow-3xs btn-spring ${
+                        deliveryMethod === 'delivery' ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85] dark:bg-[#EC268F] text-white shadow-md' : 'border-gray-200 dark:border-white/15 text-gray-500 dark:text-[#C9BED4] bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10'
+                      }`}
+                    >
+                      🏠 Courier & Standard Delivery
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryMethod('pickup')}
+                      className={`py-3 rounded-2xl border text-center font-bold text-xs transition-all cursor-pointer shadow-3xs btn-spring ${
+                        deliveryMethod === 'pickup' ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85] dark:bg-[#EC268F] text-white shadow-md' : 'border-gray-200 dark:border-white/15 text-gray-500 dark:text-[#C9BED4] bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10'
+                      }`}
+                    >
+                      🏪 Boutique Pickup (Free)
+                    </button>
+                  </div>
+                </div>
+
+                {/* Shipping Type & Delivery Zones */}
+                {deliveryMethod === 'delivery' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#FAF9F6] dark:bg-white/5 p-5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-3xs w-full">
+                    <div className="flex flex-col gap-1.5 text-left">
+                      <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Shipping Service Priority</label>
+                      <select
+                        value={shippingOption}
+                        onChange={(e) => setShippingOption(e.target.value)}
+                        className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] bg-white dark:bg-[#231B30] text-xs text-[#221B2B] dark:text-[#F3EFF6] font-medium h-10 w-full cursor-pointer shadow-3xs"
+                      >
+                        <option value="standard">Standard Courier Delivery</option>
+                        <option value="same_day">⚡ Express Priority (+{currencySymbol}{parseFloat(settings.shipping_same_day_surcharge || 5000).toLocaleString()})</option>
+                        <option value="international">✈️ International Courier Shipping ({currencySymbol}{parseFloat(settings.shipping_international_base || 25000).toLocaleString()})</option>
+                      </select>
+                    </div>
+
+                    {shippingOption !== 'international' && zones.length > 0 && (
+                      <div className="flex flex-col gap-1.5 text-left">
+                        <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Delivery Area / Zone</label>
+                        <select
+                          value={deliveryZone?.id || ''}
+                          onChange={(e) => {
+                            const z = zones.find(x => x.id === parseInt(e.target.value));
+                            if (z) setDeliveryZone(z);
+                          }}
+                          className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] bg-white dark:bg-[#231B30] text-xs text-[#221B2B] dark:text-[#F3EFF6] font-medium h-10 w-full cursor-pointer shadow-3xs"
+                        >
+                          <option value="" disabled>-- Select Zone --</option>
+                          {zones.map((z) => (
+                            <option key={z.id} value={z.id}>
+                              {z.name} (+{currencySymbol}{parseFloat(z.shipping_fee).toLocaleString()})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Delivery Address Fields */}
+                {deliveryMethod === 'delivery' && (
+                  <>
+                    <h3 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase tracking-widest border-b border-gray-100 dark:border-white/10 pb-2 mt-2">Physical Delivery Address</h3>
+                    
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Street Address & Landmark</label>
+                      <input
+                        type="text"
+                        required
+                        value={address}
+                        onChange={e => setAddress(e.target.value)}
+                        className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium"
+                        placeholder="e.g. 123 Main Street, Suite 400"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">City</label>
+                        <input
+                          type="text"
+                          required
+                          value={city}
+                          onChange={e => setCity(e.target.value)}
+                          className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium"
+                          placeholder="e.g. New York"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Country</label>
+                        <select
+                          required
+                          value={country}
+                          onChange={e => { setCountry(e.target.value); setState(''); }}
+                          className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-[#231B30] text-[#221B2B] dark:text-[#F3EFF6] cursor-pointer h-[38px] w-full shadow-3xs font-medium"
+                        >
+                          <option value="">Select Country</option>
+                          {COUNTRIES.map(c => (
+                            <option key={c.code} value={c.name}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">State / Province</label>
+                        <select
+                          required
+                          value={state}
+                          onChange={e => setState(e.target.value)}
+                          className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-[#231B30] text-[#221B2B] dark:text-[#F3EFF6] cursor-pointer h-[38px] w-full shadow-3xs font-medium"
+                        >
+                          <option value="">{country ? 'Select State' : 'Select Country First'}</option>
+                          {country && getStates(country).map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Payment Gateways Selection */}
+                <h3 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase tracking-widest border-b border-gray-100 dark:border-white/10 pb-2 mt-2">Payment Channels</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  {/* 1. Paystack Gateway */}
+                  {storefrontEnabled('payment_card_channel') && (settings.paystack_enabled === undefined || ['true', '1', true, 1].includes(settings.paystack_enabled)) && (
+                    <label className={`border rounded-2xl p-5 flex items-center justify-between cursor-pointer transition-all shadow-3xs ${
+                      paymentMethod === 'paystack' ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85]/5 dark:bg-[#EC268F]/10 text-[#5D3E85] dark:text-[#EC268F]' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-[#C9BED4] hover:bg-gray-50 dark:hover:bg-white/5'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="payment"
+                          checked={paymentMethod === 'paystack'}
+                          onChange={() => setPaymentMethod('paystack')}
+                          className="text-[#5D3E85] focus:ring-[#5D3E85] w-4 h-4 cursor-pointer"
+                        />
+                        <div>
+                          <span className="font-bold text-xs block text-[#221B2B] dark:text-[#F3EFF6]">Paystack Payments</span>
+                          <span className="text-[9px] text-gray-400 dark:text-[#9B8EA9] block mt-0.5">Debit/Credit Cards, Instant Bank & Digital Wallets</span>
+                        </div>
+                      </div>
+                      <div className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-white/10 border border-gray-200/80 dark:border-white/10 flex items-center justify-center shrink-0 shadow-3xs">
+                        <PaystackLogo className="h-4.5 w-auto" variant="adaptive" />
+                      </div>
+                    </label>
+                  )}
+
+                  {/* 2. Stripe Gateway */}
+                  {storefrontEnabled('payment_card_channel') && (settings.stripe_enabled === undefined || ['true', '1', true, 1].includes(settings.stripe_enabled)) && (
+                    <label className={`border rounded-2xl p-5 flex items-center justify-between cursor-pointer transition-all shadow-3xs ${
+                      paymentMethod === 'stripe' ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85]/5 dark:bg-[#EC268F]/10 text-[#5D3E85] dark:text-[#EC268F]' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-[#C9BED4] hover:bg-gray-50 dark:hover:bg-white/5'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="payment"
+                          checked={paymentMethod === 'stripe'}
+                          onChange={() => setPaymentMethod('stripe')}
+                          className="text-[#5D3E85] focus:ring-[#5D3E85] w-4 h-4 cursor-pointer"
+                        />
+                        <div>
+                          <span className="font-bold text-xs block text-[#221B2B] dark:text-[#F3EFF6]">Stripe Global Payments</span>
+                          <span className="text-[9px] text-gray-400 dark:text-[#9B8EA9] block mt-0.5">Visa, Mastercard, AMEX & Apple Pay</span>
+                        </div>
+                      </div>
+                      <div className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-white/10 border border-gray-200/80 dark:border-white/10 flex items-center justify-center shrink-0 shadow-3xs">
+                        <StripeLogo className="h-4 w-auto" />
+                      </div>
+                    </label>
+                  )}
+
+                  {/* 3. PayPal Gateway */}
+                  {storefrontEnabled('payment_card_channel') && (settings.paypal_enabled === undefined || ['true', '1', true, 1].includes(settings.paypal_enabled)) && (
+                    <label className={`border rounded-2xl p-5 flex items-center justify-between cursor-pointer transition-all shadow-3xs ${
+                      paymentMethod === 'paypal' ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85]/5 dark:bg-[#EC268F]/10 text-[#5D3E85] dark:text-[#EC268F]' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-[#C9BED4] hover:bg-gray-50 dark:hover:bg-white/5'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="payment"
+                          checked={paymentMethod === 'paypal'}
+                          onChange={() => setPaymentMethod('paypal')}
+                          className="text-[#5D3E85] focus:ring-[#5D3E85] w-4 h-4 cursor-pointer"
+                        />
+                        <div>
+                          <span className="font-bold text-xs block text-[#221B2B] dark:text-[#F3EFF6]">PayPal Express Checkout</span>
+                          <span className="text-[9px] text-gray-400 dark:text-[#9B8EA9] block mt-0.5">PayPal Balance & International Cards</span>
+                        </div>
+                      </div>
+                      <div className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-white/10 border border-gray-200/80 dark:border-white/10 flex items-center justify-center shrink-0 shadow-3xs">
+                        <PayPalLogo className="h-4.5 w-auto" />
+                      </div>
+                    </label>
+                  )}
+
+                  {/* 4. Bank Transfer */}
+                  {storefrontEnabled('payment_transfer_channel') && (settings.bank_transfer_enabled === undefined || ['true', '1', true, 1].includes(settings.bank_transfer_enabled)) && (
+                    <label className={`border rounded-2xl p-5 flex items-center justify-between cursor-pointer transition-all shadow-3xs ${
+                      paymentMethod === 'bank_transfer' ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85]/5 dark:bg-[#EC268F]/10 text-[#5D3E85] dark:text-[#EC268F]' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-[#C9BED4] hover:bg-gray-50 dark:hover:bg-white/5'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="payment"
+                          checked={paymentMethod === 'bank_transfer'}
+                          onChange={() => setPaymentMethod('bank_transfer')}
+                          className="text-[#5D3E85] focus:ring-[#5D3E85] w-4 h-4 cursor-pointer"
+                        />
+                        <div>
+                          <span className="font-bold text-xs block text-[#221B2B] dark:text-[#F3EFF6]">Bank Transfer (Manual)</span>
+                          <span className="text-[9px] text-gray-400 dark:text-[#9B8EA9] block mt-0.5">Transfer directly to official account</span>
+                        </div>
+                      </div>
+                      <Landmark className="w-4 h-4 text-[#5D3E85] dark:text-[#EC268F] shrink-0" />
+                    </label>
+                  )}
+
+                  {/* 5. Cash on Delivery */}
+                  {storefrontEnabled('payment_cash_channel') && (settings.cod_enabled === 'true' || settings.cod_enabled === true || settings.cod_enabled === '1' || settings.cod_enabled === 1) && (
+                    <label className={`border rounded-2xl p-5 flex items-center justify-between cursor-pointer transition-all shadow-3xs ${
+                      paymentMethod === 'cash_on_delivery' ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85]/5 dark:bg-[#EC268F]/10 text-[#5D3E85] dark:text-[#EC268F]' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-[#C9BED4] hover:bg-gray-50 dark:hover:bg-white/5'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="payment"
+                          checked={paymentMethod === 'cash_on_delivery'}
+                          onChange={() => setPaymentMethod('cash_on_delivery')}
+                          className="text-[#5D3E85] focus:ring-[#5D3E85] w-4 h-4 cursor-pointer"
+                        />
+                        <div>
+                          <span className="font-bold text-xs block text-[#221B2B] dark:text-[#F3EFF6]">Cash on Delivery (COD)</span>
+                          <span className="text-[9px] text-gray-400 dark:text-[#9B8EA9] block mt-0.5">Pay when your order arrives</span>
+                        </div>
+                      </div>
+                      <Banknote className="w-4 h-4 text-[#5D3E85] dark:text-[#EC268F] shrink-0" />
+                    </label>
+                  )}
+                </div>
+
+                {/* Conditional Bank Details display */}
+                {paymentMethod === 'bank_transfer' && (
+                  <div className="bg-[#FAF7FC] dark:bg-white/5 rounded-2xl p-5 text-xs text-gray-600 dark:text-[#C9BED4] flex flex-col gap-2 leading-relaxed animate-fade-in border border-gray-100 dark:border-white/10 shadow-3xs">
+                    <span className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6] text-xs tracking-wider border-b border-[#5D3E85]/10 pb-1.5 ">Our Bank Details:</span>
+                    <p className="mt-1">🏦 <strong>Bank:</strong> {settings.bank_name}</p>
+                    <p>🔢 <strong>Account Number:</strong> {settings.bank_account_number}</p>
+                    <p>👤 <strong>Account Name:</strong> {settings.bank_account_name}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-[#9B8EA9] mt-1 leading-normal border-t border-[#5D3E85]/10 pt-1.5">⚠️ Please transfer the exact amount and save your receipt for instant confirmation.</p>
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Order Notes (Optional)</label>
+                  <textarea
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                    rows="2"
+                    className="px-4 py-3 rounded-2xl border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full resize-none leading-relaxed h-20 font-medium"
+                    placeholder="e.g. Delivery landmarks or call-before-delivery instructions..."
+                  ></textarea>
+                </div>
+
+                <CaptchaWidget
+                  settings={settings}
+                  formType="checkout"
+                  verified={checkoutCaptchaVerified}
+                  setVerified={setCheckoutCaptchaVerified}
+                />
+
+                {errorMsg && (
+                  <div className="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl p-4 text-xs font-semibold">
+                    {errorMsg}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-4 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold tracking-wider rounded-full flex items-center justify-center gap-1.5 shadow-md transition-all duration-300 hover:scale-[1.01] active:scale-[0.98] cursor-pointer btn-spring"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Processing Order...
+                    </>
+                  ) : (
+                    ['paystack', 'stripe', 'paypal', 'flutterwave'].includes(paymentMethod)
+                      ? 'Proceed to Pay Online'
+                      : paymentMethod === 'cash_on_delivery'
+                        ? 'Place Order via Cash on Delivery'
+                        : 'Place Order via Bank Transfer'
+                  )}
+                </button>
+              </form>
+            )}
+
           </div>
 
-          <div className="border-t border-primary/5 pt-4 flex flex-col gap-3 text-xs text-gray-600 shrink-0">
-            <div className="flex justify-between items-center text-base py-1">
-              <span className="font-semibold text-gray-700">Subtotal</span>
-              <span className="font-serif text-xl font-bold text-gray-950">{currencySymbol}{getSubtotal().toLocaleString()}</span>
-            </div>
-            {coupon && (
-              <div className="flex justify-between text-green-600">
-                <span>Discount ({coupon.code})</span>
-                <span>- {currencySymbol}{getDiscountAmount().toLocaleString()}</span>
+          {/* Right Column: Floating Sticky Order Summary Card */}
+          <div className="lg:col-span-4 w-full">
+            <div className="sticky top-24 z-30 bg-white/95 dark:bg-[#1E1528]/95 backdrop-blur-xl border border-[#EADBEE] dark:border-white/10 rounded-3xl p-6 shadow-xl flex flex-col gap-4 text-left transition-all duration-300">
+              <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/10 pb-3">
+                <h3 className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6] text-lg">Your Order</h3>
+                <span className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-[#5D3E85]/10 text-[#5D3E85] dark:text-[#EC268F]">
+                  {items.reduce((s, i) => s + i.quantity, 0)} Items
+                </span>
               </div>
-            )}
-            <div className="flex justify-between">
-              <span>Delivery method</span>
-              <span className="font-semibold text-gray-900 capitalize">{deliveryMethod}</span>
-            </div>
-            {deliveryMethod === 'delivery' && (
-              <div className="flex flex-col gap-1 border-t border-b border-gray-100 py-1.5 my-1">
-                {getAppliedShippingRates(settings).map((rate, i) => (
-                  <div key={i} className="flex justify-between text-[11px] text-gray-550">
-                    <span>{rate.name}</span>
-                    <span className="font-semibold text-gray-850">{currencySymbol}{rate.amount.toLocaleString()}</span>
+              
+              {/* Product items scroll area */}
+              <div className="flex flex-col gap-2 max-h-[35vh] overflow-y-auto pr-1.5 overscroll-contain">
+                {items.map((item) => (
+                  <div key={`${item.product_id}-${item.product_variant_id}`} className="flex justify-between items-center gap-3 text-xs p-2.5 bg-[#FAF7FC] dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-3xs">
+                    <div className="min-w-0 flex-1">
+                      <span className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6] truncate block leading-tight">{item.name}</span>
+                      <span className="text-[9px] text-gray-400 dark:text-[#9B8EA9] block mt-0.5 truncate">{item.variant_label || 'Standard selection'}</span>
+                    </div>
+                    <div className="shrink-0 text-right flex flex-col items-end gap-1">
+                      <span className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6]">{currencySymbol}{(item.price * item.quantity).toLocaleString()}</span>
+                      <span className="inline-flex min-w-5 h-5 px-1.5 items-center justify-center rounded-full bg-[#5D3E85]/15 dark:bg-[#EC268F]/20 text-[#5D3E85] dark:text-[#EC268F] text-[9px] font-extrabold">×{item.quantity}</span>
+                    </div>
                   </div>
                 ))}
               </div>
-            )}
-            <div className="flex justify-between items-center gap-4 border-t border-primary/10 pt-4 text-gray-900 mt-1">
-              <span className="text-base md:text-lg font-extrabold">Total Amount</span>
-              <span className="text-primary font-serif text-2xl md:text-3xl font-bold leading-none text-right">{currencySymbol}{getTotal(settings).toLocaleString()}</span>
+
+              {/* Price breakdown and shipping surcharges */}
+              <div className="border-t border-gray-100 dark:border-white/10 pt-4 flex flex-col gap-2.5 text-xs text-gray-600 dark:text-[#C9BED4]">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-500 dark:text-[#9B8EA9]">Subtotal</span>
+                  <span className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6]">{currencySymbol}{getSubtotal().toLocaleString()}</span>
+                </div>
+
+                {getDiscountAmount() > 0 && (
+                  <div className="flex justify-between items-center text-xs text-green-600 dark:text-green-400">
+                    <span>Discount Code</span>
+                    <span className="font-bold">-{currencySymbol}{getDiscountAmount().toLocaleString()}</span>
+                  </div>
+                )}
+
+                {/* Dynamic Applied Shipping Breakdown */}
+                <div className="flex flex-col gap-1 py-1 border-y border-dashed border-gray-100 dark:border-white/10">
+                  {deliveryMethod === 'pickup' ? (
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-gray-500 dark:text-[#9B8EA9]">Boutique Pickup</span>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">FREE</span>
+                    </div>
+                  ) : (
+                    <>
+                      {getAppliedShippingRates(settings).map((rateLine, idx) => (
+                        <div key={idx} className="flex justify-between items-center text-[11px]">
+                          <span className="text-gray-500 dark:text-[#9B8EA9] truncate pr-2">{rateLine.name}</span>
+                          <span className="font-semibold text-[#221B2B] dark:text-[#F3EFF6] shrink-0">
+                            {rateLine.amount === 0 ? (
+                              <span className="text-emerald-600 dark:text-emerald-400 font-bold">FREE</span>
+                            ) : (
+                              `${currencySymbol}${rateLine.amount.toLocaleString()}`
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                      <div className="flex justify-between items-center text-xs pt-1">
+                        <span className="font-bold text-gray-700 dark:text-gray-300">Total Shipping Fee</span>
+                        <span className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6]">{currencySymbol}{getDeliveryFee(settings).toLocaleString()}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex justify-between items-center gap-4 border-t border-gray-100 dark:border-white/10 pt-3 text-[#221B2B] dark:text-[#F3EFF6] mt-0.5">
+                  <div className="flex flex-col">
+                    <span className="font-bold text-xs  tracking-wider text-gray-400 dark:text-[#9B8EA9]">Total Due</span>
+                    <span className="text-[9px] text-gray-400 dark:text-[#9B8EA9]">VAT & Taxes Included</span>
+                  </div>
+                  <span className="text-[#5D3E85] dark:text-[#EC268F] text-2xl md:text-3xl font-extrabold leading-none text-right">
+                    {currencySymbol}{getTotal(settings).toLocaleString()}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
+
         </div>
       </div>
 
-      {/* DYNAMIC GATEWAY OVERLAY MODAL */}
-      {showPaystackModal && createdOrderDetails && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl flex flex-col gap-6 text-center border border-gray-100 animate-scale-up">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white text-xl mx-auto font-bold font-serif ${
-              paymentMethod === 'paystack' ? 'bg-emerald-500' :
-              paymentMethod === 'stripe' ? 'bg-indigo-600' :
-              paymentMethod === 'paypal' ? 'bg-blue-600' : 'bg-amber-500'
-            }`}>
-              {paymentMethod === 'paystack' && 'P'}
-              {paymentMethod === 'stripe' && 'S'}
-              {paymentMethod === 'paypal' && 'P'}
-              {paymentMethod === 'flutterwave' && 'F'}
-            </div>
+      {/* DYNAMIC GATEWAY OVERLAY MODAL (PORTALED DIRECTLY TO DOCUMENT.BODY) */}
+      {showPaystackModal && createdOrderDetails && createPortal(
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[999999] flex items-center justify-center p-4 overflow-y-auto overscroll-contain">
+          <div className="bg-white dark:bg-[#1E1528] rounded-3xl p-7 max-w-md w-full shadow-2xl flex flex-col gap-6 text-center border border-[#EADBEE] dark:border-white/12 animate-scale-up my-auto relative z-10">
             
-            <div className="flex flex-col gap-1.5">
-              <h3 className="font-bold text-gray-900 text-lg capitalize">{paymentMethod} Sandbox checkout</h3>
-              <p className="text-xs text-gray-500">
-                Simulating secure online transaction for order <strong className="text-gray-800">{createdOrderDetails.order_number}</strong>.
+            {/* Gateway Icon / Logo Badge */}
+            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white mx-auto font-bold shadow-lg p-2.5 ${
+              paymentMethod === 'paystack' ? 'bg-white shadow-emerald-500/20 border border-emerald-100' :
+              paymentMethod === 'stripe' ? 'bg-white shadow-indigo-500/20 border border-indigo-100' :
+              paymentMethod === 'paypal' ? 'bg-white shadow-blue-500/20 border border-blue-100' :
+              'bg-gradient-to-tr from-[#5D3E85] to-[#EC268F] shadow-[#5D3E85]/20'
+            }`}>
+              {paymentMethod === 'paystack' && <PaystackLogo className="h-6 w-auto" />}
+              {paymentMethod === 'stripe' && <StripeLogo className="h-5 w-auto" />}
+              {paymentMethod === 'paypal' && <PayPalLogo className="h-6 w-auto" />}
+              {paymentMethod === 'flutterwave' && <span className="text-xl font-extrabold text-white">F</span>}
+            </div>
+
+            <div>
+              <span className="text-[10px] tracking-widest font-extrabold text-[#5D3E85] dark:text-[#EC268F] block mb-1">
+                {paymentMethod === 'paypal' ? 'PayPal Gateway' : 'Secure Online Payment'}
+              </span>
+              <h3 className="font-extrabold text-xl text-[#221B2B] dark:text-[#F3EFF6]">
+                {paymentMethod === 'paypal' ? 'Complete purchase with PayPal' : 'Complete secure payment'}
+              </h3>
+              <p className="text-xs text-gray-500 dark:text-[#9B8EA9] mt-1.5 leading-relaxed">
+                {paymentMethod === 'paypal'
+                  ? (paypalSubMethod === 'paypal_credit_card' && !cardFieldsUnavailable
+                      ? 'Enter your card details below to pay securely without leaving this page.'
+                      : 'You will be securely redirected to PayPal to sign in and authorize your payment.')
+                  : `Please authorize payment for Order #${createdOrderDetails.order_number}`}
               </p>
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-4 text-left flex flex-col gap-2 border border-gray-100 text-xs">
-              <div className="flex justify-between text-gray-500">
+            {/* PayPal Funding Options Selection (when PayPal gateway is chosen) */}
+            {paymentMethod === 'paypal' && (
+              <div className="flex flex-col gap-2 text-left">
+                <span className="text-[10px] font-bold text-gray-400 dark:text-[#9B8EA9] uppercase tracking-wider">
+                  Select payment source
+                </span>
+                <div className="flex flex-col gap-2">
+                  <label
+                    onClick={() => setPaypalSubMethod('paypal_balance')}
+                    className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
+                      paypalSubMethod === 'paypal_balance'
+                        ? 'border-[#0079C1] bg-blue-50/60 dark:bg-blue-950/30 text-gray-900 dark:text-white shadow-xs'
+                        : 'border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="paypal_sub"
+                        checked={paypalSubMethod === 'paypal_balance'}
+                        onChange={() => setPaypalSubMethod('paypal_balance')}
+                        className="text-[#0079C1] focus:ring-[#0079C1] w-4 h-4 cursor-pointer"
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#221B2B] dark:text-[#F3EFF6]">PayPal account balance</span>
+                        <span className="text-[10px] text-gray-500 dark:text-[#9B8EA9]">Fast 1-click checkout with existing balance or linked bank</span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+                      Standard
+                    </span>
+                  </label>
+
+                  <label
+                    onClick={() => setPaypalSubMethod('paypal_credit_card')}
+                    className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
+                      paypalSubMethod === 'paypal_credit_card'
+                        ? 'border-[#0079C1] bg-blue-50/60 dark:bg-blue-950/30 text-gray-900 dark:text-white shadow-xs'
+                        : 'border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="paypal_sub"
+                        checked={paypalSubMethod === 'paypal_credit_card'}
+                        onChange={() => setPaypalSubMethod('paypal_credit_card')}
+                        className="text-[#0079C1] focus:ring-[#0079C1] w-4 h-4 cursor-pointer"
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#221B2B] dark:text-[#F3EFF6]">Debit or credit card via PayPal</span>
+                        <span className="text-[10px] text-gray-500 dark:text-[#9B8EA9]">Visa, MasterCard, American Express, Discover</span>
+                      </div>
+                    </div>
+                    <CreditCard className="w-4 h-4 text-gray-500 dark:text-gray-400 shrink-0" />
+                  </label>
+
+                  <label
+                    onClick={() => setPaypalSubMethod('paypal_pay_in_4')}
+                    className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
+                      paypalSubMethod === 'paypal_pay_in_4'
+                        ? 'border-[#0079C1] bg-blue-50/60 dark:bg-blue-950/30 text-gray-900 dark:text-white shadow-xs'
+                        : 'border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="radio"
+                        name="paypal_sub"
+                        checked={paypalSubMethod === 'paypal_pay_in_4'}
+                        onChange={() => setPaypalSubMethod('paypal_pay_in_4')}
+                        className="text-[#0079C1] focus:ring-[#0079C1] w-4 h-4 cursor-pointer"
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-[#221B2B] dark:text-[#F3EFF6]">PayPal Pay in 4</span>
+                        <span className="text-[10px] text-gray-500 dark:text-[#9B8EA9]">Split total into 4 interest-free bi-weekly payments</span>
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                      0% Interest
+                    </span>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {/* Inline PayPal card form — keeps the buyer on-site for card payments */}
+            {paymentMethod === 'paypal' && paypalSubMethod === 'paypal_credit_card' && !cardFieldsUnavailable && createdOrderDetails?.paypal_order_id && (
+              <PayPalCardFields
+                paypalOrderId={createdOrderDetails.paypal_order_id}
+                orderNumber={createdOrderDetails.order_number}
+                amountLabel={`${currencySymbol}${parseFloat(createdOrderDetails?.total_amount || getTotal(settings)).toLocaleString()}`}
+                onSuccess={handlePayPalCardSuccess}
+                onFallbackRequired={() => setCardFieldsUnavailable(true)}
+              />
+            )}
+
+            {/* Order Tally Box */}
+            <div className="bg-[#FAF7FC] dark:bg-white/5 rounded-2xl p-4 text-left flex flex-col gap-2.5 border border-[#EADBEE] dark:border-white/10 text-xs">
+              <div className="flex justify-between text-gray-500 dark:text-[#9B8EA9]">
                 <span>Merchant</span>
-                <span className="font-bold text-gray-800">Dansolam</span>
+                <span className="font-bold text-gray-800 dark:text-[#F3EFF6]">{ecommerce?.name || 'Dansolam Beauty Home'}</span>
               </div>
-              <div className="flex justify-between text-gray-500">
-                <span>Email</span>
-                <span className="font-bold text-gray-800">{createdOrderDetails.email}</span>
+              <div className="flex justify-between text-gray-500 dark:text-[#9B8EA9]">
+                <span>Account Email</span>
+                <span className="font-bold text-gray-800 dark:text-[#F3EFF6] truncate max-w-[200px]">{createdOrderDetails?.email || customer?.email || email}</span>
               </div>
-              <div className="flex justify-between text-gray-500">
-                <span>Amount Due</span>
-                <span className="font-bold text-primary">{currencySymbol}{parseFloat(createdOrderDetails.total_amount).toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-gray-500">
-                <span>Gateway ref</span>
-                <span className="font-bold text-gray-850 font-mono text-[10px] truncate w-36 text-right">{createdOrderDetails.reference}</span>
+              <div className="flex justify-between text-gray-500 dark:text-[#9B8EA9] pt-2 border-t border-gray-200/50 dark:border-white/10">
+                <span className="font-bold text-gray-700 dark:text-[#C9BED4]">Total Payable</span>
+                <span className="font-extrabold text-[#5D3E85] dark:text-[#EC268F] text-base">{currencySymbol}{parseFloat(createdOrderDetails?.total_amount || getTotal(settings)).toLocaleString()}</span>
               </div>
             </div>
 
-            <div className="flex flex-col gap-2">
+            {/* Action Buttons — the redirect CTA is hidden while inline card fields are active */}
+            <div className="flex flex-col gap-2.5">
+              {!(paymentMethod === 'paypal' && paypalSubMethod === 'paypal_credit_card' && !cardFieldsUnavailable) && (
               <button
+                type="button"
                 onClick={handleCompletePaystackPayment}
                 disabled={paystackLoading}
-                className={`w-full py-3 text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-2 shadow-sm transition-all ${
-                  paymentMethod === 'paystack' ? 'bg-emerald-500 hover:bg-emerald-600' :
-                  paymentMethod === 'stripe' ? 'bg-indigo-600 hover:bg-indigo-700' :
-                  paymentMethod === 'paypal' ? 'bg-blue-600 hover:bg-blue-750' : 'bg-amber-500 hover:bg-amber-605'
+                className={`w-full py-4 text-white text-xs font-extrabold rounded-full flex items-center justify-center gap-2 shadow-lg transition-all btn-spring ${
+                  paymentMethod === 'paystack' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/25' :
+                  paymentMethod === 'stripe' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-500/25' :
+                  paymentMethod === 'paypal' ? 'bg-gradient-to-r from-amber-500 to-blue-600 hover:from-amber-600 hover:to-blue-700 shadow-blue-500/25' : 'bg-[#5D3E85] hover:bg-[#EC268F]'
                 }`}
               >
                 {paystackLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Authorizing payment...
+                    <span>Authorizing payment...</span>
                   </>
                 ) : (
                   <>
                     <CheckCircle className="w-4 h-4" />
-                    Complete Sandbox Payment
+                    <span>
+                      {paymentMethod === 'stripe' ? 'Authorize card payment' :
+                       paymentMethod === 'paypal' ? 'Continue to PayPal →' :
+                       paymentMethod === 'paystack' ? 'Authorize Paystack payment' : 'Complete online payment'}
+                    </span>
                   </>
                 )}
               </button>
+              )}
               <button
+                type="button"
                 onClick={() => setShowPaystackModal(false)}
                 disabled={paystackLoading}
-                className="w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-semibold rounded-lg text-center transition-all"
+                className="w-full py-3 bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 text-gray-600 dark:text-[#C9BED4] text-xs font-bold rounded-full text-center transition-all cursor-pointer"
               >
-                Cancel / Decline Payment
+                Cancel / Return to checkout
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

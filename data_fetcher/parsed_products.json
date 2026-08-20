@@ -1,0 +1,784 @@
+{
+  "categories": [
+    "2 Set",
+    "3 Set",
+    "Balm & Ointment",
+    "Body Cream",
+    "Body Polish",
+    "Body Scrub",
+    "Body Soap",
+    "Children Cream",
+    "Creams",
+    "Face Soap",
+    "Fast Selling Cream",
+    "Fast Selling Soap",
+    "Foot Cream",
+    "Herbs",
+    "Kids",
+    "Oils",
+    "Perfume & Fragrances",
+    "Scrubs",
+    "Soaps",
+    "Women & Men ( Lighter Complexion)",
+    "Women & Men (Chocolate Complexion)"
+  ],
+  "products": [
+    {
+      "wc_id": null,
+      "name": "Glowing Moisturizing 500g (Fast selling)",
+      "slug": "glowing-moisturizing-500g-fast-selling",
+      "sku": "DSL-None",
+      "regular_price": 64.99,
+      "sale_price": null,
+      "short_description": "We also do follow up to give you the best service and up to date with your beautiful skin.\n\\n\n\\nFast selling",
+      "description": "For Glowing Moisturizing.. Fast/ Best selling product ? three in one action, the rich formula of dansolam Moisturising Cream it helps to protect the skin's natural with three essential ceramides MVE technology to provide daily instant and long-lasting hydration, with this moisturizing cream it takes you gradually to the top and beyond....\\n\\nOne in all try this product and thank us later. \u2764\ufe0f\\n\\n\\n\\nLooking Good Is Our Pride!",
+      "categories": [
+        "Body Cream",
+        "Creams",
+        "Fast Selling Cream"
+      ],
+      "images": [
+        "/storage/products/21.png",
+        "/storage/products/glowing-moisturing.jpg"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Whitening cream 500g",
+      "slug": "whitening-cream-500g",
+      "sku": "DSL-None",
+      "regular_price": 108.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "Dansolam whitening (very Stronge)the percentage can be increased.. This Effect cream is specially formulated to smooth out the skin tone progressively reducing spot coloration and increasing luminosity, while also preventing the appearance of fine wrinkles and expression lines.",
+      "categories": [
+        "Body Cream",
+        "Creams",
+        "Fast Selling Cream",
+        "Women & Men ( Lighter Complexion)"
+      ],
+      "images": [
+        "/storage/products/2.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Ebony cream 500g",
+      "slug": "ebony-cream-500g",
+      "sku": "DSL-None",
+      "regular_price": 55.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "Dansolam Ebony Cream\n\\n\n\\nA rich, natural formula designed for every skin tone; Dansolam Ebony Cream restores softness, boosts radiance, and keeps skin beautifully balanced, and enhance all skin types with deep, lasting moisture.\ud83d\udc96",
+      "categories": [
+        "Body Cream",
+        "Creams",
+        "Women & Men (Chocolate Complexion)"
+      ],
+      "images": [
+        "/storage/products/16.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Children cream 500g",
+      "slug": "children-cream-500g",
+      "sku": "DSL-None",
+      "regular_price": 43.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "Dansolam Children Cream\n\\n\n\\nEnriched with pure aloe vera to soothe, protect, and hydrate delicate skin naturally.\n\\nSoft, calming aloe vera formula designed for sensitive young skin\u2014nourishes, comforts, and keeps skin healthy all day.",
+      "categories": [
+        "Body Cream",
+        "Children Cream",
+        "Creams",
+        "Kids"
+      ],
+      "images": [
+        "/storage/products/7.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Whitening Polish Soap 750ml",
+      "slug": "whitening-polish-soap-750ml",
+      "sku": "DSL-None",
+      "regular_price": 59.99,
+      "sale_price": null,
+      "short_description": "Whitening polish (strong)",
+      "description": "Whitening polish (strong) this product is a combination of organic ingredients that purify/exfoliate the pores also moisturize your skin. For best results on your skin don\u2019t miss out on this polish whitening saop every woman needs it for flawless and glowing skin. (Results in 5days )",
+      "categories": [
+        "Body Polish",
+        "Body Soap",
+        "Soaps",
+        "Women & Men ( Lighter Complexion)"
+      ],
+      "images": [
+        "/storage/products/14.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Body and face scrub 500g",
+      "slug": "body-and-face-scrub-500g",
+      "sku": "DSL-None",
+      "regular_price": 33.99,
+      "sale_price": null,
+      "short_description": "Body and face scrub",
+      "description": "Body and face scrub.. Perfect for all skin type..\n\\n\n\\nOur exfoliating scrub is ?% Organic ingredients which help to clarify blockage and reduce the appearance of enlarged pores.\n\\n\n\\nit also removes surface oil and dead skin cells..\n\\n\n\\nGentle touch for weekly use, skin feels soft and smooth always ...",
+      "categories": [
+        "Body Scrub",
+        "Scrubs"
+      ],
+      "images": [
+        "/storage/products/15.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Essential Oil 250g",
+      "slug": "essential-oil-250g",
+      "sku": "DSL-None",
+      "regular_price": 33.99,
+      "sale_price": null,
+      "short_description": "For all skin type, suitable for men, women and children",
+      "description": "For all skin type, suitable for men, women and children.\n\\n\n\\nRemoves eczema, rashes and all.\n\\n\n\\nAntibacterial leaving the skin smooth and glowing\n\\n\n\\nAll Natural ingredients 100%\n\\n\n\\n",
+      "categories": [
+        "Kids",
+        "Oils",
+        "Women & Men (Chocolate Complexion)"
+      ],
+      "images": [
+        "/storage/products/24.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Discoloration Oil 250g",
+      "slug": "discoloration-oil-250g",
+      "sku": "DSL-None",
+      "regular_price": 40.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "Dansolam Discoloration Oil\n\\n\n\\n\u2b50Bold & Straightforward\n\\n\n\\n\n\\nFast-acting discoloration oil with pure almond extract and organic herbs. Targets dark spots, boosts clarity, and leaves skin visibly brighter. Looking Good Is Our Pride \ud83d\udc96",
+      "categories": [
+        "Kids",
+        "Oils",
+        "Women & Men (Chocolate Complexion)"
+      ],
+      "images": [
+        "/storage/products/22.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Glowing Black Soap (New Formula) 500g",
+      "slug": "glowing-black-soap-new-formula-500g",
+      "sku": "DSL-None",
+      "regular_price": 26.99,
+      "sale_price": null,
+      "short_description": "Glowing Soap",
+      "description": "Dansolam Glowing Black Soap cleanses, brightens, and smooths the skin with natural herbal ingredients.",
+      "categories": [
+        "Body Soap",
+        "Soaps",
+        "Women & Men (Chocolate Complexion)"
+      ],
+      "images": [
+        "/storage/products/Untitled-design13.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "3 SET (Whitening Cream  Whitening Polish Soap and Scrub)",
+      "slug": "3-set-whitening-cream-whitening-polish-soap-and-scrub",
+      "sku": "DSL-None",
+      "regular_price": 200.99,
+      "sale_price": null,
+      "short_description": "Whitening cream\n\\nWhitening body polish and scrub",
+      "description": "",
+      "categories": [
+        "Body Cream",
+        "Body Scrub",
+        "Creams",
+        "Scrubs",
+        "Women & Men ( Lighter Complexion)"
+      ],
+      "images": [
+        "/storage/products/13.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "3 SET (Whitening polish Soap Glowing moisturizing and scrub)",
+      "slug": "3-set-whitening-polish-soap-glowing-moisturizing-and-scrub",
+      "sku": "DSL-None",
+      "regular_price": 157.99,
+      "sale_price": 142.99,
+      "short_description": "Whitening body polish\n\\nGlowing moisturizing and scrub",
+      "description": "Whitening body polish\n\\nGlowing moisturizing and scrub",
+      "categories": [
+        "Body Cream",
+        "Body Scrub",
+        "Scrubs",
+        "Soaps"
+      ],
+      "images": [
+        "/storage/products/8.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Glowing Black Soap(New Formula) 250g",
+      "slug": "glowing-black-soap-new-formula-250g",
+      "sku": "DSL-None",
+      "regular_price": 23.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "",
+      "categories": [
+        "Soaps",
+        "Women & Men (Chocolate Complexion)"
+      ],
+      "images": [
+        "/storage/products/Untitled-design13.png"
+      ],
+      "is_featured": false,
+      "in_stock": false
+    },
+    {
+      "wc_id": null,
+      "name": "3 SET (Ebony cream Glowing Black Soap and scrub )",
+      "slug": "3-set-ebony-cream-glowing-black-soap-and-scrub",
+      "sku": "DSL-None",
+      "regular_price": 124.99,
+      "sale_price": null,
+      "short_description": "\\n\n\\n \n\\n\n\\nEbony cream\n\\nGlowing Soap and scrub",
+      "description": "Ebony cream\n\\nGlowing Soap and scrub",
+      "categories": [
+        "3 Set",
+        "Creams",
+        "Scrubs",
+        "Soaps",
+        "Women & Men (Chocolate Complexion)"
+      ],
+      "images": [
+        "/storage/products/6.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "2 SET Discoloration oil & scrub (Perfect for all skin)",
+      "slug": "2-set-discoloration-oil-scrub-perfect-for-all-skin",
+      "sku": "DSL-None",
+      "regular_price": 72.99,
+      "sale_price": null,
+      "short_description": "Perfect for dark skin.",
+      "description": "Essential oil & scrub",
+      "categories": [
+        "Body Scrub",
+        "Oils",
+        "Scrubs"
+      ],
+      "images": [
+        "/storage/products/Untitled-design10.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "3 SET (Discoloration Oil,  Whitening Body Polish Soap and Scrub)",
+      "slug": "3-set-discoloration-oil-whitening-body-polish-soap-and-scrub",
+      "sku": "DSL-None",
+      "regular_price": 135.99,
+      "sale_price": null,
+      "short_description": "3 SET (Essential Oil, Whitening Body Polish and Scrub)",
+      "description": "3 SET (Essential Oil, Whitening Body Polish and Scrub)",
+      "categories": [
+        "3 Set",
+        "Scrubs",
+        "Soaps",
+        "Women & Men ( Lighter Complexion)"
+      ],
+      "images": [
+        "/storage/products/Untitled-design11.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "2 SET (Children Cream and Sugar Scrub)",
+      "slug": "2-set-children-cream-and-sugar-scrub",
+      "sku": "set",
+      "regular_price": 80.99,
+      "sale_price": null,
+      "short_description": "2 SET (Children Cream and Sugar Scrub)",
+      "description": "2 SET (Children Cream and Sugar Scrub)",
+      "categories": [
+        "2 Set",
+        "Children Cream",
+        "Creams",
+        "Kids",
+        "Scrubs"
+      ],
+      "images": [
+        "/storage/products/11.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Children cream and Glowing Black Soap 250g",
+      "slug": "children-cream-and-glowing-black-soap-250g",
+      "sku": "DSL-None",
+      "regular_price": 66.99,
+      "sale_price": null,
+      "short_description": "Children cream and Glowing Soap",
+      "description": "Children cream and Glowing Soap",
+      "categories": [
+        "2 Set",
+        "Body Soap",
+        "Children Cream",
+        "Creams",
+        "Kids"
+      ],
+      "images": [
+        "/storage/products/12.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "3 SET (Glowing Moisturizing Cream, Glowing Black Soap 500g and Scrub)",
+      "slug": "3-set-glowing-moisturizing-cream-glowing-black-soap-500g-and-scrub",
+      "sku": "DSL-None",
+      "regular_price": 153.99,
+      "sale_price": null,
+      "short_description": "3 SET (Glowing Moisturizing, Whitening and Scrub)",
+      "description": "3 SET (Glowing Moisturizing, Whitening and Scrub)",
+      "categories": [
+        "3 Set",
+        "Creams",
+        "Scrubs",
+        "Women & Men ( Lighter Complexion)"
+      ],
+      "images": [
+        "/storage/products/Untitled-design12.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Dansolam plus (molato) 500g",
+      "slug": "dansolam-plus-molato-500g",
+      "sku": "soap",
+      "regular_price": 52.99,
+      "sale_price": null,
+      "short_description": "Dansolam plus (molato)\n\\n\n\\nTreats all kinds \u2026\n\\n\n\\nStretch marks\n\\n\n\\nWrinkles\n\\n\n\\nDark spots/ Discoloration\n\\n\n\\nPimples\n\\n\n\\nSunburn Dull skin/ patches\n\\n\n\\nEczem etc ..\n\\n\n\\nlooking Good Is our Pride!",
+      "description": "Dansolam Plus (molato) Soap\n\\n\n\\n\"Tired of dark spots and white patches? Try Dansolam Plus Molato Soap for a visibly clearer and brighter complexion.\"\n\\n\n\\n\"DPM Soap is your natural solution for smooth, even-toned, and glowing skin.\"\n\\n\n\\n\"Made with powerful skin-loving ingredients to fade spots, reduce discolouration, and enhance your skin\u2019s beauty.\"\n\\n\n\\n\"Feel the difference in days \u2013 gentle on skin, tough on blemishes.\"\n\\n\n\\nIt's a Luxury BLACK SOAP, it's very rich and highly effective!!!!!!!\n\\n\n\\nPerfect for Men & Women for glowing skin, avoiding ageing irritation, natural shade, also it exfoliates & moisturises, fades off burns. etc\n\\n\n\\n\n\\n\ud83d\udcafOrganic, Zero chemicals\n\\n\n\\n\n\\nIngredients... Kojic dip, vitamins C, papaya extract & other natural Organic!!!",
+      "categories": [
+        "Body Soap",
+        "Face Soap",
+        "Soaps",
+        "Women & Men ( Lighter Complexion)",
+        "Women & Men (Chocolate Complexion)"
+      ],
+      "images": [
+        "/storage/products/17-1.png",
+        "/storage/products/dans0lam-plus-face-and-b0dy.jpg"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Foot cream Solution (New)50g",
+      "slug": "foot-cream-solution-new-50g",
+      "sku": "DSL-None",
+      "regular_price": 11.99,
+      "sale_price": null,
+      "short_description": "Dansolam Foot Solution\n\\n\n\\nFor Dry, Cracked, Rough and Heels feet with Aloe .\n\\n\n\\nINGREDIENTS: Aloe barbadensis, chloroxylenol,hydroxide, glycerin, disodium EDTA and (water) Aqua etc.",
+      "description": "Dansolam Foot Solution Helps moisture, soften Dry, Cracked and tired feet. it rejuvenate sore and stop itching due to dry skin .\n\\n\n\\nTake a little amount of cream and apply over feet, between toes and under the feet area massage until completely absorbed. Adults and children age 4 and older apply 3 or 4 times daily for 4 to 5 days .\n\\n\n\\nAfterwards, use daily to maintain soft and healthy feet.\n\\n\n\\n\u26a0\ufe0f KEEP OUT OF REACH OF CHILDREN AND AVOID CONTACT WITH EYES .FOR EXTERNAL USE ONLY !",
+      "categories": [
+        "Creams",
+        "Foot Cream"
+      ],
+      "images": [
+        "/storage/products/26.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "3 Set of Essential Oil 250g Each",
+      "slug": "3-set-of-essential-oil-250g-each",
+      "sku": "DSL-None",
+      "regular_price": 97.99,
+      "sale_price": null,
+      "short_description": "3 set of Essential oil",
+      "description": "3 Set of Essential Oil\n\\n\n\\nFor all skin type, suitable for men, women and children.\n\\n\n\\nRemoves eczema, rashes and all.\n\\n\n\\nAntibacterial leaving the skin smooth and glowing\n\\n\n\\nAll Natural ingredients 100%",
+      "categories": [
+        "Oils",
+        "Women & Men ( Lighter Complexion)"
+      ],
+      "images": [
+        "/storage/products/19.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "3 Set of Decorations Oil 250g Each",
+      "slug": "3-set-of-decorations-oil-250g-each",
+      "sku": "DSL-None",
+      "regular_price": 112.99,
+      "sale_price": null,
+      "short_description": "This one 3 set of decorations oil",
+      "description": "\u2b50 Luxury & Natural\n\\nA premium blend of almond oil and organic herbs designed to fade discoloration, even skin tone, and reveal a naturally glowing, flawless finish.",
+      "categories": [
+        "Oils",
+        "Women & Men ( Lighter Complexion)"
+      ],
+      "images": [
+        "/storage/products/20.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Dansolam Plus (HerbaGlow Max) 500g New",
+      "slug": "dansolam-plus-herbaglow-max-500g-new",
+      "sku": "DSL-None",
+      "regular_price": 56.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "\"Say goodbye to dark spots, white patches, and uneven skin tone with Dansolam Plus (HerbalGlow Max)\u2013 the powerful soap that restores your skin\u2019s natural glow. Clear, smooth, radiant skin starts here \u2013 grab yours now!\"\n\\n\n\\nTreats all kinds ...\n\\n\n\\n\"Reveal your true glow.\"\n\\n\n\\n\"Clear skin, confident you.\"\n\\n\n\\n\"From patchy to perfect \u2013 naturally.\"\n\\n\n\\n\"Glow starts here.\"\n\\n\n\\n\"Say goodbye to skin discoloration.\"\n\\n\n\\n\"Your skin deserves better.\"\n\\n\n\\n\"Glow boldly with every wash.\"\n\\n\n\\n\"Smooth. Even. Radiant.\"\n\\n\n\\nPerfect for Men & Women for glowing skin, avoiding ageing irritation, natural shade, also it exfoliates & moisturises, fades off burns. etc\n\\n\n\\n\ud83d\udcaf Organic, Zero chemicals.",
+      "categories": [
+        "Body Soap",
+        "Face Soap",
+        "Fast Selling Soap",
+        "Women & Men ( Lighter Complexion)"
+      ],
+      "images": [
+        "/storage/products/4.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Whitening Shower Gel 750ml",
+      "slug": "whitening-shower-gel-750ml",
+      "sku": "Gel",
+      "regular_price": 73.99,
+      "sale_price": 53.99,
+      "short_description": "Dansolam whitening shower gel is recommended for a lighter skin, strong and effective removal of dark spots, lighting the skin result in few days with a Golden skin.\n\\n\n\\n\n\\n\n\\nplace your order now product coming soon! \n\\n\n\\nYou can't go wrong with this gel \ud83d\udc95",
+      "description": "Whitening shower gel 750g\n\\n\n\\nReveal brighter, smoother skin with our Whitening Shower Gel. Infused with natural extracts, it gently cleanses, exfoliates, and helps even out skin tone. The rich, creamy lather nourishes and hydrates, leaving your skin refreshed, soft, and visibly radiant with every use.",
+      "categories": [
+        "Body Soap",
+        "Fast Selling Soap",
+        "Soaps",
+        "Women & Men ( Lighter Complexion)"
+      ],
+      "images": [
+        "/storage/products/Untitled-design14.png",
+        "/storage/products/Untitled-design14.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Dansolam Face Cream ( Glowing & Spots  Remover With SPF) 30g NEW",
+      "slug": "dansolam-face-cream-glowing-spots-remover-with-spf-30g-new",
+      "sku": "DSL-None",
+      "regular_price": 17.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "Dansolam Glowing & Spot Remover Face Cream .\n\\n\n\\nIntense Toning treatment cream,\n\\n\n\\nPerfect Under Sunshine Day & Night use.\n\\n\n\\nWith SPF 30\n\\n\n\\nGive it a try, and thank us later .\n\\n\n\\nLooking Good Is Our Pride!",
+      "categories": [
+        "Creams",
+        "Women & Men ( Lighter Complexion)",
+        "Women & Men (Chocolate Complexion)"
+      ],
+      "images": [
+        "/storage/products/28.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Action oil (Face & Body)30g",
+      "slug": "action-oil-face-body-30g",
+      "sku": "DSL-None",
+      "regular_price": 19.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "Dansolam 7 days action oil is not just an ordinary oil the benefits are unbelievable but true \ud83d\udcaf\n\\n\n\\nAction oil help rejuvenate your skin, peel your dead and old skin, improves skin elasticity and reduce the look of dark spots. Skin will peel off naturally. *DO NOT FORCE OUT *\n\\n\n\\n**DO NOT USE SCRUB ON THE AREA APPLIED**\n\\n\n\\n\n\\n\n\\nIngredients\n\\n\n\\nSALICYLIC ACID\n\\n\n\\nPEG-400\n\\n\n\\nGLYCERIN\n\\n\n\\nTAURINE\n\\n\n\\nMATRICARIA) FLOWER EXTRACT\n\\n\n\\n(ROSEMARY) LEAF EXTRACT\n\\n\n\\nETC\n\\n\n\\n\n\\nLooking Good Is Our Pride!",
+      "categories": [
+        "Oils"
+      ],
+      "images": [
+        "/storage/products/27.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Extract Herbal Skin Lightening Soap",
+      "slug": "extract-herbal-skin-lightening-soap",
+      "sku": "DSL-None",
+      "regular_price": 3.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "Herbal extract formula that helps brighten and refresh the skin naturally.",
+      "categories": [
+        "Soaps",
+        "Women & Men ( Lighter Complexion)"
+      ],
+      "images": [
+        "/storage/products/29.png"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Crimson Petal (10g)",
+      "slug": "crimson-petal-10g",
+      "sku": "DSL-None",
+      "regular_price": 19.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "A rich, romantic blend that clings to your skin and clothes for days. Crimson Petal is elegance that lingers long after you\u2019ve left the room.",
+      "categories": [
+        "Perfume & Fragrances"
+      ],
+      "images": [
+        "/storage/products/IMG-20250730-WA0035.jpg",
+        "/storage/products/IMG-20250730-WA0035.jpg",
+        "/storage/products/IMG-20250730-WA0032.jpg",
+        "/storage/products/IMG-20250730-WA0033.jpg"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Lustra (10g)",
+      "slug": "lustra-10g",
+      "sku": "DSL-None",
+      "regular_price": 19.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "Light, golden, and radiant, Lustra shines in summer heat or cool winds, staying fresh and captivating on skin and clothes for days.",
+      "categories": [
+        "Perfume & Fragrances"
+      ],
+      "images": [
+        "/storage/products/IMG-20250730-WA0037.jpg",
+        "/storage/products/IMG-20250730-WA0029.jpg",
+        "/storage/products/IMG-20250730-WA0037.jpg",
+        "/storage/products/IMG-20250731-WA0009.jpg",
+        "/storage/products/IMG-20250731-WA0011.jpg"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Essenza (10ml)",
+      "slug": "essenza-10ml",
+      "sku": "DSL-None",
+      "regular_price": 19.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "Pure, clean, and effortlessly luxurious. Essenza is the scent that stays with you, even through the hottest days or breeziest nights.",
+      "categories": [
+        "Perfume & Fragrances"
+      ],
+      "images": [
+        "/storage/products/IMG-20250730-WA0034.jpg",
+        "/storage/products/IMG-20250730-WA0034.jpg",
+        "/storage/products/IMG-20250731-WA0012.jpg",
+        "/storage/products/IMG-20250730-WA0011.jpg",
+        "/storage/products/IMG-20250730-WA0014.jpg",
+        "/storage/products/IMG-20250730-WA0026.jpg",
+        "/storage/products/IMG-20250730-WA0027.jpg",
+        "/storage/products/IMG-20250730-WA0030.jpg"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Oleya (10g)",
+      "slug": "oleya-10g",
+      "sku": "DSL-None",
+      "regular_price": 19.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "Warm, airy, and deeply sensual, Oleya melts into your skin and fabric, lasting beautifully through sunlit days and windy evenings.",
+      "categories": [
+        "Perfume & Fragrances"
+      ],
+      "images": [
+        "/storage/products/IMG-20250730-WA0044.jpg",
+        "/storage/products/IMG-20250730-WA0048.jpg",
+        "/storage/products/IMG-20250730-WA0044.jpg"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Earthy & Natural (10g)",
+      "slug": "earthy-natural-10g",
+      "sku": "DSL-None",
+      "regular_price": 18.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "Crisp, clean, and grounded\u2014this fresh scent blends perfectly with summer air or earthy winds, staying true on your skin and clothes for days.",
+      "categories": [
+        "Perfume & Fragrances"
+      ],
+      "images": [
+        "/storage/products/IMG-20250730-WA0018.jpg",
+        "/storage/products/IMG-20250730-WA0022.jpg",
+        "/storage/products/IMG-20250730-WA0017.jpg",
+        "/storage/products/IMG-20250730-WA0015.jpg",
+        "/storage/products/IMG-20250730-WA0018.jpg"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Wild Bloom (10g)",
+      "slug": "wild-bloom-10g",
+      "sku": "DSL-None",
+      "regular_price": 19.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "Bursting with life and colour, Wild Bloom is your perfect companion in warm winds and sunny days, lingering with a floral charm that lasts.",
+      "categories": [
+        "Perfume & Fragrances"
+      ],
+      "images": [
+        "/storage/products/IMG-20250730-WA0021.jpg",
+        "/storage/products/IMG-20250730-WA0020.jpg",
+        "/storage/products/IMG-20250730-WA0021.jpg"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Desert Mirage (10g) Fast Selling",
+      "slug": "desert-mirage-10g-fast-selling",
+      "sku": "DSL-None",
+      "regular_price": 19.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "Mystical and captivating. Desert Miraga lingers like a dream, long-lasting, bold, and unforgettable on both skin and fabric.",
+      "categories": [
+        "Perfume & Fragrances"
+      ],
+      "images": [
+        "/storage/products/IMG-20250730-WA0036.jpg",
+        "/storage/products/IMG-20250730-WA0043.jpg",
+        "/storage/products/IMG-20250730-WA0042.jpg"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Herbal Balm",
+      "slug": "herbal-balm",
+      "sku": "DSL-None",
+      "regular_price": 4.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "GOLDEN HERBAL MIXTURE BALM\\n\\n\\nGolden herbal mixture balm  contains 10 ingredients and works effectively for all forms of inflamations, pains, rhematism and arthiritis.",
+      "categories": [
+        "Balm & Ointment"
+      ],
+      "images": [
+        "/storage/products/WhatsApp-Image-2025-12-05-at-01.53.39-1.jpeg"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Golden Herbal Mixture",
+      "slug": "golden-herbal-mixture",
+      "sku": "DSL-None",
+      "regular_price": 16.5,
+      "sale_price": null,
+      "short_description": "",
+      "description": "GOLDEN HERBAL MIXTURE:\n\\n\n\\n\n\\nGolden herb mixture works effectively\n\\n\n\\n\n\\n* For Insomnia.\n\\n* Improves and prevent memory loss.\n\\n* Enhances clarity of eye sight.\n\\n* It manages dry cough, asthmatic cough, whopping cough and other bronchial related diseases.\n\\n* It manages heart related diseases-Atherosclerosis,       hypertention and high blood preasure.\n\\n* It gradually shrinks fibroid and manages prostrate enlargement issues.\n\\n* It helps cures stomach related ilnesses - stomache ache, diarrhea, constipation.\n\\n* It helps in kidney, urinary, bladder, liver and pancreatic diseases.\n\\n* It cures all erectile dysfunction related diseases, sexual improvement, improves fertility in both men and women.\n\\n* Golden herbal mixture is a natural tonic, a body cleanser, removes bad cholesterol, toxic, bacterials and free radicals from the body.",
+      "categories": [
+        "Herbs"
+      ],
+      "images": [
+        "/storage/products/WhatsApp-Image-2025-12-05-at-01.53.25.jpeg"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    },
+    {
+      "wc_id": null,
+      "name": "Golden Herbal Mixture (Pack of 6 bottles of herbal drink and one bottle of eye drop)",
+      "slug": "golden-herbal-mixture-pack-of-6-bottles-of-herbal-drink-and-one-bottle-of-eye-drop",
+      "sku": "DSL-None",
+      "regular_price": 85.99,
+      "sale_price": null,
+      "short_description": "",
+      "description": "GOLDEN HERBAL MIXTURE:\n\\n\n\\nGolden herb mixture works effectively\n\\n\n\\n* For Insomnia.\n\\n\n\\n* Improves and prevent memory loss.\n\\n\n\\n* Enhances clarity of eye sight.\n\\n\n\\n* It manages dry cough, asthmatic cough, whopping cough and other bronchial related diseases.\n\\n\n\\n* It manages heart related diseases-Atherosclerosis, hypertention and high blood preasure.\n\\n\n\\n* It gradually shrinks fibroid and manages prostrate enlargement issues.\n\\n\n\\n* It helps cures stomach related ilnesses - stomache ache, diarrhea, constipation.\n\\n\n\\n* It helps in kidney, urinary, bladder, liver and pancreatic diseases.\n\\n\n\\n* It cures all erectile dysfunction related diseases, sexual improvement, improves fertility in both men and women.\n\\n\n\\n* Golden herbal mixture is a natural tonic, a body cleanser, removes bad cholesterol, toxic, bacterials and free radicals from the body.\n\\n\n\\n\n\\n\n\\nGOLDEN HERBAL EYE DROP\n\\n\n\\nGolden herbal mixture is a combo with the mixture. It works effectively for glaucoma, cataract and all forms of eyes infection.",
+      "categories": [
+        "Herbs"
+      ],
+      "images": [
+        "/storage/products/WhatsApp-Image-2025-12-05-at-01.53.25.jpeg"
+      ],
+      "is_featured": false,
+      "in_stock": true
+    }
+  ]
+}

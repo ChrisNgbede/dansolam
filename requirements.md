@@ -1,10 +1,10 @@
-Below is a reusable **Product Requirements Document / Software Requirements Specification** for a ecommerce ecommerce platform. The sample ecommerce is **FairQueen Collections**, whose public Instagram profile describes the brand as selling **designer clothing, shoes and bags**, with Monday–Saturday opening hours, worldwide delivery, and WhatsApp/contact-led sales. ([Instagram][1])
+Below is a reusable **Product Requirements Document / Software Requirements Specification** for a ecommerce ecommerce platform. The sample ecommerce is **Dansolam Beauty Home**, whose public Instagram profile describes the brand as selling **designer clothing, shoes and bags**, with Monday–Saturday opening hours, worldwide delivery, and WhatsApp/contact-led sales. ([Instagram][1])
 
 ---
 
 # Ecommerce Ecommerce Platform Requirements
 
-**Sample Brand:** FairQueen Collections
+**Sample Brand:** Dansolam Beauty Home
 **Technology Stack:** Laravel backend + React frontend
 **Product Type:** Reusable ecommerce platform for fashion ecommerces
 
@@ -12,7 +12,7 @@ Below is a reusable **Product Requirements Document / Software Requirements Spec
 
 The platform will be a modern ecommerce system for ecommerces that sell fashion items such as clothes, shoes, handbags, accessories, designer wear, casual wear, corporate outfits, and seasonal collections.
 
-For the sample brand, the platform should support FairQueen Collections’ current business style: social-media-driven shopping, WhatsApp inquiries, size-based stock, ecommerce pickup, walk-in store visibility, and delivery-based sales. Public listings show examples of products with specific available sizes, such as jumpsuits, suits and sneakers, which means the platform must handle product variations like size, color and quantity properly. ([Instagram][2])
+For the sample brand, the platform should support Dansolam Beauty Home’ current business style: social-media-driven shopping, WhatsApp inquiries, size-based stock, ecommerce pickup, walk-in store visibility, and delivery-based sales. Public listings show examples of products with specific available sizes, such as jumpsuits, suits and sneakers, which means the platform must handle product variations like size, color and quantity properly. ([Instagram][2])
 
 The solution should not be built only for one ecommerce. It should be reusable as a white-label ecommerce ecommerce system where another fashion business can change the logo, colors, categories, payment details, shipping zones, social links, store address and product catalog without changing core code.
 
@@ -219,7 +219,7 @@ Admin should be able to manage:
 * Privacy policy.
 * Terms and conditions.
 
-For FairQueen Collections, sample defaults can include:
+For Dansolam Beauty Home, sample defaults can include:
 
 * Product focus: designer clothing, shoes and bags. ([Instagram][1])
 * Location reference: Abuja/Wuse/Gwarinpa references from public posts. ([Instagram][3])
@@ -250,9 +250,9 @@ Required sections:
 12. Newsletter signup.
 13. Footer with store information.
 
-Sample hero text for FairQueen Collections:
+Sample hero text for Dansolam Beauty Home:
 
-Step Into Style with FairQueen Collections
+Step Into Style with Dansolam Beauty Home
 
 Shop elegant designer clothing, shoes, bags and accessories made for confident women who love standout fashion. Discover new arrivals, available sizes, premium looks and fast delivery from Abuja to your doorstep.
 
@@ -645,7 +645,7 @@ Example:
 | Sneakers |   39 | White |     3 |
 | Sneakers |   40 | White |     2 |
 
-This is important because FairQueen’s public posts show size-specific availability for items like jumpsuits, suits and sneakers. ([Instagram][2])
+This is important because Dansolam’s public posts show size-specific availability for items like jumpsuits, suits and sneakers. ([Instagram][2])
 
 ## 8.5 Category Management
 
@@ -687,7 +687,7 @@ Examples:
 * Wedding Guest.
 * Luxury Bags.
 * Sneakers Drop.
-* FairQueen Picks.
+* Dansolam Picks.
 * Sales Collection.
 
 Admin should be able to:
@@ -1111,7 +1111,7 @@ The interface should be:
 
 ## 11.2 Visual Style
 
-Recommended style for FairQueen Collections:
+Recommended style for Dansolam Beauty Home:
 
 * White or soft neutral background.
 * Black or deep charcoal text.
@@ -1316,7 +1316,7 @@ For Nigerian ecommerces, the privacy policy should align with relevant Nigerian 
 
 # 17. Reusability / Multi-Ecommerce Requirements
 
-To make this reusable for other ecommerces, do not hardcode FairQueen Collections details.
+To make this reusable for other ecommerces, do not hardcode Dansolam Beauty Home details.
 
 The system should support configurable:
 
@@ -1361,7 +1361,7 @@ For SaaS-style reuse:
 Example:
 
 ```text
-fairqueen.yourplatform.com
+dansolam.yourplatform.com
 anotherecommerce.yourplatform.com
 ecommercename.com
 ```
@@ -1634,8 +1634,8 @@ This platform should behave like a modern ecommerce shopping app, not just a bas
 * PWA-style mobile navigation.
 * Reusable ecommerce configuration.
 
-For FairQueen Collections, the first version should focus on designer clothing, shoes, bags, size-based availability, Abuja/store pickup support, WhatsApp ordering and delivery. For other ecommerces, the same system should work by changing branding, products, categories, payment settings and delivery rules.
+For Dansolam Beauty Home, the first version should focus on designer clothing, shoes, bags, size-based availability, Abuja/store pickup support, WhatsApp ordering and delivery. For other ecommerces, the same system should work by changing branding, products, categories, payment settings and delivery rules.
 
-[1]: https://www.instagram.com/fairqueen_collections/?hl=en&utm_source=chatgpt.com "FairQueen Collections (@fairqueen_collections) · Abuja"
-[2]: https://www.instagram.com/reel/DK7hCAcNgKe/?utm_source=chatgpt.com "FairQueen Collections on Instagram: \"From vision to reality ..."
-[3]: https://www.instagram.com/reel/DaS0mk3MGI3/?utm_source=chatgpt.com "Reel by FairQueen Collections (@fairqueen_collections) · July ..."
+[1]: https://www.instagram.com/dansolam_official/?hl=en&utm_source=chatgpt.com "Dansolam Beauty Home (@dansolam_official) · Abuja"
+[2]: https://www.instagram.com/reel/DK7hCAcNgKe/?utm_source=chatgpt.com "Dansolam Beauty Home on Instagram: \"From vision to reality ..."
+[3]: https://www.instagram.com/reel/DaS0mk3MGI3/?utm_source=chatgpt.com "Reel by Dansolam Beauty Home (@dansolam_official) · July ..."

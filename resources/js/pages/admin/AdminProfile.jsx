@@ -130,7 +130,7 @@ export default function AdminProfile() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="px-3.5 py-2.5 pl-10 rounded-xl border border-gray-200 focus:outline-none focus:border-primary text-xs bg-[#FAF9F6] text-gray-800 shadow-3xs w-full dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  placeholder="e.g. admin@fairqueen.com"
+                  placeholder="e.g. admin@dansolam.com"
                 />
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>

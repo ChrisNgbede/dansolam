@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Clock, Mail, CheckCircle2, MessageSquare, ShieldCheck, ArrowRight, Lock, Wrench, RefreshCw, Phone, AlertCircle } from 'lucide-react';
+import { Clock, Mail, CheckCircle2, MessageSquare, ShieldCheck, ArrowRight, Lock, Wrench, RefreshCw, Phone, AlertCircle } from 'lucide-react';
 import SEO from '../../components/seo/SEO';
 
 export default function MaintenancePage({ settings = {}, onBypass }) {
@@ -80,10 +80,10 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
   const handleBypassSubmit = (e) => {
     e.preventDefault();
     const secretKey = settings.maintenance_bypass_key || 'admin';
-    const adminToken = localStorage.getItem('fairqueen_token');
+    const adminToken = localStorage.getItem('dansolam_token');
 
     if (bypassInput.trim() === secretKey || adminToken) {
-      sessionStorage.setItem('fairqueen_maintenance_bypass', 'true');
+      sessionStorage.setItem('dansolam_maintenance_bypass', 'true');
       if (onBypass) onBypass();
     } else {
       setBypassError('Invalid access key. Log into Admin Panel to access the site.');
@@ -91,12 +91,12 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0B0B] text-white flex flex-col items-center justify-between p-6 relative overflow-hidden font-sans select-none">
+    <div className="min-h-screen bg-[#17101F] text-white flex flex-col items-center justify-between p-6 relative overflow-hidden font-sans select-none">
       <SEO title={`Store Under Maintenance - ${settings.ecommerce_name || 'Dansolam'}`} />
 
       {/* Ambient Radial Luxury Glow Background */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-amber-500/10 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
-      <div className="absolute bottom-10 right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#E5C158]/10 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
+      <div className="absolute bottom-10 right-10 w-96 h-96 bg-[#5D3E85]/10 rounded-full blur-3xl pointer-events-none"></div>
 
       {/* Header Logo Bar */}
       <header className="w-full max-w-6xl flex justify-between items-center z-10 py-4 border-b border-white/10">
@@ -104,13 +104,13 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
           {settings.logo_url ? (
             <img src={settings.logo_url} alt="Logo" className="h-9 w-auto object-contain" />
           ) : (
-            <div className="font-serif font-bold text-xl tracking-tight text-amber-400">
+            <div className="font-serif font-bold text-xl tracking-tight text-[#E5C158]">
               {settings.ecommerce_name || 'Dansolam'}
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-amber-400 text-xs font-bold uppercase tracking-wider animate-pulse">
+        <div className="flex items-center gap-2 px-3 py-1 bg-[#E5C158]/10 border border-[#E5C158]/30 rounded-full text-[#E5C158] text-xs font-bold uppercase tracking-wider animate-pulse">
           <Wrench className="w-3.5 h-3.5" />
           <span>Scheduled Maintenance</span>
         </div>
@@ -120,9 +120,9 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
       <main className="max-w-2xl w-full text-center flex flex-col items-center my-auto py-12 z-10 animate-fade-in">
         {/* Animated Hourglass / Crown Icon Aura */}
         <div className="relative mb-8 group cursor-default">
-          <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-amber-500/20 via-primary/30 to-amber-500/20 blur-lg group-hover:blur-xl transition-all duration-500 animate-spin-slow"></div>
-          <div className="relative w-24 h-24 bg-gradient-to-br from-gray-900 via-gray-950 to-black rounded-3xl border border-amber-500/30 flex items-center justify-center shadow-2xl">
-            <Clock className="w-11 h-11 text-amber-400 animate-bounce" />
+          <div className="absolute -inset-4 rounded-full bg-gradient-to-r from-[#E5C158]/20 via-[#5D3E85]/40 to-[#EC268F]/20 blur-lg group-hover:blur-xl transition-all duration-500 animate-spin-slow"></div>
+          <div className="relative w-24 h-24 bg-gradient-to-br from-[#231B30] via-[#1E1528] to-[#100A16] rounded-3xl border border-[#E5C158]/30 flex items-center justify-center shadow-2xl">
+            <Clock className="w-11 h-11 text-[#E5C158] animate-bounce" />
           </div>
         </div>
 
@@ -137,8 +137,7 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
         {/* Countdown Timer Block (if end time is provided) */}
         {endTimeStr && (
           <div className="w-full mb-10">
-            <div className="text-[10px] font-extrabold uppercase tracking-widest text-amber-400 mb-3 flex items-center justify-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" />
+            <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#E5C158] mb-3 flex items-center justify-center gap-1.5">
               <span>Estimated Reopening In</span>
             </div>
 
@@ -150,10 +149,10 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
                 { label: 'Secs', val: timeLeft.seconds },
               ].map((item, idx) => (
                 <div key={idx} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-3 flex flex-col items-center shadow-inner">
-                  <span className="font-mono font-extrabold text-2xl md:text-3xl text-amber-400">
+                  <span className="font-mono font-extrabold text-2xl md:text-3xl text-[#E5C158]">
                     {String(item.val).padStart(2, '0')}
                   </span>
-                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mt-1">
+                  <span className="text-[9px] font-bold text-gray-400  tracking-wider mt-1">
                     {item.label}
                   </span>
                 </div>
@@ -181,12 +180,12 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email address"
-                  className="flex-1 px-4 py-2.5 rounded-full border border-white/20 bg-black/50 text-white text-xs placeholder:text-gray-500 focus:outline-none focus:border-amber-400"
+                  className="flex-1 px-4 py-2.5 rounded-full border border-white/20 bg-[#100A16] text-white text-xs placeholder:text-gray-500 focus:outline-none focus:border-[#E5C158]"
                 />
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-gray-950 font-bold text-xs rounded-full flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer shrink-0"
+                  className="px-5 py-2.5 bg-gradient-to-r from-[#E5C158] to-[#D4AF37] hover:from-[#EC268F] hover:to-[#C9166F] text-[#17101F] hover:text-white font-bold text-xs rounded-full flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer shrink-0"
                 >
                   {submitting ? 'Submitting...' : 'Notify Me'}
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -203,7 +202,7 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
               href={`https://wa.me/${whatsappNum}?text=${encodeURIComponent('Hello! I would like to place an order while the website is undergoing maintenance.')}`}
               target="_blank"
               rel="noreferrer"
-              className="px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-full flex items-center gap-2 transition-all shadow-lg hover:scale-105"
+              className="px-5 py-2.5 bg-[#5D3E85] hover:bg-[#EC268F] text-white font-bold rounded-full flex items-center gap-2 transition-all shadow-lg hover:scale-105"
             >
               <MessageSquare className="w-4 h-4" />
               <span>Order via WhatsApp</span>
@@ -233,7 +232,7 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
         <button
           type="button"
           onClick={() => setShowBypassModal(true)}
-          className="text-gray-500 hover:text-amber-400 transition-colors flex items-center gap-1 cursor-pointer"
+          className="text-gray-500 hover:text-[#E5C158] transition-colors flex items-center gap-1 cursor-pointer"
         >
           <Lock className="w-3 h-3" />
           <span>Admin Access</span>
@@ -243,9 +242,9 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
       {/* Admin Bypass Modal */}
       {showBypassModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-gray-900 border border-white/20 rounded-2xl p-6 max-w-md w-full font-sans shadow-2xl">
+          <div className="bg-[#1E1528] border border-white/15 rounded-2xl p-6 max-w-md w-full font-sans shadow-2xl">
             <div className="flex justify-between items-center border-b border-white/10 pb-3 mb-4">
-              <div className="flex items-center gap-2 text-amber-400 font-bold text-sm">
+              <div className="flex items-center gap-2 text-[#E5C158] font-bold text-sm">
                 <ShieldCheck className="w-4 h-4" />
                 <span>Admin Maintenance Bypass</span>
               </div>
@@ -268,7 +267,7 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
                 value={bypassInput}
                 onChange={(e) => setBypassInput(e.target.value)}
                 placeholder="Enter bypass key..."
-                className="px-4 py-2.5 rounded-xl border border-white/20 bg-black text-white text-xs focus:outline-none focus:border-amber-400"
+                className="px-4 py-2.5 rounded-xl border border-white/20 bg-[#100A16] text-white text-xs focus:outline-none focus:border-[#E5C158]"
               />
 
               {bypassError && (
@@ -281,7 +280,7 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
               <div className="flex gap-2 mt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 text-gray-950 font-bold text-xs rounded-xl transition-all cursor-pointer"
+                  className="flex-1 py-2.5 bg-[#E5C158] hover:bg-[#EC268F] text-[#17101F] hover:text-white font-bold text-xs rounded-xl transition-all cursor-pointer btn-spring"
                 >
                   Preview Storefront
                 </button>

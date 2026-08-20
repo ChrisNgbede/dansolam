@@ -6,7 +6,7 @@ export const apiFetch = async (url, options = {}) => {
   const isAdminRequest = typeof url === 'string' && (url.startsWith('/api/admin') || url.startsWith('/api/pos'));
   const token = isAdminRequest
     ? getAdminToken()
-    : localStorage.getItem('fairqueen_customer_token') || sessionStorage.getItem('fairqueen_customer_token');
+    : localStorage.getItem('dansolam_customer_token') || sessionStorage.getItem('dansolam_customer_token');
   
   const headers = {
     'Accept': 'application/json',
@@ -28,13 +28,13 @@ export const apiFetch = async (url, options = {}) => {
 
   if (response.status === 401) {
     // Session expired, clear tokens
-    localStorage.removeItem('fairqueen_customer_token');
-    sessionStorage.removeItem('fairqueen_customer_token');
-    localStorage.removeItem('fairqueen_admin_token');
-    sessionStorage.removeItem('fairqueen_admin_token');
+    localStorage.removeItem('dansolam_customer_token');
+    sessionStorage.removeItem('dansolam_customer_token');
+    localStorage.removeItem('dansolam_admin_token');
+    sessionStorage.removeItem('dansolam_admin_token');
     
     // Dispatch custom event to sync all useAuth hook states
-    window.dispatchEvent(new Event('fairqueen_auth_logout'));
+    window.dispatchEvent(new Event('dansolam_auth_logout'));
     
     // Auto-redirect admin panel to login page to avoid blank page layout corruption
     if (window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
@@ -57,9 +57,9 @@ export const useAuth = () => {
       setAdmin(null);
     };
 
-    window.addEventListener('fairqueen_auth_logout', handleAuthLogout);
+    window.addEventListener('dansolam_auth_logout', handleAuthLogout);
     return () => {
-      window.removeEventListener('fairqueen_auth_logout', handleAuthLogout);
+      window.removeEventListener('dansolam_auth_logout', handleAuthLogout);
     };
   }, []);
 
@@ -68,7 +68,7 @@ export const useAuth = () => {
     const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
     const updateActivity = () => {
-      localStorage.setItem('fairqueen_last_activity', Date.now().toString());
+      localStorage.setItem('dansolam_last_activity', Date.now().toString());
     };
 
     window.addEventListener('mousedown', updateActivity);
@@ -80,20 +80,20 @@ export const useAuth = () => {
     updateActivity();
 
     const interval = setInterval(() => {
-      const lastActivity = parseInt(localStorage.getItem('fairqueen_last_activity') || '0', 10);
+      const lastActivity = parseInt(localStorage.getItem('dansolam_last_activity') || '0', 10);
       const now = Date.now();
-      const hasCustomer = !!localStorage.getItem('fairqueen_customer_token') || !!sessionStorage.getItem('fairqueen_customer_token');
-      const hasAdmin = !!localStorage.getItem('fairqueen_admin_token') || !!sessionStorage.getItem('fairqueen_admin_token');
+      const hasCustomer = !!localStorage.getItem('dansolam_customer_token') || !!sessionStorage.getItem('dansolam_customer_token');
+      const hasAdmin = !!localStorage.getItem('dansolam_admin_token') || !!sessionStorage.getItem('dansolam_admin_token');
 
       if ((hasCustomer || hasAdmin) && now - lastActivity > INACTIVITY_TIMEOUT) {
-        localStorage.removeItem('fairqueen_customer_token');
-        sessionStorage.removeItem('fairqueen_customer_token');
-        localStorage.removeItem('fairqueen_admin_token');
-        sessionStorage.removeItem('fairqueen_admin_token');
+        localStorage.removeItem('dansolam_customer_token');
+        sessionStorage.removeItem('dansolam_customer_token');
+        localStorage.removeItem('dansolam_admin_token');
+        sessionStorage.removeItem('dansolam_admin_token');
         setCustomer(null);
         setAdmin(null);
 
-        window.dispatchEvent(new Event('fairqueen_auth_logout'));
+        window.dispatchEvent(new Event('dansolam_auth_logout'));
 
         if (window.location.pathname.startsWith('/admin')) {
           window.location.href = '/admin/login';
@@ -115,7 +115,7 @@ export const useAuth = () => {
   // Check auth status on load
   useEffect(() => {
     const checkAuth = async () => {
-      const customerToken = localStorage.getItem('fairqueen_customer_token') || sessionStorage.getItem('fairqueen_customer_token');
+      const customerToken = localStorage.getItem('dansolam_customer_token') || sessionStorage.getItem('dansolam_customer_token');
       const adminToken = getAdminToken();
 
       if (customerToken) {
@@ -125,8 +125,8 @@ export const useAuth = () => {
           if (data.success) {
             setCustomer(data.data);
           } else {
-            localStorage.removeItem('fairqueen_customer_token');
-            sessionStorage.removeItem('fairqueen_customer_token');
+            localStorage.removeItem('dansolam_customer_token');
+            sessionStorage.removeItem('dansolam_customer_token');
           }
         } catch (e) {
           console.error(e);
@@ -140,8 +140,8 @@ export const useAuth = () => {
           if (data.success) {
             setAdmin(data.data);
           } else {
-            localStorage.removeItem('fairqueen_admin_token');
-            sessionStorage.removeItem('fairqueen_admin_token');
+            localStorage.removeItem('dansolam_admin_token');
+            sessionStorage.removeItem('dansolam_admin_token');
           }
         } catch (e) {
           console.error(e);
@@ -162,15 +162,15 @@ export const useAuth = () => {
     const data = await res.json();
     if (data.success) {
       if (remember) {
-        localStorage.setItem('fairqueen_customer_token', data.data.token);
-        localStorage.setItem('fairqueen_remembered_email', email);
+        localStorage.setItem('dansolam_customer_token', data.data.token);
+        localStorage.setItem('dansolam_remembered_email', email);
       } else {
-        sessionStorage.setItem('fairqueen_customer_token', data.data.token);
-        localStorage.removeItem('fairqueen_customer_token');
-        localStorage.removeItem('fairqueen_remembered_email');
+        sessionStorage.setItem('dansolam_customer_token', data.data.token);
+        localStorage.removeItem('dansolam_customer_token');
+        localStorage.removeItem('dansolam_remembered_email');
       }
       setCustomer(data.data.customer);
-      return { success: true };
+      return { success: true, customer: data.data.customer };
     }
     return { success: false, message: data.message };
   };
@@ -182,9 +182,9 @@ export const useAuth = () => {
     });
     const data = await res.json();
     if (data.success) {
-      localStorage.setItem('fairqueen_customer_token', data.data.token);
+      localStorage.setItem('dansolam_customer_token', data.data.token);
       setCustomer(data.data.customer);
-      return { success: true };
+      return { success: true, customer: data.data.customer };
     }
     return { success: false, message: data.message };
   };
@@ -195,8 +195,8 @@ export const useAuth = () => {
     } catch (e) {
       console.error(e);
     }
-    localStorage.removeItem('fairqueen_customer_token');
-    sessionStorage.removeItem('fairqueen_customer_token');
+    localStorage.removeItem('dansolam_customer_token');
+    sessionStorage.removeItem('dansolam_customer_token');
     setCustomer(null);
   };
 
@@ -208,12 +208,12 @@ export const useAuth = () => {
     const data = await res.json();
     if (data.success) {
       if (remember) {
-        localStorage.setItem('fairqueen_admin_token', data.data.token);
-        localStorage.setItem('fairqueen_remembered_admin_email', email);
+        localStorage.setItem('dansolam_admin_token', data.data.token);
+        localStorage.setItem('dansolam_remembered_admin_email', email);
       } else {
-        sessionStorage.setItem('fairqueen_admin_token', data.data.token);
-        localStorage.removeItem('fairqueen_admin_token');
-        localStorage.removeItem('fairqueen_remembered_admin_email');
+        sessionStorage.setItem('dansolam_admin_token', data.data.token);
+        localStorage.removeItem('dansolam_admin_token');
+        localStorage.removeItem('dansolam_remembered_admin_email');
       }
       setAdmin(data.data.user);
       return { success: true };
@@ -227,8 +227,8 @@ export const useAuth = () => {
     } catch (e) {
       console.error(e);
     }
-    localStorage.removeItem('fairqueen_admin_token');
-    sessionStorage.removeItem('fairqueen_admin_token');
+    localStorage.removeItem('dansolam_admin_token');
+    sessionStorage.removeItem('dansolam_admin_token');
     setAdmin(null);
   };
 

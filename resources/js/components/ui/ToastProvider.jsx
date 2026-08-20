@@ -3,9 +3,18 @@ import { AlertCircle, CheckCircle2, Info, X } from 'lucide-react';
 
 const listeners = new Set();
 let nextToastId = 1;
+let lastToastTime = 0;
+let lastToastMessage = '';
 
 const publish = (type, message, options = {}) => {
   const text = String(message || (type === 'error' ? 'Something went wrong.' : 'Action completed.'));
+  const now = Date.now();
+  if (text === lastToastMessage && now - lastToastTime < 1500) {
+    return nextToastId; // Discard rapid duplicate
+  }
+  lastToastMessage = text;
+  lastToastTime = now;
+
   const item = {
     id: nextToastId++,
     type,
@@ -35,7 +44,11 @@ export function ToastProvider({ children }) {
 
   useEffect(() => {
     const listener = (item) => {
-      setItems((current) => [...current.slice(-3), item]);
+      setItems((current) => {
+        // Prevent duplicate IDs or duplicate messages active at same time
+        const filtered = current.filter((existing) => existing.message !== item.message);
+        return [...filtered.slice(-2), item];
+      });
       if (item.duration > 0) {
         window.setTimeout(() => dismiss(item.id), item.duration);
       }

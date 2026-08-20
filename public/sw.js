@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fairqueen-cache-v2-pos-offline';
+const CACHE_NAME = 'dansolam-cache-v2-pos-offline';
 const ASSETS_TO_CACHE = [
   '/',
   '/offline',

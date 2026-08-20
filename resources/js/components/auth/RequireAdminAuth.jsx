@@ -4,8 +4,8 @@ import { Navigate, useLocation } from 'react-router-dom';
 export const getAdminToken = () => (
   localStorage.getItem('dansolam_admin_token')
   || sessionStorage.getItem('dansolam_admin_token')
-  || localStorage.getItem('fairqueen_admin_token')
-  || sessionStorage.getItem('fairqueen_admin_token')
+  || localStorage.getItem('dansolam_admin_token')
+  || sessionStorage.getItem('dansolam_admin_token')
 );
 
 export default function RequireAdminAuth({ children }) {

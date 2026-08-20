@@ -210,7 +210,7 @@ export default function AdminProductForm() {
 
   const handleAutoGenerateSku = async () => {
     try {
-      const token = localStorage.getItem('fairqueen_admin_token');
+      const token = localStorage.getItem('dansolam_admin_token');
       const res = await fetch('/api/admin/products/generate-sku', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -573,7 +573,7 @@ export default function AdminProductForm() {
             value={shortDescription}
             onChange={e => setShortDescription(e.target.value)}
             className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-            placeholder="e.g. Elegant wrap jumpsuit in champagne satin."
+            placeholder="e.g. Deep hydrating moisture cream with SPF 50 & botanical extracts."
           />
         </div>
 
@@ -581,7 +581,7 @@ export default function AdminProductForm() {
           label="Long description"
           value={description}
           onChange={setDescription}
-          placeholder="Care instructions, fabrics, fitting guidelines, and styling advices..."
+          placeholder="Application rituals, active ingredients, skin types, and skincare benefits..."
         />
 
         {/* PRODUCT IMAGES */}

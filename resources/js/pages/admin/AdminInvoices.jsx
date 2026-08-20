@@ -23,7 +23,7 @@ export default function AdminInvoices() {
   const [deliveryState, setDeliveryState] = useState('');
   const [deliveryCountry, setDeliveryCountry] = useState('Nigeria');
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
-  
+
   // Costs overrides
   const [deliveryFee, setDeliveryFee] = useState('0');
   const [discountAmount, setDiscountAmount] = useState('0');
@@ -103,7 +103,7 @@ export default function AdminInvoices() {
     const newItems = [...items];
     newItems[idx].name = product.name;
     newItems[idx].price = String(product.sale_price || product.price);
-    
+
     if (product.has_variants && product.variants?.length > 0) {
       const v = product.variants[0];
       newItems[idx].variant_label = `${v.size} / ${v.color}`;
@@ -161,7 +161,7 @@ export default function AdminInvoices() {
     setPdfLoading(true);
 
     try {
-      const token = localStorage.getItem('fairqueen_admin_token');
+      const token = localStorage.getItem('dansolam_admin_token');
       const res = await fetch('/api/admin/invoices/export', {
         method: 'POST',
         headers: {
@@ -225,7 +225,7 @@ export default function AdminInvoices() {
   const handleDownloadOrderInvoice = async (orderId, orderNum) => {
     setDownloadingOrderId(orderId);
     try {
-      const token = localStorage.getItem('fairqueen_admin_token');
+      const token = localStorage.getItem('dansolam_admin_token');
       const res = await fetch(`/api/admin/orders/${orderId}/invoice`, {
         method: 'GET',
         headers: {
@@ -241,6 +241,7 @@ export default function AdminInvoices() {
       document.body.appendChild(a);
       a.click();
       a.remove();
+      systemToast.success(`Invoice #${orderNum} PDF downloaded successfully!`);
     } catch (e) {
       systemToast.error('Error exporting PDF invoice: ' + e.message);
     } finally {
@@ -288,7 +289,7 @@ export default function AdminInvoices() {
 
   return (
     <div className="flex flex-col gap-6 font-sans">
-      
+
       {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -325,7 +326,7 @@ export default function AdminInvoices() {
       {!showCreateForm ? (
         /* ── INVOICES LIST VIEW ── */
         <div className="flex flex-col gap-4">
-          
+
           {/* Table Search & Header Info */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white border border-gray-150 p-4 rounded-xl shadow-sm">
             <div className="flex-1 max-w-sm">
@@ -397,9 +398,8 @@ export default function AdminInvoices() {
                         <td className="px-6 py-4 font-semibold text-gray-900">{currencySymbol}{parseFloat(ord.total_amount).toLocaleString()}</td>
                         <td className="px-6 py-4 capitalize text-gray-600">{ord.payment_method?.replace('_', ' ')}</td>
                         <td className="px-6 py-4">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold ${
-                            ord.payment_status === 'paid' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-500'
-                          }`}>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold ${ord.payment_status === 'paid' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-500'
+                            }`}>
                             {(ord.payment_status || 'pending').toUpperCase()}
                           </span>
                         </td>
@@ -469,11 +469,11 @@ export default function AdminInvoices() {
       ) : (
         /* ── CREATE CUSTOM MANUAL INVOICE FORM ── */
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start animate-fade-in">
-          
+
           {/* Form inputs column */}
           <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col gap-5">
             <h3 className="font-semibold text-xs text-gray-800 uppercase tracking-wider border-b border-gray-50 pb-2">Client Details</h3>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] text-gray-550 font-bold uppercase">Customer Name *</label>
@@ -508,7 +508,7 @@ export default function AdminInvoices() {
             </div>
 
             <h3 className="font-semibold text-xs text-gray-800 uppercase tracking-wider border-b border-gray-50 pb-2 mt-2">Delivery & Fulfilment</h3>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] text-gray-550 font-bold uppercase">Delivery Method</label>
@@ -602,7 +602,7 @@ export default function AdminInvoices() {
             <div className="flex flex-col gap-3">
               {items.map((item, idx) => (
                 <div key={idx} className="flex gap-3 items-end bg-gray-50 p-3 rounded-lg border border-gray-150 animate-scale-up">
-                  
+
                   {/* Catalog dropdown selector */}
                   <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-4 gap-3">
                     <div className="sm:col-span-2 flex flex-col gap-1.5">
@@ -775,7 +775,7 @@ export default function AdminInvoices() {
       {viewingInvoice && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto flex flex-col p-6 animate-scale-up border border-gray-100">
-            
+
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-gray-150 pb-4 mb-4">
               <div className="flex items-center gap-2.5">
@@ -784,7 +784,7 @@ export default function AdminInvoices() {
                   Invoice Details: #{viewingInvoice.order_number}
                 </h3>
               </div>
-              <button 
+              <button
                 onClick={() => setViewingInvoice(null)}
                 className="text-gray-400 hover:text-gray-600 hover:bg-gray-50 p-1.5 rounded-lg transition-all cursor-pointer font-bold text-sm"
               >
@@ -794,22 +794,21 @@ export default function AdminInvoices() {
 
             {/* Invoice Digital Layout */}
             <div className="flex-1 flex flex-col gap-6 font-sans text-xs text-gray-700">
-              
+
               {/* Header Info Banner */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 border border-gray-150 p-4 rounded-xl">
                 <div>
                   <span className="text-[10px] text-gray-400 font-bold uppercase block text-left">Billed From</span>
                   <span className="font-bold text-gray-900 text-sm mt-1 block text-left">Dansolam</span>
-                  <span className="text-gray-500 block mt-0.5 text-left">Plot 1234, Wuse II, Abuja, Nigeria</span>
+                  <span className="text-gray-500 block mt-0.5 text-left">Plot 1234, SHOP Boulevard</span>
                   <span className="text-gray-500 block mt-0.5 text-left">WhatsApp: +234 80 0000 0000</span>
                 </div>
                 <div className="sm:text-right flex flex-col sm:items-end">
                   <span className="text-[10px] text-gray-400 font-bold uppercase block">Invoice Information</span>
                   <div className="mt-1 flex items-center gap-2 sm:justify-end">
                     <span className="font-bold text-gray-900">Status:</span>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                      viewingInvoice.payment_status === 'paid' ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-orange-50 text-orange-500 border border-orange-100'
-                    }`}>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${viewingInvoice.payment_status === 'paid' ? 'bg-green-50 text-green-600 border border-green-100' : 'bg-orange-50 text-orange-500 border border-orange-100'
+                      }`}>
                       {(viewingInvoice.payment_status || 'pending').toUpperCase()}
                     </span>
                   </div>
@@ -836,7 +835,7 @@ export default function AdminInvoices() {
                       {viewingInvoice.delivery_address}, {viewingInvoice.delivery_city}, {viewingInvoice.delivery_state}, {viewingInvoice.delivery_country}
                     </span>
                   ) : (
-                    <span className="text-gray-400 italic block mt-0.5 text-left">Store Pickup at Abuja Wuse II branch</span>
+                    <span className="text-gray-400 italic block mt-0.5 text-left">Store Pickup at Main SHOP</span>
                   )}
                 </div>
               </div>

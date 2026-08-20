@@ -5,6 +5,7 @@ import { apiFetch } from '../../hooks/useAuth';
 import { useTableState } from '../../hooks/useTableState';
 import TablePaginationControls from '../../components/ui/TablePaginationControls';
 import ImageUploadField from '../../components/ui/ImageUploadField';
+import FacelessAvatar from '../../components/ui/FacelessAvatar';
 
 export default function AdminReviews() {
   const queryClient = useQueryClient();
@@ -306,13 +307,11 @@ export default function AdminReviews() {
                   <tr key={rev.id} className="hover:bg-gray-55/20">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2.5">
-                        {rev.avatar_url ? (
-                          <img loading="lazy" decoding="async" src={rev.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover border border-gray-100" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs uppercase">
-                            {rev.customer_name ? rev.customer_name[0] : 'U'}
-                          </div>
-                        )}
+                        <FacelessAvatar
+                          src={rev.avatar_url}
+                          name={rev.customer_name}
+                          className="w-8 h-8"
+                        />
                         <div>
                           <span className="font-semibold text-gray-800 block leading-tight">{rev.customer_name}</span>
                           <span className="text-[9px] text-gray-400 block mt-0.5 font-mono">ID: {rev.id}</span>

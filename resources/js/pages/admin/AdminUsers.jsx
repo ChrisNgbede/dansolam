@@ -818,7 +818,7 @@ export default function AdminUsers() {
                     value={userEmail}
                     onChange={e => setUserEmail(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                    placeholder="name@fairqueen.com"
+                    placeholder="name@dansolam.com"
                     required
                   />
                 </div>

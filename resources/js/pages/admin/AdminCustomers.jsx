@@ -471,44 +471,40 @@ export default function AdminCustomers() {
                 </div>
 
                 <a
-                  href={`https://wa.me/${viewingCustomer.phone ? viewingCustomer.phone.replace(/[^0-9]/g, '') : ''}?text=Hello%20${encodeURIComponent(viewingCustomer.name)}%2C%20regarding%20your%20fitting%20preferences...`}
+                  href={`https://wa.me/${viewingCustomer.phone ? viewingCustomer.phone.replace(/[^0-9]/g, '') : ''}?text=Hello%20${encodeURIComponent(viewingCustomer.name)}%2C%20regarding%20your%20skincare%20profile%20at%20Dansolam...`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full text-center inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#25D366] text-white text-xs font-semibold rounded-lg shadow-sm hover:bg-[#20ba59] transition-colors"
                 >
-                  Consult Fitting on WhatsApp
+                  Consult Skincare on WhatsApp
                 </a>
               </div>
 
-              {/* Right column: Fit File & Order History (8 cols) */}
+              {/* Right column: Skin Profile & Order History (8 cols) */}
               <div className="md:col-span-8 flex flex-col gap-5">
-                {/* Sizing profile details */}
+                {/* Skin Profile details */}
                 <div className="bg-gray-55 p-4 rounded-xl border border-gray-100">
-                  <h4 className="font-bold text-gray-805 uppercase tracking-wider text-[10px] mb-3">Fitting measurements profile</h4>
+                  <h4 className="font-bold text-gray-805 uppercase tracking-wider text-[10px] mb-3">Skin Profile & Preferences</h4>
                   <div className="grid grid-cols-3 gap-4 text-xs text-gray-650">
                     <div>
-                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Bust Size</span>
-                      <strong className="text-gray-800 text-[13px]">{viewingCustomer.measurements?.bust || '—'} in</strong>
+                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Skin Type</span>
+                      <strong className="text-gray-800 text-[13px]">{viewingCustomer.measurements?.skin_type || viewingCustomer.measurements?.fit_preference || '—'}</strong>
                     </div>
                     <div>
-                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Waist Size</span>
-                      <strong className="text-gray-800 text-[13px]">{viewingCustomer.measurements?.waist || '—'} in</strong>
+                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Primary Goal</span>
+                      <strong className="text-gray-800 text-[13px]">{viewingCustomer.measurements?.skin_goal || viewingCustomer.measurements?.bust || '—'}</strong>
                     </div>
                     <div>
-                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Hips Size</span>
-                      <strong className="text-gray-800 text-[13px]">{viewingCustomer.measurements?.hips || '—'} in</strong>
+                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Skin Concern</span>
+                      <strong className="text-gray-800 text-[13px]">{viewingCustomer.measurements?.skin_concern || viewingCustomer.measurements?.waist || '—'}</strong>
                     </div>
                     <div className="mt-1">
-                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Height</span>
-                      <strong className="text-gray-800 text-[13px]">{viewingCustomer.measurements?.height || '—'}</strong>
+                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Preferred Texture</span>
+                      <strong className="text-gray-800 text-[13px]">{viewingCustomer.measurements?.preferred_formulation || viewingCustomer.measurements?.hips || '—'}</strong>
                     </div>
-                    <div className="mt-1">
-                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Shoe Size</span>
-                      <strong className="text-gray-800 text-[13px]">EU {viewingCustomer.measurements?.shoe_size || '—'}</strong>
-                    </div>
-                    <div className="mt-1">
-                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Fit Preference</span>
-                      <strong className="text-gray-800 text-[13px]">{viewingCustomer.measurements?.fit_preference || '—'}</strong>
+                    <div className="mt-1 col-span-2">
+                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Sensitivities / Notes</span>
+                      <strong className="text-gray-800 text-[13px]">{viewingCustomer.measurements?.skin_notes || viewingCustomer.measurements?.height || 'None specified'}</strong>
                     </div>
                   </div>
                 </div>
@@ -625,7 +621,7 @@ export default function AdminCustomers() {
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                    placeholder="e.g. 234800000000"
+                    placeholder="e.g. +1 (555) 000-0000"
                   />
                 </div>
               </div>
@@ -642,69 +638,59 @@ export default function AdminCustomers() {
                 />
               </div>
 
-              <h4 className="text-[10px] text-primary font-bold uppercase tracking-wider border-b border-gray-50 pb-1 mt-2">Measurements Profile (Optional)</h4>
+              <h4 className="text-[10px] text-primary font-bold uppercase tracking-wider border-b border-gray-50 pb-1 mt-2">Skin Profile & Preferences</h4>
               <div className="grid grid-cols-3 gap-2">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Bust (in)</label>
-                  <input
-                    type="text"
-                    value={bust}
-                    onChange={e => setBust(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                    placeholder="e.g. 36"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Waist (in)</label>
-                  <input
-                    type="text"
-                    value={waist}
-                    onChange={e => setWaist(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                    placeholder="e.g. 28"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Hips (in)</label>
-                  <input
-                    type="text"
-                    value={hips}
-                    onChange={e => setHips(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                    placeholder="e.g. 40"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Height</label>
-                  <input
-                    type="text"
-                    value={height}
-                    onChange={e => setHeight(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                    placeholder="e.g. 5'7"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Shoe Size</label>
-                  <input
-                    type="text"
-                    value={shoeSize}
-                    onChange={e => setShoeSize(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                    placeholder="e.g. 39"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Fit Preference</label>
+                  <label className="text-[9px] text-gray-400 font-bold uppercase">Skin Type</label>
                   <input
                     type="text"
                     value={fitPreference}
                     onChange={e => setFitPreference(e.target.value)}
                     className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                    placeholder="Slim / Relaxed"
+                    placeholder="Normal / Dry / Oily / Sensitive"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] text-gray-400 font-bold uppercase">Primary Goal</label>
+                  <input
+                    type="text"
+                    value={bust}
+                    onChange={e => setBust(e.target.value)}
+                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
+                    placeholder="Radiant Glow / Hydration"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] text-gray-400 font-bold uppercase">Skin Concern</label>
+                  <input
+                    type="text"
+                    value={waist}
+                    onChange={e => setWaist(e.target.value)}
+                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
+                    placeholder="Dark Spots / Acne"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] text-gray-400 font-bold uppercase">Preferred Texture</label>
+                  <input
+                    type="text"
+                    value={hips}
+                    onChange={e => setHips(e.target.value)}
+                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
+                    placeholder="Creams / Serums / Oils"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[9px] text-gray-400 font-bold uppercase">Sensitivities / Notes</label>
+                  <input
+                    type="text"
+                    value={height}
+                    onChange={e => setHeight(e.target.value)}
+                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
+                    placeholder="Fragrance sensitivity, etc."
                   />
                 </div>
               </div>
@@ -729,7 +715,7 @@ export default function AdminCustomers() {
                     value={city}
                     onChange={e => setCity(e.target.value)}
                     className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                    placeholder="e.g. Lagos"
+                    placeholder="e.g. New York"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -925,7 +911,7 @@ export default function AdminCustomers() {
                     value={city}
                     onChange={e => setCity(e.target.value)}
                     className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                    placeholder="e.g. Lagos"
+                    placeholder="e.g. New York"
                   />
                 </div>
                 <div className="flex flex-col gap-1">

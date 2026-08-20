@@ -212,7 +212,7 @@ export default function AdminPages() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
         <div>
           <h2 className="font-serif text-2xl font-bold text-gray-800">Content Management System (CMS)</h2>
-          <p className="text-xs text-gray-450 mt-1">Manage storefront pages, size guides, custom policy pages, and interactive FAQs.</p>
+          <p className="text-xs text-gray-450 mt-1">Manage storefront pages, beauty tips, custom policy pages, and interactive FAQs.</p>
         </div>
         
         {activeTab === 'pages' ? (

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Calendar, Clock, Users, User, Mail, Phone, Sparkles, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Calendar, Clock, Users, User, Mail, Phone, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
 export default function BookFittingSessionModal({ isOpen, onClose }) {
@@ -78,8 +78,8 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
             <X className="w-4 h-4" />
           </button>
 
-          <h3 className="font-serif text-2xl font-bold text-white">Book Private Fitting Session</h3>
-          <p className="text-xs text-gray-300 mt-1">Reserve a personalized fitting experience with our master stylists.</p>
+          <h3 className="font-serif text-2xl font-bold text-white">Book Skin & Spa Consultation</h3>
+          <p className="text-xs text-gray-300 mt-1">Reserve a personalized skincare consultation or facial session with our expert aestheticians.</p>
         </div>
 
         {/* Content Body */}
@@ -94,7 +94,7 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-4 px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-950 font-bold text-xs rounded-full hover:bg-primary transition-all cursor-pointer shadow-md"
+                className="mt-4 px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-950 font-bold text-xs rounded-full hover:bg-[#5D3E85] transition-all cursor-pointer shadow-md"
               >
                 Close & Return
               </button>
@@ -119,7 +119,7 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
                   required
                   value={formData.name}
                   onChange={handleChange}
-                  placeholder="e.g. Lady Victoria Smith"
+                  placeholder="e.g. Sarah Jenkins"
                   className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
@@ -136,7 +136,7 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="victoria@example.com"
+                    placeholder="sarah@example.com"
                     className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
                   />
                 </div>
@@ -150,7 +150,7 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
                     required
                     value={formData.phone}
                     onChange={handleChange}
-                    placeholder="+234 80 0000 0000"
+                    placeholder="+1 (555) 000-0000"
                     className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
                   />
                 </div>
@@ -200,7 +200,7 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
                       key={slot}
                       onClick={() => setFormData((prev) => ({ ...prev, preferred_time: slot }))}
                       className={`py-2 text-[11px] font-semibold rounded-xl border transition-all cursor-pointer ${formData.preferred_time === slot
-                          ? 'bg-yellow-400 border-yellow-400 text-gray-950 font-bold shadow-xs'
+                          ? 'bg-[#5D3E85] border-[#5D3E85] text-white font-bold shadow-xs'
                           : 'bg-gray-50 dark:bg-[#1a1a1a] border-gray-200 dark:border-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-400'
                         }`}
                     >
@@ -213,14 +213,14 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
               {/* Special Requests / Notes */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
-                  Fitting Interests / Notes (Optional)
+                  Skin Concerns & Routine Goals (Optional)
                 </label>
                 <textarea
                   name="notes"
                   rows={2}
                   value={formData.notes}
                   onChange={handleChange}
-                  placeholder="Tell us about specific items, sizes, or occasions you are dressing for..."
+                  placeholder="Tell us about your skin goals, specific concerns (e.g. acne, glow, hyperpigmentation), or desired spa rituals..."
                   className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
                 />
               </div>
@@ -237,10 +237,10 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-2.5 bg-yellow-400 hover:bg-yellow-500 text-gray-950 font-extrabold text-xs rounded-full transition-all shadow-md active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="px-6 py-2.5 bg-[#5D3E85] hover:bg-[#EC268F] text-white font-extrabold text-xs rounded-full transition-all shadow-md active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Confirm Session Booking
+                  Confirm Consultation Booking
                 </button>
               </div>
             </form>

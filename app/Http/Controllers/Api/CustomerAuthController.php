@@ -54,13 +54,34 @@ class CustomerAuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $customer = Customer::where('email', $request->email)->first();
+        $customer = Customer::with('addresses')->where('email', $request->email)->first();
 
         if (!$customer || !Hash::check($request->password, $customer->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid email or password'
             ], 401);
+        }
+
+        // If customer has no addresses, try populating from their latest order
+        if ($customer->addresses->isEmpty()) {
+            $latestOrder = $customer->orders()
+                ->whereNotNull('delivery_address')
+                ->where('delivery_address', '!=', '')
+                ->latest()
+                ->first();
+
+            if ($latestOrder) {
+                CustomerAddress::create([
+                    'customer_id' => $customer->id,
+                    'address_line_1' => $latestOrder->delivery_address,
+                    'city' => $latestOrder->delivery_city ?? '',
+                    'state' => $latestOrder->delivery_state ?? '',
+                    'country' => $latestOrder->delivery_country ?? '',
+                    'is_default' => true,
+                ]);
+                $customer->load('addresses');
+            }
         }
 
         $token = $customer->createToken('customer_token')->plainTextToken;
@@ -93,9 +114,30 @@ class CustomerAuthController extends Controller
      */
     public function getProfile(Request $request)
     {
+        $customer = $request->user()->load('addresses');
+        if ($customer->addresses->isEmpty()) {
+            $latestOrder = $customer->orders()
+                ->whereNotNull('delivery_address')
+                ->where('delivery_address', '!=', '')
+                ->latest()
+                ->first();
+
+            if ($latestOrder) {
+                CustomerAddress::create([
+                    'customer_id' => $customer->id,
+                    'address_line_1' => $latestOrder->delivery_address,
+                    'city' => $latestOrder->delivery_city ?? '',
+                    'state' => $latestOrder->delivery_state ?? '',
+                    'country' => $latestOrder->delivery_country ?? '',
+                    'is_default' => true,
+                ]);
+                $customer->load('addresses');
+            }
+        }
+
         return response()->json([
             'success' => true,
-            'data' => $request->user()
+            'data' => $customer
         ]);
     }
 
@@ -151,7 +193,29 @@ class CustomerAuthController extends Controller
      */
     public function getAddresses(Request $request)
     {
-        $addresses = CustomerAddress::where('customer_id', $request->user()->id)->get();
+        $customer = $request->user();
+        $addresses = CustomerAddress::where('customer_id', $customer->id)->get();
+
+        if ($addresses->isEmpty()) {
+            $latestOrder = $customer->orders()
+                ->whereNotNull('delivery_address')
+                ->where('delivery_address', '!=', '')
+                ->latest()
+                ->first();
+
+            if ($latestOrder) {
+                $createdAddr = CustomerAddress::create([
+                    'customer_id' => $customer->id,
+                    'address_line_1' => $latestOrder->delivery_address,
+                    'city' => $latestOrder->delivery_city ?? '',
+                    'state' => $latestOrder->delivery_state ?? '',
+                    'country' => $latestOrder->delivery_country ?? '',
+                    'is_default' => true,
+                ]);
+                $addresses = collect([$createdAddr]);
+            }
+        }
+
         return response()->json([
             'success' => true,
             'data' => $addresses
@@ -282,66 +346,146 @@ class CustomerAuthController extends Controller
     }
 
     /**
-     * Send password reset token.
+     * Helper to configure dynamic SMTP settings for customer auth mailings.
+     */
+    private function configureSmtp(): array
+    {
+        $settingsRaw = \App\Models\EcommerceSetting::all();
+        $settings = [];
+        foreach ($settingsRaw as $s) {
+            $settings[$s->key] = $s->value;
+        }
+
+        if (!empty($settings['smtp_host'])) {
+            config([
+                'mail.default' => 'smtp',
+                'mail.mailers.smtp.host' => $settings['smtp_host'],
+                'mail.mailers.smtp.port' => (int)($settings['smtp_port'] ?? 587),
+                'mail.mailers.smtp.username' => $settings['smtp_username'] ?? '',
+                'mail.mailers.smtp.password' => $settings['smtp_password'] ?? '',
+                'mail.mailers.smtp.encryption' => $settings['smtp_encryption'] ?? 'tls',
+                'mail.from.address' => $settings['smtp_from_address'] ?? 'noreply@dansolam.com',
+                'mail.from.name' => $settings['smtp_from_name'] ?? ($settings['ecommerce_name'] ?? 'Dansolam Beauty Home'),
+            ]);
+        }
+
+        return $settings;
+    }
+
+    /**
+     * Send password reset link & token (water-tight security with user-enumeration protection).
      */
     public function forgotPassword(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:customers,email',
+            'email' => 'required|email',
         ]);
 
-        // Generate a 6-digit random code
-        $token = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $normalizedEmail = strtolower(trim($request->email));
+        $customer = Customer::where('email', $normalizedEmail)->first();
 
-        \DB::table('password_reset_tokens')->updateOrInsert(
-            ['email' => $request->email],
-            ['token' => $token, 'created_at' => now()]
-        );
+        // Only generate token and send email if customer account actually exists
+        if ($customer) {
+            // Generate a 6-digit random code
+            $token = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        // Simulated delivery: Return the token in the API response in development
+            \DB::table('password_reset_tokens')->updateOrInsert(
+                ['email' => $normalizedEmail],
+                ['token' => $token, 'created_at' => now()]
+            );
+
+            // Configure dynamic SMTP settings from database
+            $settings = $this->configureSmtp();
+            $storeName = $settings['ecommerce_name'] ?? 'Dansolam Beauty Home';
+            $resetUrl = url('/reset-password?email=' . urlencode($normalizedEmail) . '&code=' . urlencode($token));
+
+            // Attempt email dispatch
+            try {
+                \Illuminate\Support\Facades\Mail::html(
+                    "<div style='font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: auto; padding: 32px 24px; border: 1px solid #EADBEE; border-radius: 24px; background-color: #FAF7FC; color: #221B2B;'>"
+                    . "<div style='text-align: center; margin-bottom: 24px;'>"
+                    . "<h1 style='color: #5D3E85; font-size: 24px; margin: 0; font-weight: 800;'>{$storeName}</h1>"
+                    . "<span style='font-size: 11px; color: #EC268F; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;'>Password Recovery</span>"
+                    . "</div>"
+                    . "<p style='font-size: 15px; line-height: 1.6; margin-bottom: 16px;'>Hello <strong>" . htmlspecialchars($customer->name) . "</strong>,</p>"
+                    . "<p style='font-size: 14px; line-height: 1.6; color: #555; margin-bottom: 24px;'>We received a request to reset the password for your account. Click the button below to choose a new password directly, or enter the verification code on the reset page:</p>"
+                    . "<div style='text-align: center; margin: 28px 0;'>"
+                    . "<a href='{$resetUrl}' style='background: linear-gradient(135deg, #5D3E85 0%, #EC268F 100%); color: #FFFFFF; text-decoration: none; padding: 14px 32px; font-size: 14px; font-weight: 800; border-radius: 50px; display: inline-block; box-shadow: 0 4px 14px rgba(93,62,133,0.3);'>Reset Your Password</a>"
+                    . "</div>"
+                    . "<div style='background-color: #FFFFFF; border: 1px solid #EADBEE; border-radius: 16px; padding: 16px; text-align: center; margin: 24px 0;'>"
+                    . "<span style='font-size: 11px; color: #888; display: block; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;'>Or use your 6-digit verification code</span>"
+                    . "<span style='font-size: 28px; font-weight: 900; letter-spacing: 8px; color: #5D3E85; font-family: monospace;'>{$token}</span>"
+                    . "</div>"
+                    . "<p style='font-size: 12px; line-height: 1.6; color: #777; margin-top: 24px;'>This link and code will expire in 60 minutes. If you did not initiate this request, no action is required and your account remains completely secure.</p>"
+                    . "<hr style='border: 0; border-top: 1px solid #EADBEE; margin: 24px 0;' />"
+                    . "<p style='font-size: 11px; color: #999; text-align: center; margin: 0;'>&copy; " . date('Y') . " {$storeName}. All rights reserved.</p>"
+                    . "</div>",
+                    function ($message) use ($normalizedEmail, $storeName) {
+                        $message->to($normalizedEmail)
+                            ->subject("Reset Your Password - {$storeName}");
+                    }
+                );
+            } catch (\Throwable $mailEx) {
+                \Illuminate\Support\Facades\Log::warning("Could not dispatch password reset email to {$normalizedEmail}: " . $mailEx->getMessage());
+            }
+        }
+
+        // Generic, safe response that prevents user enumeration
         return response()->json([
             'success' => true,
-            'message' => 'A password reset token has been generated. Use the token to reset your password.',
-            'debug_token' => $token // Returning the token so it can be verified directly without email setup
+            'message' => 'If an account exists with that email address, password reset instructions have been sent.'
         ]);
     }
 
     /**
-     * Reset password.
+     * Reset password with token expiry validation and single-use invalidation.
      */
     public function resetPassword(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|exists:customers,email',
+            'email' => 'required|email',
             'token' => 'required|string',
             'password' => 'required|string|min:6|confirmed',
         ]);
 
+        $normalizedEmail = strtolower(trim($request->email));
+        $submittedToken = trim($request->token);
+
         $reset = \DB::table('password_reset_tokens')
-            ->where('email', $request->email)
-            ->where('token', $request->token)
+            ->where('email', $normalizedEmail)
+            ->where('token', $submittedToken)
             ->first();
 
         if (!$reset) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid or expired password reset token'
+                'message' => 'Invalid or expired password reset code. Please request a new one.'
+            ], 400);
+        }
+
+        // Enforce 60-minute token expiration
+        $createdAt = \Carbon\Carbon::parse($reset->created_at);
+        if ($createdAt->addMinutes(60)->isPast()) {
+            \DB::table('password_reset_tokens')->where('email', $normalizedEmail)->delete();
+            return response()->json([
+                'success' => false,
+                'message' => 'This password reset code has expired. Please request a new one.'
             ], 400);
         }
 
         // Token is valid: update customer password
-        $customer = Customer::where('email', $request->email)->first();
+        $customer = Customer::where('email', $normalizedEmail)->first();
         if ($customer) {
             $customer->password = Hash::make($request->password);
             $customer->save();
         }
 
-        // Clear the token
-        \DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+        // Invalidate token (single-use protection)
+        \DB::table('password_reset_tokens')->where('email', $normalizedEmail)->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Your password has been successfully reset! You can now log in.'
+            'message' => 'Your password has been successfully reset! You can now log in with your new password.'
         ]);
     }
 }

@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { toast } from '../../components/ui/ToastProvider';
 import {
-  Sparkles,
   Calendar,
   Clock,
   User,
@@ -132,11 +131,11 @@ export default function AdminFittingSessions() {
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-widest mb-1">
-            <Sparkles className="w-4 h-4" /> VIP Studio Concierge
+          <div className="flex items-center gap-2 text-xs font-bold text-[#5D3E85] dark:text-[#EC268F] uppercase tracking-widest mb-1">
+            <Calendar className="w-4 h-4" /> Beauty SHOP Concierge
           </div>
-          <h1 className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">Fitting Sessions</h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Manage private VIP fitting appointments, client schedules, and session statuses.</p>
+          <h1 className="text-2xl md:text-3xl font-serif font-bold text-gray-900 dark:text-white">Skin & Spa Consultations</h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Manage private aesthetic consultations, bespoke facial appointments, client schedules, and session statuses.</p>
         </div>
 
         <button
@@ -190,11 +189,10 @@ export default function AdminFittingSessions() {
             <button
               key={tab.id}
               onClick={() => { setStatusFilter(tab.id); setPage(1); }}
-              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap cursor-pointer ${
-                statusFilter === tab.id
-                  ? 'bg-yellow-400 text-gray-950 shadow-3xs'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`}
+              className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all whitespace-nowrap cursor-pointer ${statusFilter === tab.id
+                ? 'bg-yellow-400 text-gray-950 shadow-3xs'
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }`}
             >
               {tab.label}
             </button>

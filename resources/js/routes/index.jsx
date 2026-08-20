@@ -64,6 +64,7 @@ export default function AppRoutes() {
         <Route index element={<Home />} />
         <Route path="shop" element={<Shop />} />
         <Route path="product/:slug" element={<ProductDetails />} />
+        <Route path="products/:slug" element={<ProductDetails />} />
         <Route path="cart" element={<Cart />} />
         <Route path="checkout" element={<Checkout />} />
         <Route path="order-tracking" element={<OrderTracking />} />
@@ -80,6 +81,7 @@ export default function AppRoutes() {
 
       {/* Admin Panel Login */}
       <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/login" element={<Navigate to="/admin/login" replace />} />
 
       {/* Admin Dashboard Protected Routes */}
       <Route path="/admin" element={<AdminLayout />}>
