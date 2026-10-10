@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, Mail, CheckCircle2, ShieldCheck, RefreshCw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import SEO from '../../components/seo/SEO';
+import { useLiveValidation } from '../../hooks/useLiveValidation';
+import { FieldMessage } from '../../components/ui/FieldMessage';
+import { required, email as emailRule } from '../../utils/validators';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -17,14 +20,19 @@ export default function ForgotPassword() {
   });
   const settings = settingsData?.data?.settings || {};
 
-  const [email, setEmail] = useState('');
+  const [searchParams] = useSearchParams();
+  const [email, setEmail] = useState(() => searchParams.get('email') || '');
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
+  const v = useLiveValidation({ email }, {
+    email: [required('Enter the email address you used for your account.'), emailRule()],
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!v.validateAll()) return;
 
     setLoading(true);
     setErrorMsg('');
@@ -38,17 +46,19 @@ export default function ForgotPassword() {
         },
         body: JSON.stringify({ email: email.trim() })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
       setLoading(false);
 
-      if (data.success) {
+      if (data?.success) {
         setSubmitted(true);
+      } else if (res.status === 422 && v.applyServerErrors(data?.errors)) {
+        // Shown on the field.
       } else {
-        setErrorMsg(data.message || 'Unable to request password reset. Please try again.');
+        setErrorMsg(data?.message || 'Unable to request a password reset. Please try again.');
       }
     } catch (e) {
       setLoading(false);
-      setErrorMsg('Network error requesting password reset.');
+      setErrorMsg('Could not reach the server. Check your connection and try again.');
     }
   };
 
@@ -103,7 +113,7 @@ export default function ForgotPassword() {
             </div>
 
             {!submitted ? (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-5 w-full">
+              <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5 w-full">
                 <div className="text-center">
                   <h1 className="font-extrabold text-2xl text-[#181120] dark:text-[#F3EFF6] leading-none">Forgot Password</h1>
                   <p className="text-xs text-gray-400 dark:text-[#9C90A9] mt-2">
@@ -112,18 +122,20 @@ export default function ForgotPassword() {
                 </div>
 
                 <div className="flex flex-col gap-1.5 mt-2">
-                  <label className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold  tracking-wider">Email Address</label>
+                  <label htmlFor={v.idFor('email')} className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold  tracking-wider">Email Address</label>
                   <input
+                    {...v.bind('email')}
                     type="email"
-                    required
+                    autoComplete="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="px-4 py-3 rounded-full border-2 border-[#D4C3E2] dark:border-white/20 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C] text-gray-800 dark:text-[#F3EFF6] font-semibold w-full transition-colors shadow-xs"
+                    className={`px-4 py-3 rounded-full border-2 border-[#D4C3E2] dark:border-white/20 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C] text-gray-800 dark:text-[#F3EFF6] font-semibold w-full transition-colors shadow-xs ${v.stateClass('email')}`}
                     placeholder="e.g. fatima@example.com"
                   />
+                  <FieldMessage {...v.message('email', 'Use the email address on your Dansolam account.')} />
                 </div>
 
-                {errorMsg && <span className="text-xs text-red-500 dark:text-red-400 font-semibold text-center">{errorMsg}</span>}
+                {errorMsg && <FieldMessage error={errorMsg} />}
 
                 <button
                   type="submit"

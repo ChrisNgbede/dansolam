@@ -5,6 +5,9 @@ import { useQuery } from '@tanstack/react-query';
 import { Search, MapPin, Calendar, Clock, CreditCard, ShoppingBag, MessageCircle, Landmark, Check, Banknote, ShieldCheck, Compass, Receipt, Loader2, ArrowLeft } from 'lucide-react';
 import SEO from '../../components/seo/SEO';
 import CheckoutStepper from '../../components/storefront/CheckoutStepper';
+import { useLiveValidation } from '../../hooks/useLiveValidation';
+import { FieldMessage, PasswordStrength } from '../../components/ui/FieldMessage';
+import * as rules from '../../utils/validators';
 
 export default function OrderTracking() {
   const currencySymbol = getCurrencySymbol();
@@ -37,8 +40,17 @@ export default function OrderTracking() {
     }
   }, [searchParams]);
 
+  const v = useLiveValidation({ orderNumber, contact }, {
+    orderNumber: [rules.required('Enter your order number from the confirmation email.'), rules.minLength(5, 'That looks too short for an order number.')],
+    contact: [(value) => {
+      if (!value || !value.trim()) return null;
+      return value.includes('@') ? rules.email()(value) : rules.phone('Enter the email or phone number used on the order.')(value);
+    }],
+  });
+
   const handleTrackSubmit = (e) => {
     e.preventDefault();
+    if (!v.validateAll()) return;
     if (orderNumber.trim()) {
       setActiveQuery({ order_number: orderNumber.trim(), contact: contact.trim() });
     }
@@ -200,35 +212,38 @@ export default function OrderTracking() {
               <p className="text-xs text-gray-400 dark:text-[#9B8EA9] mt-1">Enter your order parameters to check status history.</p>
             </div>
 
-            <form onSubmit={handleTrackSubmit} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+            <form onSubmit={handleTrackSubmit} noValidate className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start">
               <div className="flex flex-col gap-1.5 sm:col-span-5">
                 <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">
                   Order Number <span className="text-[#EC268F]">*</span>
                 </label>
                 <input
+                  {...v.bind('orderNumber')}
                   type="text"
-                  required
-                  placeholder="e.g. FQ-XXXXXX-XXX"
+                  placeholder="e.g. FQ-AB12CD-345"
                   value={orderNumber}
                   onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
-                  className="px-4 py-3 border-2 border-[#D4C3E2] dark:border-white/20 rounded-full focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C]  font-bold text-[#221B2B] dark:text-[#F3EFF6] shadow-xs"
+                  className={`px-4 py-3 border-2 border-[#D4C3E2] dark:border-white/20 rounded-full focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C]  font-bold text-[#221B2B] dark:text-[#F3EFF6] shadow-xs transition-colors ${v.stateClass('orderNumber')}`}
                 />
+                <FieldMessage {...v.message('orderNumber')} />
               </div>
               <div className="flex flex-col gap-1.5 sm:col-span-4">
                 <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">
                   Email / Phone <span className="text-gray-400 font-normal lowercase">(optional)</span>
                 </label>
                 <input
+                  {...v.bind('contact')}
                   type="text"
                   placeholder="e.g. fatima@example.com"
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
-                  className="px-4 py-3 border-2 border-[#D4C3E2] dark:border-white/20 rounded-full focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C] font-semibold text-[#221B2B] dark:text-[#F3EFF6] shadow-xs"
+                  className={`px-4 py-3 border-2 border-[#D4C3E2] dark:border-white/20 rounded-full focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C] font-semibold text-[#221B2B] dark:text-[#F3EFF6] shadow-xs transition-colors ${v.stateClass('contact')}`}
                 />
+                <FieldMessage {...v.message('contact', "Adds a check that the order is yours.")} />
               </div>
               <button
                 type="submit"
-                className="py-3 px-6 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold tracking-wider rounded-full flex items-center justify-center gap-2 shadow-md transition-all sm:col-span-3 hover:scale-[1.02] active:scale-[0.98] cursor-pointer h-11 shrink-0 btn-spring"
+                className="py-3 px-6 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold tracking-wider rounded-full flex items-center justify-center gap-2 shadow-md transition-all sm:col-span-3 sm:mt-[22px] hover:scale-[1.02] active:scale-[0.98] cursor-pointer h-11 shrink-0 btn-spring"
               >
                 <Search className="w-4 h-4" />
                 Track Status

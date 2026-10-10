@@ -13,6 +13,9 @@ import { COUNTRIES, getStates } from '../../utils/geoData';
 import CaptchaWidget from '../../components/ui/CaptchaWidget';
 import { PaystackLogo, StripeLogo, PayPalLogo } from '../../components/storefront/PaymentGatewayLogos';
 import PayPalCardFields from '../../components/storefront/PayPalCardFields';
+import { useLiveValidation } from '../../hooks/useLiveValidation';
+import { FieldMessage, PasswordStrength } from '../../components/ui/FieldMessage';
+import * as rules from '../../utils/validators';
 
 export default function Checkout() {
   const currencySymbol = getCurrencySymbol();
@@ -75,6 +78,31 @@ export default function Checkout() {
   // Submit states
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Live validation for the sign in, register and delivery forms.
+  const loginV = useLiveValidation({ authEmail, authPassword }, {
+    authEmail: [rules.required('Enter your email address.'), rules.email()],
+    authPassword: [rules.required('Enter your password.')],
+  }, { fieldMap: { email: 'authEmail', password: 'authPassword' } });
+
+  const registerV = useLiveValidation({ authName, authEmail, authPhone, authPassword, authPasswordConfirm }, {
+    authName: [rules.required('Enter your full name.'), rules.minLength(2, 'Enter your full name.'), rules.maxLength(255)],
+    authEmail: [rules.required('Enter your email address.'), rules.email()],
+    authPhone: [rules.phone()],
+    authPassword: [rules.required('Choose a password.'), rules.minLength(6, 'Use at least 6 characters.')],
+    authPasswordConfirm: [rules.required('Type your password again.'), rules.matches('authPassword', 'The passwords do not match.')],
+  }, { fieldMap: { name: 'authName', email: 'authEmail', phone: 'authPhone', password: 'authPassword', password_confirmation: 'authPasswordConfirm' } });
+
+  const deliveryV = useLiveValidation({ name, phone, email, address, city, country, state, notes }, {
+    name: [rules.required("Enter the recipient's full name."), rules.maxLength(255)],
+    phone: [rules.required('Enter a phone number for the courier.'), rules.phone(), rules.maxLength(50)],
+    email: [rules.required('Enter an email for your receipt and tracking.'), rules.email()],
+    address: [rules.required('Enter the street address.'), rules.minLength(5, 'Enter the full street address, including the house number.')],
+    city: [rules.required('Enter the town or city.'), rules.maxLength(255)],
+    country: [rules.required('Choose a country to see shipping options.')],
+    state: [rules.required(country ? 'Choose a county, state or region.' : 'Choose a country first.')],
+    notes: [rules.maxLength(1000)],
+  }, { fieldMap: { customer_name: 'name', customer_phone: 'phone', customer_email: 'email', delivery_address: 'address', delivery_city: 'city', delivery_country: 'country', delivery_state: 'state' } });
   
   // Modal Payment Gateway States
   const [showPaystackModal, setShowPaystackModal] = useState(false);
@@ -219,10 +247,8 @@ export default function Checkout() {
   // Handle Inline Customer Login
   const handleInlineLogin = async (e) => {
     e.preventDefault();
-    if (!authEmail.trim() || !authPassword.trim()) {
-      setAuthError('Please enter your email and password');
-      return;
-    }
+    setAuthError('');
+    if (!loginV.validateAll()) return;
     setAuthSubmitting(true);
     setAuthError('');
     try {
@@ -255,7 +281,7 @@ export default function Checkout() {
             }
           }
         }
-      } else {
+      } else if (!loginV.applyServerErrors(result.errors)) {
         setAuthError(result.message || 'Invalid email or password.');
       }
     } catch (err) {
@@ -268,25 +294,15 @@ export default function Checkout() {
   // Handle Inline Customer Registration
   const handleInlineRegister = async (e) => {
     e.preventDefault();
-    if (!authName.trim() || !authEmail.trim() || !authPassword.trim()) {
-      setAuthError('Please fill in all required fields.');
-      return;
-    }
-    if (authPassword.length < 6) {
-      setAuthError('Password must be at least 6 characters.');
-      return;
-    }
-    if (authPassword !== authPasswordConfirm) {
-      setAuthError('Passwords do not match.');
-      return;
-    }
+    setAuthError('');
+    if (!registerV.validateAll()) return;
     setAuthSubmitting(true);
     setAuthError('');
     try {
       const result = await customerRegister(authName.trim(), authEmail.trim(), authPhone.trim(), authPassword, authPasswordConfirm);
       if (result.success) {
         systemToast.success('Account created successfully! You can now complete your order.');
-      } else {
+      } else if (!registerV.applyServerErrors(result.errors)) {
         setAuthError(result.message || 'Registration failed.');
       }
     } catch (err) {
@@ -301,6 +317,11 @@ export default function Checkout() {
     
     if (!customer) {
       setErrorMsg('Please log in or create an account above to proceed with your order.');
+      return;
+    }
+
+    if (!deliveryV.validateAll()) {
+      setErrorMsg('Please check the highlighted details.');
       return;
     }
 
@@ -408,7 +429,7 @@ export default function Checkout() {
           navigate(`/order-tracking?order_number=${data.data.order_number}&contact=${encodeURIComponent(email)}&bank_transfer=true`);
         }
       } else {
-        setErrorMsg(data.message || 'Checkout failed. Please verify details.');
+        setErrorMsg(deliveryV.applyServerErrors(data.errors) ? 'Please check the highlighted details.' : (data.message || 'Checkout failed. Please verify details.'));
         setLoading(false);
       }
     } catch (err) {
@@ -626,35 +647,37 @@ export default function Checkout() {
 
                 {/* LOGIN TAB FORM */}
                 {authTab === 'login' && (
-                  <form onSubmit={handleInlineLogin} className="flex flex-col gap-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <form onSubmit={handleInlineLogin} noValidate className="flex flex-col gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Email Address</label>
                         <div className="relative">
                           <input
+                            {...loginV.bind('authEmail')}
                             type="email"
-                            required
                             value={authEmail}
                             onChange={e => setAuthEmail(e.target.value)}
                             placeholder="e.g. amina@example.com"
-                            className="w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                            className={`w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${loginV.stateClass('authEmail')}`}
                           />
                           <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         </div>
+                        <FieldMessage {...loginV.message('authEmail')} />
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Password</label>
                         <div className="relative">
                           <input
+                            {...loginV.bind('authPassword')}
                             type="password"
-                            required
                             value={authPassword}
                             onChange={e => setAuthPassword(e.target.value)}
                             placeholder="••••••••"
-                            className="w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                            className={`w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${loginV.stateClass('authPassword')}`}
                           />
                           <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         </div>
+                        <FieldMessage {...loginV.message('authPassword')} />
                       </div>
                     </div>
 
@@ -686,79 +709,86 @@ export default function Checkout() {
 
                 {/* REGISTER TAB FORM */}
                 {authTab === 'register' && (
-                  <form onSubmit={handleInlineRegister} className="flex flex-col gap-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <form onSubmit={handleInlineRegister} noValidate className="flex flex-col gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Full Name</label>
                         <div className="relative">
                           <input
+                            {...registerV.bind('authName')}
                             type="text"
-                            required
                             value={authName}
                             onChange={e => setAuthName(e.target.value)}
                             placeholder="e.g. Amina Mohammed"
-                            className="w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                            className={`w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${registerV.stateClass('authName')}`}
                           />
                           <User className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         </div>
+                        <FieldMessage {...registerV.message('authName')} />
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Email Address</label>
                         <div className="relative">
                           <input
+                            {...registerV.bind('authEmail')}
                             type="email"
-                            required
                             value={authEmail}
                             onChange={e => setAuthEmail(e.target.value)}
                             placeholder="e.g. amina@example.com"
-                            className="w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                            className={`w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${registerV.stateClass('authEmail')}`}
                           />
                           <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         </div>
+                        <FieldMessage {...registerV.message('authEmail')} />
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Phone (Optional)</label>
                         <div className="relative">
                           <input
+                            {...registerV.bind('authPhone')}
                             type="tel"
                             value={authPhone}
                             onChange={e => setAuthPhone(e.target.value)}
                             placeholder="e.g. +234 801 234 5678"
-                            className="w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                            className={`w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${registerV.stateClass('authPhone')}`}
                           />
                           <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         </div>
+                        <FieldMessage {...registerV.message('authPhone', "Optional. Include your country code.")} />
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Password</label>
                         <div className="relative">
                           <input
+                            {...registerV.bind('authPassword')}
                             type="password"
-                            required
                             value={authPassword}
                             onChange={e => setAuthPassword(e.target.value)}
                             placeholder="Min 6 characters"
-                            className="w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                            className={`w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${registerV.stateClass('authPassword')}`}
                           />
                           <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         </div>
+                        <FieldMessage {...registerV.message('authPassword')} />
+                        <PasswordStrength value={authPassword} />
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Confirm Password</label>
                         <div className="relative">
                           <input
+                            {...registerV.bind('authPasswordConfirm')}
                             type="password"
-                            required
                             value={authPasswordConfirm}
                             onChange={e => setAuthPasswordConfirm(e.target.value)}
                             placeholder="Repeat password"
-                            className="w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                            className={`w-full pl-9 pr-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${registerV.stateClass('authPasswordConfirm')}`}
                           />
                           <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                         </div>
+                        <FieldMessage {...registerV.message('authPasswordConfirm')} />
                       </div>
                     </div>
 
@@ -797,7 +827,7 @@ export default function Checkout() {
 
             {/* STEP 2: CHECKOUT DETAILS & DELIVERY FORM (Visible only when authenticated) */}
             {customer && (
-              <form onSubmit={handleCheckoutSubmit} className="bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-3xl p-6 md:p-8 shadow-xs flex flex-col gap-6 text-left animate-slide-in">
+              <form onSubmit={handleCheckoutSubmit} noValidate className="bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-3xl p-6 md:p-8 shadow-xs flex flex-col gap-6 text-left animate-slide-in">
                 
                 <div className="flex items-center justify-between border-b border-gray-100 dark:border-white/10 pb-4">
                   <div className="flex items-center gap-2">
@@ -812,39 +842,42 @@ export default function Checkout() {
                 {/* Contact Information */}
                 <div className="flex flex-col gap-3">
                   <h3 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6]  tracking-widest border-b border-gray-100 dark:border-white/10 pb-2">Recipient Contact Details</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">Full Name</label>
                       <input
+                        {...deliveryV.bind('name')}
                         type="text"
-                        required
                         value={name}
                         onChange={e => setName(e.target.value)}
-                        className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium"
+                        className={`px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium transition-colors ${deliveryV.stateClass('name')}`}
                         placeholder="e.g. Amina Mohammed"
                       />
+                      <FieldMessage {...deliveryV.message('name')} />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">Phone Number</label>
                       <input
+                        {...deliveryV.bind('phone')}
                         type="tel"
-                        required
                         value={phone}
                         onChange={e => setPhone(e.target.value)}
-                        className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium"
-                        placeholder="e.g. +1 (555) 000-0000"
+                        className={`px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium transition-colors ${deliveryV.stateClass('phone')}`}
+                        placeholder="e.g. +44 7700 900123"
                       />
+                      <FieldMessage {...deliveryV.message('phone')} />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">Email (Receipts & Tracking)</label>
                       <input
+                        {...deliveryV.bind('email')}
                         type="email"
-                        required
                         value={email}
                         onChange={e => setEmail(e.target.value)}
-                        className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium"
+                        className={`px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium transition-colors ${deliveryV.stateClass('email')}`}
                         placeholder="e.g. alex@example.com"
                       />
+                      <FieldMessage {...deliveryV.message('email', "We send your receipt and tracking link here.")} />
                     </div>
                   </div>
                 </div>
@@ -857,54 +890,58 @@ export default function Checkout() {
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">Street Address & Landmark</label>
                       <input
+                        {...deliveryV.bind('address')}
                         type="text"
-                        required
                         value={address}
                         onChange={e => setAddress(e.target.value)}
-                        className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium"
-                        placeholder="e.g. 123 Main Street, Suite 400"
+                        className={`px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium transition-colors ${deliveryV.stateClass('address')}`}
+                        placeholder="e.g. 12 High Street, Flat 3"
                       />
+                      <FieldMessage {...deliveryV.message('address')} />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">City</label>
                         <input
+                          {...deliveryV.bind('city')}
                           type="text"
-                          required
                           value={city}
                           onChange={e => setCity(e.target.value)}
-                          className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium"
-                          placeholder="e.g. New York"
+                          className={`px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium transition-colors ${deliveryV.stateClass('city')}`}
+                          placeholder="e.g. London"
                         />
+                        <FieldMessage {...deliveryV.message('city')} />
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">Country</label>
                         <select
-                          required
+                          {...deliveryV.bind('country')}
                           value={country}
                           onChange={e => { setCountry(e.target.value); setState(''); }}
-                          className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-[#231B30] text-[#221B2B] dark:text-[#F3EFF6] cursor-pointer h-[38px] w-full shadow-3xs font-medium"
+                          className={`px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-[#231B30] text-[#221B2B] dark:text-[#F3EFF6] cursor-pointer h-[38px] w-full shadow-3xs font-medium transition-colors ${deliveryV.stateClass('country')}`}
                         >
                           <option value="">Select Country</option>
                           {COUNTRIES.map(c => (
                             <option key={c.code} value={c.name}>{c.name}</option>
                           ))}
                         </select>
+                        <FieldMessage {...deliveryV.message('country')} />
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">State / Province</label>
                         <select
-                          required
+                          {...deliveryV.bind('state')}
                           value={state}
                           onChange={e => setState(e.target.value)}
-                          className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-[#231B30] text-[#221B2B] dark:text-[#F3EFF6] cursor-pointer h-[38px] w-full shadow-3xs font-medium"
+                          className={`px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-[#231B30] text-[#221B2B] dark:text-[#F3EFF6] cursor-pointer h-[38px] w-full shadow-3xs font-medium transition-colors ${deliveryV.stateClass('state')}`}
                         >
                           <option value="">{country ? 'Select State' : 'Select Country First'}</option>
                           {country && getStates(country).map(s => (
                             <option key={s} value={s}>{s}</option>
                           ))}
                         </select>
+                        <FieldMessage {...deliveryV.message('state')} />
                       </div>
                     </div>
                   </>
@@ -1091,12 +1128,14 @@ export default function Checkout() {
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">Order Notes (Optional)</label>
                   <textarea
+                    {...deliveryV.bind('notes')}
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
                     rows="2"
-                    className="px-4 py-3 rounded-2xl border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full resize-none leading-relaxed h-20 font-medium"
+                    className={`px-4 py-3 rounded-2xl border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full resize-none leading-relaxed h-20 font-medium transition-colors ${deliveryV.stateClass('notes')}`}
                     placeholder="e.g. Delivery landmarks or call-before-delivery instructions..."
                   ></textarea>
+                  <FieldMessage {...deliveryV.message('notes', notes ? `${notes.length}/1000` : null)} />
                 </div>
 
                 <CaptchaWidget

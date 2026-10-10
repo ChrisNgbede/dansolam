@@ -2138,3 +2138,13 @@ img[data-skeleton="empty"]::before { content: ''; } /* suppresses alt rendering 
 @media (prefers-reduced-motion: reduce) {
   img[data-skeleton="loading"] { animation: none; }
 }
+
+/* Live form validation: messages ease in under their field. */
+@keyframes field-message-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.field-message-in { animation: field-message-in 0.2s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .field-message-in { animation: none; }
+}

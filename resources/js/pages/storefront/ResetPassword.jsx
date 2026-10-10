@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Loader2, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Loader2, CheckCircle2, Eye, EyeOff, RotateCcw } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import SEO from '../../components/seo/SEO';
+import { useLiveValidation, FIELD_ERROR_CLASS } from '../../hooks/useLiveValidation';
+import { FieldMessage, PasswordStrength } from '../../components/ui/FieldMessage';
+import { required, email as emailRule, digits, minLength, matches } from '../../utils/validators';
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -39,18 +42,53 @@ export default function ResetPassword() {
     if (codeParam) setToken(codeParam);
   }, [searchParams]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMsg('');
-    setSuccessMsg('');
+  const v = useLiveValidation(
+    { email, token, password, passwordConf },
+    {
+      email: [required('Enter the email address you used for your account.'), emailRule()],
+      token: [required('Enter the 6-digit code from your email.'), digits(6, 'The code is 6 digits, like 482913.')],
+      password: [required('Choose a new password.'), minLength(6, 'Use at least 6 characters.')],
+      passwordConf: [required('Type your new password again.'), matches('password', 'The passwords do not match.')],
+    },
+    { fieldMap: { password_confirmation: 'passwordConf' } }
+  );
 
-    if (password !== passwordConf) {
-      setErrorMsg('Passwords do not match');
-      setLoading(false);
+  // A rejected code gets its own message, with a way to get a new one.
+  const [codeRejected, setCodeRejected] = useState('');
+  const [resendState, setResendState] = useState('idle'); // idle, sending, sent, failed
+
+  useEffect(() => { setCodeRejected(''); }, [token, email]);
+
+  const handleResend = async () => {
+    if (v.error('email') || !email) {
+      v.validateAll();
       return;
     }
+    setResendState('sending');
+    try {
+      const res = await fetch('/api/customer/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      setResendState(res.ok ? 'sent' : 'failed');
+      if (res.ok) {
+        setToken('');
+        setCodeRejected('');
+      }
+    } catch {
+      setResendState('failed');
+    }
+  };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+    setCodeRejected('');
+    if (!v.validateAll()) return;
+
+    setLoading(true);
     try {
       const res = await fetch('/api/customer/reset-password', {
         method: 'POST',
@@ -59,23 +97,28 @@ export default function ResetPassword() {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          email,
-          token,
+          email: email.trim(),
+          token: token.trim(),
           password,
           password_confirmation: passwordConf
         })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
       setLoading(false);
 
-      if (data.success) {
+      if (data?.success) {
         setSuccessMsg(data.message);
+      } else if (res.status === 422 && v.applyServerErrors(data?.errors)) {
+        // Shown on the fields.
+      } else if (res.status === 400) {
+        setCodeRejected(data?.message || 'This reset code is invalid or has expired.');
+        setResendState('idle');
       } else {
-        setErrorMsg(data.message || 'Unable to reset password. Please check your reset code.');
+        setErrorMsg(data?.message || 'Unable to reset your password right now. Please try again.');
       }
     } catch (e) {
       setLoading(false);
-      setErrorMsg('Network error resetting your password.');
+      setErrorMsg('Could not reach the server. Check your connection and try again.');
     }
   };
 
@@ -130,80 +173,119 @@ export default function ResetPassword() {
             </div>
 
             {!successMsg ? (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-4.5 w-full">
+              <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4.5 w-full">
                 <div className="text-center">
                   <h1 className="font-extrabold text-2xl text-[#181120] dark:text-[#F3EFF6] leading-none">Reset Password</h1>
                   <p className="text-xs text-gray-400 dark:text-[#9C90A9] mt-2">Enter your 6-digit recovery code and choose a new password.</p>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold  tracking-wider">Email Address</label>
+                  <label htmlFor={v.idFor('email')} className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold  tracking-wider">Email Address</label>
                   <input
+                    {...v.bind('email')}
                     type="email"
-                    required
+                    autoComplete="email"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
-                    className="px-4 py-3 rounded-full border-2 border-[#D4C3E2] dark:border-white/20 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C] text-gray-800 dark:text-[#F3EFF6] font-semibold w-full shadow-xs"
+                    className={`px-4 py-3 rounded-full border-2 border-[#D4C3E2] dark:border-white/20 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C] text-gray-800 dark:text-[#F3EFF6] font-semibold w-full shadow-xs transition-colors ${v.stateClass('email')}`}
                     placeholder="e.g. fatima@example.com"
                   />
+                  <FieldMessage {...v.message('email')} />
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold  tracking-wider">Reset Code (Token)</label>
+                  <label htmlFor={v.idFor('token')} className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold  tracking-wider">Reset Code</label>
                   <input
+                    {...v.bind('token')}
                     type="text"
-                    required
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
                     value={token}
-                    onChange={e => setToken(e.target.value)}
-                    className="px-4 py-3 rounded-full border-2 border-[#D4C3E2] dark:border-white/20 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C] text-gray-800 dark:text-[#F3EFF6] font-bold w-full font-mono text-center tracking-widest text-base shadow-xs"
+                    onChange={e => setToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    className={`px-4 py-3 rounded-full border-2 border-[#D4C3E2] dark:border-white/20 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C] text-gray-800 dark:text-[#F3EFF6] font-bold w-full font-mono text-center tracking-widest text-base shadow-xs transition-colors ${codeRejected ? FIELD_ERROR_CLASS : v.stateClass('token')}`}
                     placeholder="000000"
                   />
+                  {codeRejected ? (
+                    <div className="flex flex-col gap-1.5 px-1 field-message-in" role="alert">
+                      <FieldMessage id={`${v.idFor('token')}-message`} error={codeRejected} />
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pl-5 text-[11px]">
+                        <button
+                          type="button"
+                          onClick={handleResend}
+                          disabled={resendState === 'sending'}
+                          className="inline-flex items-center gap-1 font-extrabold text-[#EC268F] hover:underline cursor-pointer disabled:opacity-60"
+                        >
+                          {resendState === 'sending' ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
+                          Send a new code to {email || 'my email'}
+                        </button>
+                        <Link to={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`} className="font-bold text-gray-500 dark:text-[#C9BED4] hover:underline">
+                          Use a different email
+                        </Link>
+                      </div>
+                    </div>
+                  ) : resendState === 'sent' ? (
+                    <span id={`${v.idFor('token')}-message`} aria-live="polite" className="px-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 field-message-in">
+                      If {email} has an account, a new code is on its way. Check your inbox and spam folder; it expires in 60 minutes.
+                    </span>
+                  ) : resendState === 'failed' ? (
+                    <FieldMessage id={`${v.idFor('token')}-message`} error="We could not send a new code just now. Please try again in a moment." />
+                  ) : (
+                    <FieldMessage {...v.message('token')} />
+                  )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
                   <div className="flex flex-col gap-1.5 relative">
-                    <label className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold  tracking-wider">New Password</label>
+                    <label htmlFor={v.idFor('password')} className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold  tracking-wider">New Password</label>
                     <div className="relative">
                       <input
+                        {...v.bind('password')}
                         type={showPassword ? 'text' : 'password'}
-                        required
+                        autoComplete="new-password"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
-                        className="pl-4 pr-10 py-3 rounded-full border-2 border-[#D4C3E2] dark:border-white/20 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C] text-gray-800 dark:text-[#F3EFF6] font-semibold w-full shadow-xs"
+                        className={`pl-4 pr-10 py-3 rounded-full border-2 border-[#D4C3E2] dark:border-white/20 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C] text-gray-800 dark:text-[#F3EFF6] font-semibold w-full shadow-xs transition-colors ${v.stateClass('password')}`}
                         placeholder="Min 6 chars"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-[#9C90A9] hover:text-gray-700 dark:hover:text-white cursor-pointer"
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+                    <FieldMessage {...v.message('password')} />
                   </div>
                   <div className="flex flex-col gap-1.5 relative">
-                    <label className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold  tracking-wider">Confirm Password</label>
+                    <label htmlFor={v.idFor('passwordConf')} className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold  tracking-wider">Confirm Password</label>
                     <div className="relative">
                       <input
+                        {...v.bind('passwordConf')}
                         type={showPasswordConf ? 'text' : 'password'}
-                        required
+                        autoComplete="new-password"
                         value={passwordConf}
                         onChange={e => setPasswordConf(e.target.value)}
-                        className="pl-4 pr-10 py-3 rounded-full border-2 border-[#D4C3E2] dark:border-white/20 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C] text-gray-800 dark:text-[#F3EFF6] font-semibold w-full shadow-xs"
+                        className={`pl-4 pr-10 py-3 rounded-full border-2 border-[#D4C3E2] dark:border-white/20 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C] text-gray-800 dark:text-[#F3EFF6] font-semibold w-full shadow-xs transition-colors ${v.stateClass('passwordConf')}`}
                         placeholder="Confirm password"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPasswordConf(!showPasswordConf)}
+                        aria-label={showPasswordConf ? 'Hide password' : 'Show password'}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-[#9C90A9] hover:text-gray-700 dark:hover:text-white cursor-pointer"
                       >
                         {showPasswordConf ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+                    <FieldMessage {...v.message('passwordConf')} />
                   </div>
                 </div>
+                <PasswordStrength value={password} />
 
-                {errorMsg && <span className="text-xs text-red-500 dark:text-red-400 font-semibold">{errorMsg}</span>}
+                {errorMsg && <FieldMessage error={errorMsg} />}
 
                 <button
                   type="submit"

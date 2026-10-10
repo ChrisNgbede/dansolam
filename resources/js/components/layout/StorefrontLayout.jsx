@@ -15,6 +15,9 @@ import useScrollReveal from '../../hooks/useScrollReveal';
 import CategoryMarquee from '../storefront/CategoryMarquee';
 import { QuickViewProvider } from '../storefront/QuickViewProvider';
 import { PaystackLogo, StripeLogo, PayPalLogo, FlutterwaveLogo, VisaLogo, MastercardLogo } from '../storefront/PaymentGatewayLogos';
+import { useLiveValidation } from '../../hooks/useLiveValidation';
+import { FieldMessage, PasswordStrength } from '../../components/ui/FieldMessage';
+import * as rules from '../../utils/validators';
 
 // Mega menu promotional banners. Admin stores each as { image_url, link, title };
 // older entries may be plain URL strings.
@@ -323,6 +326,9 @@ export default function StorefrontLayout() {
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [showPopupModal, setShowPopupModal] = useState(false);
   const [popupEmail, setPopupEmail] = useState('');
+  const popupV = useLiveValidation({ popupEmail }, {
+    popupEmail: [rules.required('Enter your email address.'), rules.email()],
+  }, { fieldMap: { email: 'popupEmail' } });
   const [popupSubmitting, setPopupSubmitting] = useState(false);
   const [popupSuccess, setPopupSuccess] = useState(false);
   const [showWishlistDrawer, setShowWishlistDrawer] = useState(false);
@@ -691,18 +697,21 @@ export default function StorefrontLayout() {
 
   const handlePopupSubmit = async (e) => {
     e.preventDefault();
-    if (!popupEmail.trim()) return;
+    if (!popupV.validateAll()) return;
 
     setPopupSubmitting(true);
     try {
       const res = await fetch('/api/newsletter/subscribe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({ email: popupEmail.trim() })
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       setPopupSubmitting(false);
 
+      if (res.status === 422 && popupV.applyServerErrors(data.errors)) {
+        return;
+      }
       if (data.success) {
         setPopupSuccess(true);
         setTimeout(() => {
@@ -1802,18 +1811,18 @@ export default function StorefrontLayout() {
 
               {popupSuccess ? (
                 <div className="bg-green-50 dark:bg-green-950/50 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 rounded-lg p-3 text-xs font-semibold flex items-center gap-1.5">
-                  ✓ Successfully subscribed! Check your mail for 10% off.
+                  ✓ You are subscribed! Check your inbox for a confirmation email.
                 </div>
               ) : (
-                <form onSubmit={handlePopupSubmit} className="flex flex-col gap-2">
+                <form onSubmit={handlePopupSubmit} noValidate className="flex flex-col gap-2">
                   <div className="flex items-center relative">
                     <input
+                      {...popupV.bind('popupEmail')}
                       type="email"
-                      required
                       placeholder="Enter your email address"
                       value={popupEmail}
                       onChange={(e) => setPopupEmail(e.target.value)}
-                      className="px-4 py-2.5 text-xs rounded-full border border-gray-250 dark:border-white/15 bg-white dark:bg-white/5 text-gray-900 dark:text-white w-full pr-10 focus:outline-none focus:border-[#5D3E85]"
+                      className={`px-4 py-2.5 text-xs rounded-full border border-gray-250 dark:border-white/15 bg-white dark:bg-white/5 text-gray-900 dark:text-white w-full pr-10 focus:outline-none focus:border-[#5D3E85] transition-colors ${popupV.stateClass('popupEmail')}`}
                     />
                     <button
                       type="submit"
@@ -1823,7 +1832,8 @@ export default function StorefrontLayout() {
                       {popupSubmitting ? '...' : <ArrowRight className="w-3.5 h-3.5" />}
                     </button>
                   </div>
-                  <span className="text-[9px] text-gray-400">Join 5k+ fashion queens. Unsubscribe at any time.</span>
+                  <FieldMessage {...popupV.message('popupEmail')} />
+                  <span className="text-[9px] text-gray-400">New arrivals, skincare tips and offers. Unsubscribe at any time.</span>
                 </form>
               )}
             </div>

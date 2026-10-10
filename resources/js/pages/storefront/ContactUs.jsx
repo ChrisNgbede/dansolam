@@ -7,6 +7,9 @@ import SEO from '../../components/seo/SEO';
 import FaqSection from '../../components/storefront/FaqSection';
 import SocialIcon from '../../components/ui/SocialIcon';
 import CaptchaWidget from '../../components/ui/CaptchaWidget';
+import { useLiveValidation } from '../../hooks/useLiveValidation';
+import { FieldMessage, PasswordStrength } from '../../components/ui/FieldMessage';
+import * as rules from '../../utils/validators';
 
 export default function ContactUs() {
   const [name, setName] = useState('');
@@ -15,6 +18,13 @@ export default function ContactUs() {
   const [message, setMessage] = useState('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [captchaVerified, setCaptchaVerified] = useState(false);
+
+  const v = useLiveValidation({ name, email, subject, message }, {
+    name: [rules.required('Enter your name.'), rules.maxLength(255)],
+    email: [rules.required('Enter your email address so we can reply.'), rules.email()],
+    subject: [rules.required('Add a short subject.'), rules.maxLength(255)],
+    message: [rules.required('Write your message.'), rules.minLength(10, 'Please add a little more detail (at least 10 characters).')],
+  });
   const { data: settingsRes } = useQuery({
     queryKey: ['settings'],
     queryFn: () => fetch('/api/settings').then(res => res.json()),
@@ -32,11 +42,13 @@ export default function ContactUs() {
     mutationFn: (payload) => {
       return fetch('/api/contact-inquiries', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(payload)
-      }).then(res => {
+      }).then(async res => {
+        const data = await res.json().catch(() => null);
+        if (res.status === 422) return { success: false, errors: data?.errors, message: data?.message };
         if (!res.ok) throw new Error('Submission failed');
-        return res.json();
+        return data;
       });
     },
     onSuccess: (data) => {
@@ -46,7 +58,8 @@ export default function ContactUs() {
         setEmail('');
         setSubject('');
         setMessage('');
-      } else {
+        v.reset();
+      } else if (!v.applyServerErrors(data.errors)) {
         systemToast.error(data.message || 'Failed to submit inquiry.');
       }
     },
@@ -57,6 +70,7 @@ export default function ContactUs() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!v.validateAll()) return;
     const isCaptchaEnabled = settings.captcha_enabled === 'true' || settings.captcha_enabled === true;
     const isContactEnabled = settings.captcha_on_contact === undefined ? true : (settings.captcha_on_contact === 'true' || settings.captcha_on_contact === true);
     if (isCaptchaEnabled && isContactEnabled && !captchaVerified) {
@@ -204,54 +218,58 @@ export default function ContactUs() {
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Your Name *</label>
                       <input
+                        {...v.bind('name')}
                         type="text"
-                        required
                         value={name}
                         onChange={e => setName(e.target.value)}
                         placeholder="e.g. Sandra Okoro"
-                        className="px-4 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold"
+                        className={`px-4 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold transition-colors ${v.stateClass('name')}`}
                       />
+                      <FieldMessage {...v.message('name')} />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Email Address *</label>
                       <input
+                        {...v.bind('email')}
                         type="email"
-                        required
                         value={email}
                         onChange={e => setEmail(e.target.value)}
                         placeholder="e.g. sandra@example.com"
-                        className="px-4 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold"
+                        className={`px-4 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold transition-colors ${v.stateClass('email')}`}
                       />
+                      <FieldMessage {...v.message('email')} />
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Subject *</label>
                     <input
+                      {...v.bind('subject')}
                       type="text"
-                      required
                       value={subject}
                       onChange={e => setSubject(e.target.value)}
                       placeholder="e.g. Delivery Status / Custom Order Inquiry"
-                      className="px-4 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold"
+                      className={`px-4 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold transition-colors ${v.stateClass('subject')}`}
                     />
+                    <FieldMessage {...v.message('subject')} />
                   </div>
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Message / Detail *</label>
                     <textarea
-                      required
+                      {...v.bind('message')}
                       rows="5"
                       value={message}
                       onChange={e => setMessage(e.target.value)}
                       placeholder="Write your message details here..."
-                      className="px-4 py-3 rounded-2xl border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] leading-relaxed resize-none font-medium"
+                      className={`px-4 py-3 rounded-2xl border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] leading-relaxed resize-none font-medium transition-colors ${v.stateClass('message')}`}
                     />
+                    <FieldMessage {...v.message('message', message ? (message.trim().length < 10 ? `${10 - message.trim().length} more character${10 - message.trim().length === 1 ? '' : 's'} needed` : `${message.length} characters`) : 'At least 10 characters.')} />
                   </div>
 
                   <CaptchaWidget

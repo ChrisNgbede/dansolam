@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Calendar, Clock, Users, User, Mail, Phone, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
+import { useLiveValidation } from '../../hooks/useLiveValidation';
+import { FieldMessage, PasswordStrength } from '../../components/ui/FieldMessage';
+import * as rules from '../../utils/validators';
 
 export default function BookFittingSessionModal({ isOpen, onClose }) {
   // Lock body scroll when BookFittingSessionModal is open
@@ -39,6 +42,15 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  const v = useLiveValidation(formData, {
+    name: [rules.required('Enter your name.'), rules.maxLength(255)],
+    email: [rules.required('Enter your email so we can confirm your booking.'), rules.email()],
+    phone: [rules.required('Enter a phone number we can call to confirm.'), rules.phone()],
+    preferred_date: [rules.required('Choose a date.'), rules.notInPast()],
+    guests_count: [rules.numberBetween(1, 20, 'Choose between 1 and 20 guests.')],
+    notes: [rules.maxLength(1000)],
+  });
+
   const timeSlots = [
     '10:00 AM',
     '11:30 AM',
@@ -55,9 +67,10 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
     setSuccessMsg('');
+    if (!v.validateAll()) return;
+    setLoading(true);
 
     try {
       const res = await axios.post('/api/fitting-sessions', formData);
@@ -72,9 +85,10 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
           guests_count: 1,
           notes: '',
         });
+        v.reset();
       }
     } catch (err) {
-      console.error(err);
+      if (err.response?.status === 422 && v.applyServerErrors(err.response.data?.errors)) return;
       setError(err.response?.data?.message || 'Failed to submit fitting session request. Please check your inputs and try again.');
     } finally {
       setLoading(false);
@@ -121,7 +135,7 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} noValidate className="space-y-4">
               {error && (
                 <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl text-xs text-red-600 dark:text-red-300 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
@@ -135,14 +149,15 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
                   <User className="w-3.5 h-3.5 text-gray-400" /> Full Name *
                 </label>
                 <input
+                  {...v.bind('name')}
                   type="text"
                   name="name"
-                  required
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="e.g. Sarah Jenkins"
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className={`w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors ${v.stateClass('name')}`}
                 />
+                <FieldMessage className="mt-1.5" {...v.message('name')} />
               </div>
 
               {/* Email & Phone */}
@@ -152,28 +167,30 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
                     <Mail className="w-3.5 h-3.5 text-gray-400" /> Email Address *
                   </label>
                   <input
+                    {...v.bind('email')}
                     type="email"
                     name="email"
-                    required
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="sarah@example.com"
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className={`w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors ${v.stateClass('email')}`}
                   />
+                  <FieldMessage className="mt-1.5" {...v.message('email')} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
                     <Phone className="w-3.5 h-3.5 text-gray-400" /> Phone Number *
                   </label>
                   <input
+                    {...v.bind('phone')}
                     type="tel"
                     name="phone"
-                    required
                     value={formData.phone}
                     onChange={handleChange}
-                    placeholder="+1 (555) 000-0000"
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    placeholder="+44 7700 900123"
+                    className={`w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors ${v.stateClass('phone')}`}
                   />
+                  <FieldMessage className="mt-1.5" {...v.message('phone')} />
                 </div>
               </div>
 
@@ -184,28 +201,31 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
                     <Calendar className="w-3.5 h-3.5 text-gray-400" /> Preferred Date *
                   </label>
                   <input
+                    {...v.bind('preferred_date')}
                     type="date"
                     name="preferred_date"
-                    required
                     min={todayStr}
                     value={formData.preferred_date}
                     onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className={`w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors ${v.stateClass('preferred_date')}`}
                   />
+                  <FieldMessage className="mt-1.5" {...v.message('preferred_date')} />
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5 flex items-center gap-1.5">
                     <Users className="w-3.5 h-3.5 text-gray-400" /> Number of Guests
                   </label>
                   <input
+                    {...v.bind('guests_count')}
                     type="number"
                     name="guests_count"
                     min="1"
                     max="10"
                     value={formData.guests_count}
                     onChange={handleChange}
-                    className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    className={`w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors ${v.stateClass('guests_count')}`}
                   />
+                  <FieldMessage className="mt-1.5" {...v.message('guests_count')} />
                 </div>
               </div>
 
@@ -237,13 +257,15 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
                   Skin Concerns & Routine Goals (Optional)
                 </label>
                 <textarea
+                  {...v.bind('notes')}
                   name="notes"
                   rows={2}
                   value={formData.notes}
                   onChange={handleChange}
                   placeholder="Tell us about your skin goals, specific concerns (e.g. acne, glow, hyperpigmentation), or desired spa rituals..."
-                  className="w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  className={`w-full px-3.5 py-2.5 text-xs rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-[#1a1a1a] text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/40 transition-colors ${v.stateClass('notes')}`}
                 />
+                <FieldMessage className="mt-1.5" {...v.message('notes', `${formData.notes.length}/1000`)} />
               </div>
 
               {/* Submit button */}

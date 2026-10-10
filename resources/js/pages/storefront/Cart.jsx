@@ -9,6 +9,8 @@ import SEO from '../../components/seo/SEO';
 import CheckoutStepper from '../../components/storefront/CheckoutStepper';
 import { getCurrencySymbol } from '../../utils/currency';
 import { toast as systemToast } from '../../components/ui/ToastProvider';
+import { FieldMessage } from '../../components/ui/FieldMessage';
+import { FIELD_ERROR_CLASS, FIELD_VALID_CLASS } from '../../hooks/useLiveValidation';
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -104,7 +106,10 @@ export default function Cart() {
     setCouponError('');
     setCouponSuccess('');
 
-    if (!couponCode.trim()) return;
+    if (!couponCode.trim()) {
+      setCouponError('Enter a coupon code first.');
+      return;
+    }
 
     try {
       const res = await fetch('/api/coupon/verify', {
@@ -470,15 +475,17 @@ export default function Cart() {
             </div>
 
             {/* Coupon Input */}
-            <form onSubmit={handleApplyCoupon} className="border-t border-[#5D3E85]/10 pt-4 flex flex-col gap-2">
+            <form onSubmit={handleApplyCoupon} noValidate className="border-t border-[#5D3E85]/10 pt-4 flex flex-col gap-2">
               <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider block">Apply Promo Coupon</label>
               <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 w-full max-w-full items-stretch">
                 <input
                   type="text"
                   placeholder="Enter coupon code"
                   value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  className="min-w-0 w-full px-3 py-2 border border-gray-200 dark:border-white/15 rounded-full focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5  font-semibold text-[#221B2B] dark:text-[#F3EFF6]"
+                  onChange={(e) => { setCouponCode(e.target.value.toUpperCase().replace(/\s+/g, '')); setCouponError(''); setCouponSuccess(''); }}
+                  aria-invalid={couponError ? true : undefined}
+                  aria-describedby="cart-coupon-message"
+                  className={`min-w-0 w-full px-3 py-2 border border-gray-200 dark:border-white/15 rounded-full focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5  font-semibold text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${couponError ? FIELD_ERROR_CLASS : couponSuccess ? FIELD_VALID_CLASS : ''}`}
                 />
                 <button
                   type="submit"
@@ -487,8 +494,9 @@ export default function Cart() {
                   Apply
                 </button>
               </div>
-              {couponError && <span className="text-[10px] text-red-500 font-semibold block mt-0.5">{couponError}</span>}
-              {couponSuccess && <span className="text-[10px] text-green-600 dark:text-green-400 font-semibold block mt-0.5">{couponSuccess}</span>}
+              {couponSuccess
+                ? <span id="cart-coupon-message" aria-live="polite" className="px-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold field-message-in">{couponSuccess}</span>
+                : <FieldMessage id="cart-coupon-message" error={couponError} />}
             </form>
 
             {/* Checkout Button */}

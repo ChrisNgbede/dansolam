@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Mail, CheckCircle2, MessageSquare, ShieldCheck, ArrowRight, Lock, Wrench, RefreshCw, Phone, AlertCircle } from 'lucide-react';
 import SEO from '../../components/seo/SEO';
+import { useLiveValidation } from '../../hooks/useLiveValidation';
+import { FieldMessage, PasswordStrength } from '../../components/ui/FieldMessage';
+import * as rules from '../../utils/validators';
 
 export default function MaintenancePage({ settings = {}, onBypass }) {
   const title = settings.maintenance_title || "We'll Be Back Shortly!";
@@ -44,10 +47,11 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
   const [submitting, setSubmitting] = useState(false);
   const [subscribed, setSubscribed] = useState(false);
   const [notifyMsg, setNotifyMsg] = useState('');
+  const v = useLiveValidation({ email }, { email: [rules.required('Enter your email address.'), rules.email()] });
 
   const handleNotifySubmit = async (e) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!v.validateAll()) return;
 
     setSubmitting(true);
     try {
@@ -173,14 +177,15 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
                 <span>{notifyMsg}</span>
               </div>
             ) : (
-              <form onSubmit={handleNotifySubmit} className="flex gap-2">
+              <form onSubmit={handleNotifySubmit} noValidate className="flex flex-col gap-1.5">
+                <div className="flex gap-2">
                 <input
+                  {...v.bind('email')}
                   type="email"
-                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email address"
-                  className="flex-1 px-4 py-2.5 rounded-full border border-white/20 bg-[#100A16] text-white text-xs placeholder:text-gray-500 focus:outline-none focus:border-[#E5C158]"
+                  className={`flex-1 px-4 py-2.5 rounded-full border border-white/20 bg-[#100A16] text-white text-xs placeholder:text-gray-500 focus:outline-none focus:border-[#E5C158] transition-colors ${v.stateClass('email')}`}
                 />
                 <button
                   type="submit"
@@ -190,6 +195,8 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
                   {submitting ? 'Submitting...' : 'Notify Me'}
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
+                </div>
+                <FieldMessage {...v.message('email')} className="text-left" />
               </form>
             )}
           </div>

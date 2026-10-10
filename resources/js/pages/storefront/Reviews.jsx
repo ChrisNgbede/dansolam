@@ -5,6 +5,9 @@ import { Link } from 'react-router-dom';
 import { Star, Plus, Loader2, CheckCircle, AlertCircle, X, ArrowLeft } from 'lucide-react';
 import SEO from '../../components/seo/SEO';
 import FacelessAvatar from '../../components/ui/FacelessAvatar';
+import { useLiveValidation } from '../../hooks/useLiveValidation';
+import { FieldMessage, PasswordStrength } from '../../components/ui/FieldMessage';
+import * as rules from '../../utils/validators';
 
 export default function Reviews() {
   const queryClient = useQueryClient();
@@ -22,6 +25,12 @@ export default function Reviews() {
   // UI Messages
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  const v = useLiveValidation({ customerName, reviewTitle, comment }, {
+    customerName: [rules.required('Enter your name as you would like it shown.'), rules.maxLength(255)],
+    reviewTitle: [rules.maxLength(120)],
+    comment: [rules.required('Tell us about your experience.'), rules.minLength(10, 'Please write at least 10 characters.'), rules.maxLength(2000)],
+  }, { fieldMap: { customer_name: 'customerName' } });
 
   // Lock background body scroll when review modal is open
   useEffect(() => {
@@ -100,12 +109,13 @@ export default function Reviews() {
       const endpoint = productId ? `/api/products/${productId}/reviews` : '/api/reviews';
       return fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify(payload)
       }).then(res => res.json());
     },
     onSuccess: (data) => {
       if (data.success) {
+        v.reset();
         setSuccessMsg(data.message || 'Review submitted successfully! Thank you for sharing your experience. ✨');
         setCustomerName('');
         setReviewTitle('');
@@ -119,7 +129,7 @@ export default function Reviews() {
           setShowForm(false);
           setSuccessMsg('');
         }, 2500);
-      } else {
+      } else if (!v.applyServerErrors(data.errors)) {
         setErrorMsg(data.message || 'Error submitting review.');
       }
     },
@@ -133,14 +143,7 @@ export default function Reviews() {
     setErrorMsg('');
     setSuccessMsg('');
 
-    if (!customerName.trim()) {
-      setErrorMsg('Please provide your name.');
-      return;
-    }
-    if (!comment.trim()) {
-      setErrorMsg('Please write your review comment.');
-      return;
-    }
+    if (!v.validateAll()) return;
 
     const fullComment = reviewTitle.trim() ? `${reviewTitle.trim()} — ${comment.trim()}` : comment.trim();
 
@@ -515,7 +518,7 @@ export default function Reviews() {
               </button>
             </div>
 
-            <form onSubmit={handleFormSubmit} className="flex flex-col gap-4">
+            <form onSubmit={handleFormSubmit} noValidate className="flex flex-col gap-4">
               
               {/* Product selection */}
               <div className="flex flex-col gap-1.5">
@@ -536,13 +539,14 @@ export default function Reviews() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Your Name *</label>
                 <input
+                  {...v.bind('customerName')}
                   type="text"
                   value={customerName}
                   onChange={e => setCustomerName(e.target.value)}
                   placeholder="e.g. Blessing O."
-                  className="px-3.5 py-2.5 border border-gray-200 dark:border-white/15 rounded-full focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
-                  required
+                  className={`px-3.5 py-2.5 border border-gray-200 dark:border-white/15 rounded-full focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${v.stateClass('customerName')}`}
                 />
+                <FieldMessage {...v.message('customerName')} />
               </div>
 
               {/* Rating */}
@@ -570,24 +574,27 @@ export default function Reviews() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Review Headline</label>
                 <input
+                  {...v.bind('reviewTitle')}
                   type="text"
                   value={reviewTitle}
                   onChange={e => setReviewTitle(e.target.value)}
                   placeholder="e.g. Fixed my discoloration in six weeks"
-                  className="px-3.5 py-2.5 border border-gray-200 dark:border-white/15 rounded-full focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                  className={`px-3.5 py-2.5 border border-gray-200 dark:border-white/15 rounded-full focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${v.stateClass('reviewTitle')}`}
                 />
+                <FieldMessage {...v.message('reviewTitle', 'Optional, e.g. "My skin has never felt softer".')} />
               </div>
 
               {/* Review comment */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Review Details *</label>
                 <textarea
+                  {...v.bind('comment')}
                   value={comment}
                   onChange={e => setComment(e.target.value)}
                   placeholder="Describe the texture, results, and how it felt on your skin..."
-                  className="px-4 py-3 border border-gray-200 dark:border-white/15 rounded-2xl focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] h-24 resize-none leading-relaxed"
-                  required
+                  className={`px-4 py-3 border border-gray-200 dark:border-white/15 rounded-2xl focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] h-24 resize-none leading-relaxed transition-colors ${v.stateClass('comment')}`}
                 />
+                <FieldMessage {...v.message('comment', comment ? `${comment.length}/2000` : 'At least 10 characters.')} />
               </div>
 
               {/* Messages */}

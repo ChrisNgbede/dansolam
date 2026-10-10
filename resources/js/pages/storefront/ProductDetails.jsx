@@ -11,6 +11,9 @@ import SEO from '../../components/seo/SEO';
 import CaptchaWidget from '../../components/ui/CaptchaWidget';
 import { FormattedText } from '../../utils/formatText';
 import FacelessAvatar from '../../components/ui/FacelessAvatar';
+import { useLiveValidation } from '../../hooks/useLiveValidation';
+import { FieldMessage, PasswordStrength } from '../../components/ui/FieldMessage';
+import * as rules from '../../utils/validators';
 
 // "Standard"/"Default" variants carry no information for shoppers, so leave them out.
 function variantLabel(variant, sep = ', ') {
@@ -50,6 +53,14 @@ export default function ProductDetails() {
   const [reviewAvatarUrl, setReviewAvatarUrl] = useState('');
   const [reviewImageUrl, setReviewImageUrl] = useState('');
   const [reviewCaptchaVerified, setReviewCaptchaVerified] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+
+  const reviewV = useLiveValidation({ reviewName, reviewComment, reviewAvatarUrl, reviewImageUrl }, {
+    reviewName: [rules.required('Enter your name as you would like it shown.'), rules.maxLength(255)],
+    reviewComment: [rules.required('Tell us what you think of this product.'), rules.minLength(10, 'Please write at least 10 characters.'), rules.maxLength(2000)],
+    reviewAvatarUrl: [rules.url()],
+    reviewImageUrl: [rules.url()],
+  }, { fieldMap: { customer_name: 'reviewName', comment: 'reviewComment', avatar_url: 'reviewAvatarUrl', image_url: 'reviewImageUrl' } });
   const [activeLightboxImage, setActiveLightboxImage] = useState(null);
 
   // Lock background body scroll when size guide or review image lightbox is open
@@ -152,7 +163,12 @@ export default function ProductDetails() {
       }).then(res => res.json());
     },
     onSuccess: (data) => {
+      if (!data.success) {
+        if (!reviewV.applyServerErrors(data.errors)) setReviewError(data.message || 'Your review could not be submitted. Please try again.');
+        return;
+      }
       if (data.success) {
+        reviewV.reset();
         setReviewSuccess(true);
         queryClient.invalidateQueries(['product-details', slug]);
         setReviewName('');
@@ -160,7 +176,8 @@ export default function ProductDetails() {
         setReviewImageUrl('');
         setTimeout(() => setReviewSuccess(false), 5000);
       }
-    }
+    },
+    onError: () => setReviewError('Could not reach the server. Please try again.'),
   });
 
   const relatedProducts = relatedRes?.data?.data?.filter(p => p.id !== product?.id).slice(0, 4) || [];
@@ -240,10 +257,12 @@ export default function ProductDetails() {
 
   const handleReviewSubmit = (e) => {
     e.preventDefault();
+    setReviewError('');
+    if (!reviewV.validateAll()) return;
     const isCaptchaEnabled = settings.captcha_enabled === 'true' || settings.captcha_enabled === true;
     const isReviewEnabled = settings.captcha_on_reviews === undefined ? true : (settings.captcha_on_reviews === 'true' || settings.captcha_on_reviews === true);
     if (isCaptchaEnabled && isReviewEnabled && !reviewCaptchaVerified) {
-      alert('Please complete the security verification challenge before submitting your review.');
+      setReviewError('Please complete the security check before submitting your review.');
       return;
     }
     addReviewMutation.mutate({
@@ -608,18 +627,19 @@ export default function ProductDetails() {
                   Thank you! Your review has been submitted successfully and is under moderation.
                 </div>
               ) : (
-                <form onSubmit={handleReviewSubmit} className="flex flex-col gap-4">
+                <form onSubmit={handleReviewSubmit} noValidate className="flex flex-col gap-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-semibold ">Your Name</label>
                       <input
+                        {...reviewV.bind('reviewName')}
                         type="text"
-                        required
                         value={reviewName}
                         onChange={(e) => setReviewName(e.target.value)}
-                        className="px-3 py-2 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                        className={`px-3 py-2 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${reviewV.stateClass('reviewName')}`}
                         placeholder="e.g. Fatima A."
                       />
+                      <FieldMessage {...reviewV.message('reviewName')} />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-semibold ">Rating</label>
@@ -641,35 +661,41 @@ export default function ProductDetails() {
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-semibold ">Avatar Image URL (Optional)</label>
                       <input
+                        {...reviewV.bind('reviewAvatarUrl')}
                         type="text"
                         value={reviewAvatarUrl}
                         onChange={(e) => setReviewAvatarUrl(e.target.value)}
-                        className="px-3 py-2 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                        className={`px-3 py-2 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${reviewV.stateClass('reviewAvatarUrl')}`}
                         placeholder="e.g. Profile photo URL"
                       />
+                      <FieldMessage {...reviewV.message('reviewAvatarUrl')} />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-semibold ">Review Screenshot URL (Optional)</label>
                       <input
+                        {...reviewV.bind('reviewImageUrl')}
                         type="text"
                         value={reviewImageUrl}
                         onChange={(e) => setReviewImageUrl(e.target.value)}
-                        className="px-3 py-2 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                        className={`px-3 py-2 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${reviewV.stateClass('reviewImageUrl')}`}
                         placeholder="WhatsApp/Instagram screenshot link"
                       />
+                      <FieldMessage {...reviewV.message('reviewImageUrl')} />
                     </div>
                   </div>
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-semibold ">Comment</label>
                     <textarea
-                      required
+                      {...reviewV.bind('reviewComment')}
                       value={reviewComment}
                       onChange={(e) => setReviewComment(e.target.value)}
                       rows="3"
-                      className="px-3.5 py-2.5 rounded-2xl border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                      className={`px-3.5 py-2.5 rounded-2xl border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${reviewV.stateClass('reviewComment')}`}
                       placeholder="Tell us about the skin results, texture, and delivery experience..."
                     ></textarea>
+                    <FieldMessage {...reviewV.message('reviewComment', reviewComment ? `${reviewComment.length}/2000` : 'At least 10 characters.')} />
+                    {reviewError && <FieldMessage error={reviewError} />}
                   </div>
 
                   <CaptchaWidget

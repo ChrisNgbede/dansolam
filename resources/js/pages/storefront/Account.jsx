@@ -7,6 +7,9 @@ import { User, ShoppingBag, MapPin, Heart, LogOut, ArrowRight, Trash2, Plus, Loa
 import { useAuth, apiFetch } from '../../hooks/useAuth';
 import { ProductCard } from './Home';
 import SEO from '../../components/seo/SEO';
+import { useLiveValidation } from '../../hooks/useLiveValidation';
+import { FieldMessage, PasswordStrength } from '../../components/ui/FieldMessage';
+import * as rules from '../../utils/validators';
 
 export default function Account() {
   const currencySymbol = getCurrencySymbol();
@@ -90,6 +93,27 @@ export default function Account() {
   const [addressDefault, setAddressDefault] = useState(true);
   const [addressLoading, setAddressLoading] = useState(false);
 
+  // Live validation for sign in, register and address forms.
+  const loginV = useLiveValidation({ loginEmail, loginPassword }, {
+    loginEmail: [rules.required('Enter your email address.'), rules.email()],
+    loginPassword: [rules.required('Enter your password.')],
+  }, { fieldMap: { email: 'loginEmail', password: 'loginPassword' } });
+
+  const regV = useLiveValidation({ regName, regEmail, regPhone, regPassword, regPasswordConf }, {
+    regName: [rules.required('Enter your full name.'), rules.minLength(2, 'Enter your full name.'), rules.maxLength(255)],
+    regEmail: [rules.required('Enter your email address.'), rules.email()],
+    regPhone: [rules.phone()],
+    regPassword: [rules.required('Choose a password.'), rules.minLength(6, 'Use at least 6 characters.')],
+    regPasswordConf: [rules.required('Type your password again.'), rules.matches('regPassword', 'The passwords do not match.')],
+  }, { fieldMap: { name: 'regName', email: 'regEmail', phone: 'regPhone', password: 'regPassword', password_confirmation: 'regPasswordConf' } });
+
+  const addrV = useLiveValidation({ addressLine, addressCity, addressState, addressCountry }, {
+    addressLine: [rules.required('Enter the street address.'), rules.minLength(3, 'Enter the full street address.')],
+    addressCity: [rules.required('Enter the town or city.')],
+    addressState: [rules.required('Enter the county or state.')],
+    addressCountry: [rules.required('Enter the country.')],
+  }, { fieldMap: { address_line_1: 'addressLine', city: 'addressCity', state: 'addressState', country: 'addressCountry' } });
+
   // Skin Profile states
   const [skinType, setSkinType] = useState('Combination');
   const [skinGoal, setSkinGoal] = useState('Radiant Glow');
@@ -139,13 +163,14 @@ export default function Account() {
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setLoginError('');
+    if (!loginV.validateAll()) return;
     setLoginLoading(true);
 
     const res = await customerLogin(loginEmail, loginPassword, rememberMe);
     setLoginLoading(false);
     if (res.success) {
       queryClient.invalidateQueries(['customer-orders', 'customer-addresses', 'customer-wishlist', 'customer-profile']);
-    } else {
+    } else if (!loginV.applyServerErrors(res.errors)) {
       setLoginError(res.message || 'Login failed');
     }
   };
@@ -153,11 +178,7 @@ export default function Account() {
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setRegError('');
-
-    if (regPassword !== regPasswordConf) {
-      setRegError('Passwords do not match');
-      return;
-    }
+    if (!regV.validateAll()) return;
 
     setRegLoading(true);
     const res = await customerRegister(regName, regEmail, regPhone, regPassword, regPasswordConf);
@@ -165,13 +186,14 @@ export default function Account() {
 
     if (res.success) {
       queryClient.invalidateQueries(['customer-orders', 'customer-addresses', 'customer-wishlist', 'customer-profile']);
-    } else {
+    } else if (!regV.applyServerErrors(res.errors)) {
       setRegError(res.message || 'Registration failed');
     }
   };
 
   const handleAddressSubmit = async (e) => {
     e.preventDefault();
+    if (!addrV.validateAll()) return;
     setAddressLoading(true);
 
     try {
@@ -192,8 +214,9 @@ export default function Account() {
         setShowAddressForm(false);
         setAddressLine('');
         setAddressCity('');
+        addrV.reset();
         queryClient.invalidateQueries(['customer-addresses']);
-      } else {
+      } else if (!addrV.applyServerErrors(data.errors)) {
         systemToast.error(data.message || 'Adding address failed');
       }
     } catch (e) {
@@ -309,7 +332,7 @@ export default function Account() {
 
               {loginTab ? (
                 /* LOGIN FORM */
-                <form onSubmit={handleLoginSubmit} className="flex flex-col gap-5 w-full text-left">
+                <form onSubmit={handleLoginSubmit} noValidate className="flex flex-col gap-5 w-full text-left">
                   <div className="text-center">
                     <h2 className="font-extrabold text-2xl text-[#221B2B] dark:text-[#F3EFF6] leading-none">Welcome Back</h2>
                     <p className="text-xs text-gray-400 dark:text-[#9B8EA9] mt-2">Sign in to check past orders, edit shipping addresses, or view your wishlist.</p>
@@ -318,13 +341,14 @@ export default function Account() {
                   <div className="flex flex-col gap-1.5 mt-2">
                     <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Email Address</label>
                     <input
+                      {...loginV.bind('loginEmail')}
                       type="email"
-                      required
                       value={loginEmail}
                       onChange={e => setLoginEmail(e.target.value)}
-                      className="px-4 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold w-full"
+                      className={`px-4 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold w-full transition-colors ${loginV.stateClass('loginEmail')}`}
                       placeholder="e.g. fatima@example.com"
                     />
+                    <FieldMessage {...loginV.message('loginEmail')} />
                   </div>
 
                   <div className="flex flex-col gap-1.5 relative">
@@ -336,11 +360,11 @@ export default function Account() {
                     </div>
                     <div className="relative">
                       <input
+                        {...loginV.bind('loginPassword')}
                         type={showLoginPassword ? 'text' : 'password'}
-                        required
                         value={loginPassword}
                         onChange={e => setLoginPassword(e.target.value)}
-                        className="pl-4 pr-10 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold w-full"
+                        className={`pl-4 pr-10 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold w-full transition-colors ${loginV.stateClass('loginPassword')}`}
                         placeholder="••••••••"
                       />
                       <button
@@ -351,6 +375,7 @@ export default function Account() {
                         {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+                    <FieldMessage {...loginV.message('loginPassword')} />
                   </div>
 
                   <div className="flex items-center gap-2 mt-0.5">
@@ -366,7 +391,7 @@ export default function Account() {
                     </label>
                   </div>
 
-                  {loginError && <span className="text-[10px] text-red-500 font-semibold">{loginError}</span>}
+                  {loginError && <FieldMessage error={loginError} />}
 
                   <button
                     type="submit"
@@ -385,7 +410,7 @@ export default function Account() {
                 </form>
               ) : (
                 /* REGISTER FORM */
-                <form onSubmit={handleRegisterSubmit} className="flex flex-col gap-4 w-full text-left">
+                <form onSubmit={handleRegisterSubmit} noValidate className="flex flex-col gap-4 w-full text-left">
                   <div className="text-center">
                     <h2 className="font-extrabold text-2xl text-[#221B2B] dark:text-[#F3EFF6] leading-none">Create Your Account</h2>
                     <p className="text-xs text-gray-400 dark:text-[#9B8EA9] mt-2">Create an account to store addresses, save sizes, and access fast checkouts.</p>
@@ -394,50 +419,54 @@ export default function Account() {
                   <div className="flex flex-col gap-1.5 mt-1">
                     <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Full Name</label>
                     <input
+                      {...regV.bind('regName')}
                       type="text"
-                      required
                       value={regName}
                       onChange={e => setRegName(e.target.value)}
-                      className="px-4 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold w-full"
+                      className={`px-4 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold w-full transition-colors ${regV.stateClass('regName')}`}
                       placeholder="e.g. Fatima Abubakar"
                     />
+                    <FieldMessage {...regV.message('regName')} />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 items-start">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Email Address</label>
                       <input
+                        {...regV.bind('regEmail')}
                         type="email"
-                        required
                         value={regEmail}
                         onChange={e => setRegEmail(e.target.value)}
-                        className="px-4 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold w-full"
+                        className={`px-4 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold w-full transition-colors ${regV.stateClass('regEmail')}`}
                         placeholder="e.g. fatima@example.com"
                       />
+                      <FieldMessage {...regV.message('regEmail')} />
                     </div>
 
                     <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Phone Number</label>
                       <input
+                        {...regV.bind('regPhone')}
                         type="tel"
                         value={regPhone}
                         onChange={e => setRegPhone(e.target.value)}
-                        className="px-4 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold w-full"
-                        placeholder="e.g. +234 80 1234 5678"
+                        className={`px-4 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold w-full transition-colors ${regV.stateClass('regPhone')}`}
+                        placeholder="e.g. +44 7700 900123"
                       />
+                      <FieldMessage {...regV.message('regPhone', "Optional. Include your country code, e.g. +44 7700 900123.")} />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 items-start">
                     <div className="flex flex-col gap-1.5 relative">
                       <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Password</label>
                       <div className="relative">
                         <input
+                          {...regV.bind('regPassword')}
                           type={showRegPassword ? 'text' : 'password'}
-                          required
                           value={regPassword}
                           onChange={e => setRegPassword(e.target.value)}
-                          className="pl-4 pr-10 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold w-full"
+                          className={`pl-4 pr-10 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold w-full transition-colors ${regV.stateClass('regPassword')}`}
                           placeholder="Min 6 chars"
                         />
                         <button
@@ -448,16 +477,17 @@ export default function Account() {
                           {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
+                      <FieldMessage {...regV.message('regPassword')} />
                     </div>
                     <div className="flex flex-col gap-1.5 relative">
                       <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Confirm Password</label>
                       <div className="relative">
                         <input
+                          {...regV.bind('regPasswordConf')}
                           type={showRegPasswordConf ? 'text' : 'password'}
-                          required
                           value={regPasswordConf}
                           onChange={e => setRegPasswordConf(e.target.value)}
-                          className="pl-4 pr-10 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold w-full"
+                          className={`pl-4 pr-10 py-3 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] font-semibold w-full transition-colors ${regV.stateClass('regPasswordConf')}`}
                           placeholder="Confirm password"
                         />
                         <button
@@ -468,10 +498,13 @@ export default function Account() {
                           {showRegPasswordConf ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
+                      <FieldMessage {...regV.message('regPasswordConf')} />
                     </div>
                   </div>
 
-                  {regError && <span className="text-[10px] text-red-500 font-semibold">{regError}</span>}
+                  <PasswordStrength value={regPassword} />
+
+                  {regError && <FieldMessage error={regError} />}
 
                   <button
                     type="submit"
@@ -693,52 +726,56 @@ export default function Account() {
 
             {/* Add Address Form overlay */}
             {showAddressForm && (
-              <form onSubmit={handleAddressSubmit} className="bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-2xl p-5 shadow-sm flex flex-col gap-4">
+              <form onSubmit={handleAddressSubmit} noValidate className="bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-2xl p-5 shadow-sm flex flex-col gap-4">
                 <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6]  border-b border-gray-100 dark:border-white/10 pb-2">Add New Shipping Address</h4>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Address Line 1</label>
                   <input
+                    {...addrV.bind('addressLine')}
                     type="text"
-                    required
                     value={addressLine}
                     onChange={e => setAddressLine(e.target.value)}
-                    className="px-3 py-2 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                    className={`px-3 py-2 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${addrV.stateClass('addressLine')}`}
                     placeholder="e.g. Apartment, suite, street address"
                   />
+                  <FieldMessage {...addrV.message('addressLine')} />
                 </div>
 
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-start">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">City</label>
                     <input
+                      {...addrV.bind('addressCity')}
                       type="text"
-                      required
                       value={addressCity}
                       onChange={e => setAddressCity(e.target.value)}
-                      className="px-3 py-2 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                      className={`px-3 py-2 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${addrV.stateClass('addressCity')}`}
                       placeholder="e.g. London"
                     />
+                    <FieldMessage {...addrV.message('addressCity')} />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">State</label>
                     <input
+                      {...addrV.bind('addressState')}
                       type="text"
-                      required
                       value={addressState}
                       onChange={e => setAddressState(e.target.value)}
-                      className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                      className={`px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${addrV.stateClass('addressState')}`}
                     />
+                    <FieldMessage {...addrV.message('addressState')} />
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Country</label>
                     <input
+                      {...addrV.bind('addressCountry')}
                       type="text"
-                      required
                       value={addressCountry}
                       onChange={e => setAddressCountry(e.target.value)}
-                      className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6]"
+                      className={`px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${addrV.stateClass('addressCountry')}`}
                     />
+                    <FieldMessage {...addrV.message('addressCountry')} />
                   </div>
                 </div>
 

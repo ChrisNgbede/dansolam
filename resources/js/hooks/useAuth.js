@@ -202,7 +202,7 @@ export const useAuth = () => {
       setCustomer(data.data.customer);
       return { success: true, customer: data.data.customer };
     }
-    return { success: false, message: data.message };
+    return { success: false, message: data.message, errors: data.errors };
   };
 
   const customerRegister = async (name, email, phone, password, password_confirmation) => {
@@ -216,7 +216,7 @@ export const useAuth = () => {
       setCustomer(data.data.customer);
       return { success: true, customer: data.data.customer };
     }
-    return { success: false, message: data.message };
+    return { success: false, message: data.message, errors: data.errors };
   };
 
   const customerLogout = async () => {
@@ -250,7 +250,7 @@ export const useAuth = () => {
       setAdmin(data.data.user);
       return { success: true };
     }
-    return { success: false, message: data.message };
+    return { success: false, message: data.message, errors: data.errors };
   };
 
   const adminLogout = async () => {
