@@ -174,6 +174,46 @@ class PayPalPaymentTest extends TestCase
         $this->assertSame(10, $this->product->fresh()->stock_quantity);
     }
 
+    public function test_live_site_refuses_sandbox_payments(): void
+    {
+        // Sandbox keys on the live site: PayPal's test system would "approve" real
+        // cards without charging them, so checkout must not offer it.
+        config(['services.payments.allow_simulation' => false, 'services.payments.allow_sandbox' => false]);
+        $this->useRealCredentials();
+        $paypal = new \App\Services\PayPalService();
+
+        $this->assertNotNull($paypal->getConfigError());
+        $this->assertFalse($paypal->getClientConfig()['enabled']);
+
+        $this->postJson('/api/checkout', [
+            'customer_name' => 'Jane Doe', 'customer_email' => 'jane@example.com', 'customer_phone' => '+447700900000',
+            'delivery_address' => '1 Street', 'delivery_city' => 'London', 'delivery_state' => 'London', 'delivery_country' => 'United Kingdom',
+            'shipping_rate_id' => \App\Models\ShippingRate::where('name', 'Pick Up')->value('id'),
+            'payment_method' => 'paypal',
+            'items' => [['product_id' => $this->product->id, 'quantity' => 1]],
+        ])->assertStatus(422);
+        $this->assertSame(0, Order::count());
+    }
+
+    public function test_live_mode_is_offered_on_the_live_site(): void
+    {
+        config(['services.payments.allow_simulation' => false, 'services.payments.allow_sandbox' => false]);
+        $this->useRealCredentials();
+        $this->setting('paypal_mode', 'live');
+
+        $paypal = new \App\Services\PayPalService();
+        $this->assertNull($paypal->getConfigError());
+        $this->assertSame('live', $paypal->getClientConfig()['mode']);
+    }
+
+    public function test_sandbox_can_be_allowed_for_a_deliberate_test(): void
+    {
+        config(['services.payments.allow_simulation' => false, 'services.payments.allow_sandbox' => true]);
+        $this->useRealCredentials();
+
+        $this->assertNull((new \App\Services\PayPalService())->getConfigError());
+    }
+
     public function test_unsupported_currency_is_rejected(): void
     {
         $this->setting('system_currency_code', 'NGN');

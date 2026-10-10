@@ -1619,6 +1619,15 @@ export default function AdminSettings() {
                   </label>
                 </div>
               </div>
+              {paypalMode === 'sandbox' ? (
+                <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
+                  <strong className="font-bold">Sandbox is PayPal's test system: cards are not charged and no money reaches you.</strong>{' '}
+                  While PayPal is in Sandbox, card and PayPal payments are hidden from checkout on the live site.
+                  To take real payments, open your PayPal Business account at developer.paypal.com, switch to <strong>Live</strong>, create an app, paste its Live Client ID and Secret below, and choose Live (Production).
+                </div>
+              ) : (
+                <p className="text-[11px] text-gray-500 dark:text-gray-400">Live mode charges real cards and PayPal accounts. Use the Client ID and Secret from your <strong>Live</strong> app; sandbox keys will not work here.</p>
+              )}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Client ID</label>

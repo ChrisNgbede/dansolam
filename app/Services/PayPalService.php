@@ -89,6 +89,20 @@ class PayPalService
         return (bool) config('services.payments.allow_simulation', false);
     }
 
+    /**
+     * Sandbox payments never move real money, so the live site refuses them unless
+     * PAYMENTS_ALLOW_SANDBOX is set for a deliberate test.
+     */
+    public function isSandboxAllowed(): bool
+    {
+        return (bool) config('services.payments.allow_sandbox', false);
+    }
+
+    public function getMode(): string
+    {
+        return $this->mode;
+    }
+
     public function hasCredentials(): bool
     {
         return $this->clientId !== '' && $this->clientSecret !== ''
@@ -113,6 +127,9 @@ class PayPalService
         }
         if (!$this->hasCredentials() && !$this->isMockMode()) {
             return 'PayPal is not configured yet. Please choose another payment method.';
+        }
+        if ($this->mode === 'sandbox' && $this->hasCredentials() && !$this->isSandboxAllowed()) {
+            return 'Card and PayPal payments are not available right now. Please choose another payment method.';
         }
 
         return $this->getCurrencyConfigError();
@@ -403,6 +420,7 @@ class PayPalService
         return [
             'success' => true,
             'mock' => false,
+            'environment' => $this->mode,
             'paypal_order_id' => $data['id'] ?? null,
             'status' => $data['status'] ?? 'CREATED',
             'intent' => $data['intent'] ?? $this->intent,

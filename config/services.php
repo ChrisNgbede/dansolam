@@ -46,6 +46,8 @@ return [
     // Never enable in production: it lets orders be marked paid without a real payment.
     'payments' => [
         'allow_simulation' => (bool) env('PAYMENTS_ALLOW_SIMULATION', env('APP_ENV', 'production') !== 'production'),
+        // PayPal sandbox takes no real money: off on the live site unless set for a deliberate test.
+        'allow_sandbox' => (bool) env('PAYMENTS_ALLOW_SANDBOX', env('APP_ENV', 'production') !== 'production'),
     ],
 
 ];
