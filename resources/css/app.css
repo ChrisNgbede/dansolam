@@ -2106,3 +2106,35 @@ html body :is(.admin-shell, [data-modal-panel], .luxury-storefront)
 :is(input, select, textarea):focus {
   border-color: #5D3E85 !important;
 }
+
+/* ---------------------------------------------------------------------------
+   Image skeletons (see components/ui/ImageSkeletons.jsx): a shimmer fills the
+   image's space while it loads; images with nothing to show keep a calm,
+   static skeleton instead of a placeholder graphic or broken icon.
+--------------------------------------------------------------------------- */
+@keyframes image-skeleton-shimmer {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+img[data-skeleton] {
+  background-color: #eeedf1;
+  background-image: linear-gradient(100deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, .7) 50%, rgba(255, 255, 255, 0) 70%);
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  /* Hide the alt text and the browser's broken-image glyph. */
+  color: transparent;
+  font-size: 0;
+}
+img[data-skeleton="loading"] { animation: image-skeleton-shimmer 1.3s ease-in-out infinite; }
+img[data-skeleton="empty"] { background-image: none; }
+img[data-skeleton="empty"]::before { content: ''; } /* suppresses alt rendering in some browsers */
+
+:is(html.dark, html.admin-dark, .storefront-dark) img[data-skeleton] {
+  background-color: #241c2e;
+  background-image: linear-gradient(100deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, .08) 50%, rgba(255, 255, 255, 0) 70%);
+}
+:is(html.dark, html.admin-dark, .storefront-dark) img[data-skeleton="empty"] { background-image: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  img[data-skeleton="loading"] { animation: none; }
+}

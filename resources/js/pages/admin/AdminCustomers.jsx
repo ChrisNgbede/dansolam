@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { toast as systemToast } from '../../components/ui/ToastProvider';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Eye, Users, Scissors, X, Plus, Edit, Trash2, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Search, Eye, Users, X, Plus, Edit, Trash2, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { apiFetch } from '../../hooks/useAuth';
 import { useTableState } from '../../hooks/useTableState';
 import TablePaginationControls from '../../components/ui/TablePaginationControls';
@@ -271,7 +271,7 @@ export default function AdminCustomers() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="font-serif font-bold text-2xl text-gray-900">Customer Management</h2>
-          <p className="text-xs text-gray-405 mt-1 font-semibold">Review customer metrics, total expenditures, and custom size measurements.</p>
+          <p className="text-xs text-gray-405 mt-1 font-semibold">Review customers, their orders and total spend.</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -316,7 +316,9 @@ export default function AdminCustomers() {
                 <th onClick={() => requestSort('total_spent')} className="px-6 py-3 cursor-pointer hover:bg-gray-100">
                   Total Spent {sortField === 'total_spent' ? (sortOrder === 'asc' ? '↑' : '↓') : '↕'}
                 </th>
-                <th className="px-6 py-3">Measurements Profile</th>
+                <th onClick={() => requestSort('created_at')} className="px-6 py-3 cursor-pointer hover:bg-gray-100">
+                  Date Created {sortField === 'created_at' ? (sortOrder === 'asc' ? '↑' : '↓') : '↕'}
+                </th>
                 <th className="px-6 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -340,18 +342,8 @@ export default function AdminCustomers() {
                     <td className="px-6 py-4 font-bold text-gray-900">
                       {currencySymbol}{parseFloat(c.total_spent || 0).toLocaleString()}
                     </td>
-                    <td className="px-6 py-4">
-                      {c.measurements && Object.values(c.measurements).some(v => v !== '') ? (
-                        <button
-                          onClick={() => setViewingCustomer(c)}
-                          className="inline-flex items-center gap-1.5 px-3 py-1 border border-primary/20 hover:bg-primary/5 text-primary text-[10px] font-bold rounded-full transition-all cursor-pointer"
-                        >
-                          <Scissors className="w-3.5 h-3.5" />
-                          View Fits File
-                        </button>
-                      ) : (
-                        <span className="text-[10px] text-gray-400 italic">No fits profile details</span>
-                      )}
+                    <td className="px-6 py-4 text-gray-600 whitespace-nowrap" title={c.created_at ? new Date(c.created_at).toLocaleString() : ''}>
+                      {c.created_at ? new Date(c.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -481,35 +473,8 @@ export default function AdminCustomers() {
                 </a>
               </div>
 
-              {/* Right column: Skin Profile & Order History (8 cols) */}
+              {/* Right column: Order History (8 cols) */}
               <div className="md:col-span-8 flex flex-col gap-5">
-                {/* Skin Profile details */}
-                <div className="bg-gray-55 p-4 rounded-xl border border-gray-100">
-                  <h4 className="font-bold text-gray-805 uppercase tracking-wider text-[10px] mb-3">Skin Profile & Preferences</h4>
-                  <div className="grid grid-cols-3 gap-4 text-xs text-gray-650">
-                    <div>
-                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Skin Type</span>
-                      <strong className="text-gray-800 text-[13px]">{viewingCustomer.measurements?.skin_type || viewingCustomer.measurements?.fit_preference || '—'}</strong>
-                    </div>
-                    <div>
-                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Primary Goal</span>
-                      <strong className="text-gray-800 text-[13px]">{viewingCustomer.measurements?.skin_goal || viewingCustomer.measurements?.bust || '—'}</strong>
-                    </div>
-                    <div>
-                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Skin Concern</span>
-                      <strong className="text-gray-800 text-[13px]">{viewingCustomer.measurements?.skin_concern || viewingCustomer.measurements?.waist || '—'}</strong>
-                    </div>
-                    <div className="mt-1">
-                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Preferred Texture</span>
-                      <strong className="text-gray-800 text-[13px]">{viewingCustomer.measurements?.preferred_formulation || viewingCustomer.measurements?.hips || '—'}</strong>
-                    </div>
-                    <div className="mt-1 col-span-2">
-                      <span className="text-[9px] text-gray-400 uppercase font-semibold block">Sensitivities / Notes</span>
-                      <strong className="text-gray-800 text-[13px]">{viewingCustomer.measurements?.skin_notes || viewingCustomer.measurements?.height || 'None specified'}</strong>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Orders list */}
                 <div>
                   <h4 className="font-bold text-gray-805 uppercase tracking-wider text-[10px] mb-3">Order log history</h4>
@@ -639,62 +604,6 @@ export default function AdminCustomers() {
                 />
               </div>
 
-              <h4 className="text-[10px] text-primary font-bold uppercase tracking-wider border-b border-gray-50 pb-1 mt-2">Skin Profile & Preferences</h4>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Skin Type</label>
-                  <input
-                    type="text"
-                    value={fitPreference}
-                    onChange={e => setFitPreference(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                    placeholder="Normal / Dry / Oily / Sensitive"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Primary Goal</label>
-                  <input
-                    type="text"
-                    value={bust}
-                    onChange={e => setBust(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                    placeholder="Radiant Glow / Hydration"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Skin Concern</label>
-                  <input
-                    type="text"
-                    value={waist}
-                    onChange={e => setWaist(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                    placeholder="Dark Spots / Acne"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Preferred Texture</label>
-                  <input
-                    type="text"
-                    value={hips}
-                    onChange={e => setHips(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                    placeholder="Creams / Serums / Oils"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Sensitivities / Notes</label>
-                  <input
-                    type="text"
-                    value={height}
-                    onChange={e => setHeight(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                    placeholder="Fragrance sensitivity, etc."
-                  />
-                </div>
-              </div>
 
               <h4 className="text-[10px] text-primary font-bold uppercase tracking-wider border-b border-gray-50 pb-1 mt-2">Billing & Shipping Address</h4>
               <div className="flex flex-col gap-1">
@@ -831,66 +740,6 @@ export default function AdminCustomers() {
                 />
               </div>
 
-              <h4 className="text-[10px] text-primary font-bold uppercase tracking-wider border-b border-gray-50 pb-1 mt-2">Measurements Profile</h4>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Bust (in)</label>
-                  <input
-                    type="text"
-                    value={bust}
-                    onChange={e => setBust(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Waist (in)</label>
-                  <input
-                    type="text"
-                    value={waist}
-                    onChange={e => setWaist(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Hips (in)</label>
-                  <input
-                    type="text"
-                    value={hips}
-                    onChange={e => setHips(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Height</label>
-                  <input
-                    type="text"
-                    value={height}
-                    onChange={e => setHeight(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Shoe Size</label>
-                  <input
-                    type="text"
-                    value={shoeSize}
-                    onChange={e => setShoeSize(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-[9px] text-gray-400 font-bold uppercase">Fit Preference</label>
-                  <input
-                    type="text"
-                    value={fitPreference}
-                    onChange={e => setFitPreference(e.target.value)}
-                    className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                  />
-                </div>
-              </div>
 
               <h4 className="text-[10px] text-primary font-bold uppercase tracking-wider border-b border-gray-50 pb-1 mt-2">Billing & Shipping Address</h4>
               <div className="flex flex-col gap-1">

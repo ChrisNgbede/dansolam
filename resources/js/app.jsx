@@ -5,6 +5,7 @@ import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react
 import AppRoutes from './routes';
 import { ToastProvider, toast } from './components/ui/ToastProvider';
 import AppErrorBoundary from './components/ui/AppErrorBoundary';
+import ImageSkeletons from './components/ui/ImageSkeletons';
 import { restoreSharedSession } from './utils/sessionShare';
 
 const queryClient = new QueryClient({
@@ -27,6 +28,7 @@ if (rootElement) {
           <BrowserRouter>
             <AppErrorBoundary>
               <ToastProvider>
+                <ImageSkeletons />
                 <AppRoutes />
               </ToastProvider>
             </AppErrorBoundary>
