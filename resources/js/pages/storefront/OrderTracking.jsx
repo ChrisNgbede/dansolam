@@ -94,6 +94,16 @@ export default function OrderTracking() {
   });
 
   const order = orderResponse?.data;
+  // The "payment confirmed" banner follows the order's real status, not the link.
+  const paymentConfirmed = showOnlineSuccess && ['paid', 'authorized'].includes(order?.payment_status);
+  const GATEWAY_LABELS = {
+    paypal: 'PayPal / Card',
+    paystack: 'Paystack',
+    stripe: 'Card (Stripe)',
+    flutterwave: 'Flutterwave',
+    bank_transfer: 'Direct Bank Transfer',
+    cash_on_delivery: 'Cash on Delivery',
+  };
   const activeStepIdx = order ? getStatusStepIndex(order.order_status) : 0;
 
   // Fetch store settings
@@ -152,7 +162,7 @@ export default function OrderTracking() {
         <section className="max-w-4xl mx-auto w-full flex flex-col gap-8 text-left">
 
           {/* Checkout Success Alerts */}
-          {showOnlineSuccess && (
+          {paymentConfirmed && (
             <div className="bg-green-50/50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-3xl p-6 text-center flex flex-col items-center gap-2 animate-scale-up">
               <span className="text-3xl">🎉</span>
               <h2 className="font-extrabold text-green-800 dark:text-green-300 text-base">Online Payment Confirmed!</h2>
@@ -353,7 +363,7 @@ export default function OrderTracking() {
                     <p className="border-t border-gray-100 dark:border-white/10 pt-2 text-[#221B2B] dark:text-[#F3EFF6] font-bold text-sm">
                       💵 Total: <span className="text-[#5D3E85] dark:text-[#EC268F] font-extrabold">{currencySymbol}{parseFloat(order.total_amount).toLocaleString()}</span>
                     </p>
-                    <p>💳 <strong>Gateway Method:</strong> {order.payment_method === 'paystack' ? 'Online Paystack' : 'Direct Bank Transfer'}</p>
+                    <p>💳 <strong>Gateway Method:</strong> {GATEWAY_LABELS[order.payment_method] || String(order.payment_method || '').replace(/_/g, ' ')}</p>
                     <p>📊 <strong>Status:</strong> <span className={`font-semibold  ${order.payment_status === 'paid' ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>{order.payment_status}</span></p>
                   </div>
                 </div>
