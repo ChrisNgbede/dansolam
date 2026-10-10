@@ -408,6 +408,12 @@ class PayPalPaymentTest extends TestCase
         $this->assertSame('7064773171', $ng['phone']['phone_number']['national_number']);
         $this->assertSame(['admin_area_2' => 'Zaria', 'country_code' => 'NG'], $ng['address']);
         $this->assertSame(['given_name' => 'Ada'], $ng['name']);
+
+        // UK number written locally is fine; a foreign number on a UK order is left out.
+        $local = PayPalService::payerFromOrder(new Order(['customer_phone' => '07700 900123', 'delivery_country' => 'United Kingdom']));
+        $this->assertSame('7700900123', $local['phone']['phone_number']['national_number']);
+        $foreign = PayPalService::payerFromOrder(new Order(['customer_phone' => '2347064773171', 'delivery_country' => 'United Kingdom']));
+        $this->assertArrayNotHasKey('phone', $foreign);
     }
 
     public function test_sdk_order_sends_prefill_and_retries_without_it_if_paypal_objects(): void

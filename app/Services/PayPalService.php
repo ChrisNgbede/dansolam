@@ -214,13 +214,20 @@ class PayPalService
         // National number only: drop "+", the country's dialling code and a leading 0.
         $digits = preg_replace('/\D/', '', (string) ($order->customer_phone ?? ''));
         $calling = \App\Support\Countries::callingCode($order->delivery_country ?? null);
-        if ($digits !== '') {
-            if ($calling && str_starts_with($digits, $calling) && strlen($digits) > strlen($calling) + 6) {
-                $digits = substr($digits, strlen($calling));
+        // Only when the number clearly belongs to the order's country; a number from
+        // another country would show under the wrong dialling code, so leave it blank.
+        $national = null;
+        if ($digits !== '' && $calling) {
+            if (str_starts_with($digits, $calling) && strlen($digits) >= strlen($calling) + 6) {
+                $national = substr($digits, strlen($calling));
+            } elseif (str_starts_with($digits, '0') || strlen($digits) <= 11) {
+                $national = $digits;
             }
-            $digits = ltrim($digits, '0');
-            if (strlen($digits) >= 6 && strlen($digits) <= 14) {
-                $payer['phone'] = ['phone_type' => 'MOBILE', 'phone_number' => ['national_number' => $digits]];
+        }
+        if ($national !== null) {
+            $national = ltrim($national, '0');
+            if (strlen($national) >= 6 && strlen($national) <= 14) {
+                $payer['phone'] = ['phone_type' => 'MOBILE', 'phone_number' => ['national_number' => $national]];
             }
         }
 
