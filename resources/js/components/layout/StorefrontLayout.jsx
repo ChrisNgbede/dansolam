@@ -16,19 +16,20 @@ import CategoryMarquee from '../storefront/CategoryMarquee';
 import { QuickViewProvider } from '../storefront/QuickViewProvider';
 import { PaystackLogo, StripeLogo, PayPalLogo, FlutterwaveLogo, VisaLogo, MastercardLogo } from '../storefront/PaymentGatewayLogos';
 
-// Helper slideshow component for dynamic mega menu advertisement banner
+// Mega menu promotional banners. Admin stores each as { image_url, link, title };
+// older entries may be plain URL strings.
 function MegaMenuAdSlideshow({ ads }) {
-  let adList = [];
-  try {
-    if (typeof ads === 'string') {
-      adList = JSON.parse(ads);
-    } else if (Array.isArray(ads)) {
-      adList = ads;
+  const adList = useMemo(() => {
+    let raw = [];
+    try {
+      raw = typeof ads === 'string' ? JSON.parse(ads) : Array.isArray(ads) ? ads : [];
+    } catch (e) {
+      raw = [];
     }
-  } catch (e) {
-    adList = [];
-  }
-
+    return (Array.isArray(raw) ? raw : [])
+      .map((ad) => (typeof ad === 'string' ? { image_url: ad } : ad))
+      .filter((ad) => ad && typeof ad.image_url === 'string' && ad.image_url.trim());
+  }, [ads]);
 
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -38,21 +39,46 @@ function MegaMenuAdSlideshow({ ads }) {
       setActiveIndex((prev) => (prev + 1) % adList.length);
     }, 4000);
     return () => clearInterval(interval);
-  }, [adList]);
+  }, [adList.length]);
 
-  if (adList.length === 0) return null;
+  if (adList.length === 0) {
+    return (
+      <div className="flex w-full aspect-[3/4] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-gray-200 dark:border-white/15 bg-gray-50/70 dark:bg-white/5 px-6 text-center">
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-white dark:bg-white/10 text-accent shadow-sm">
+          <Gift className="h-5 w-5" />
+        </span>
+        <p className="font-sans text-sm font-bold text-gray-900 dark:text-white">No offers yet</p>
+        <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">New deals are on the way. In the meantime, explore our full range.</p>
+        <Link to="/shop" className="inline-flex items-center gap-1 text-xs font-bold text-primary dark:text-accent hover:underline">
+          Browse the shop <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 shadow-sm">
-      {adList.map((url, idx) => (
-        <img loading="lazy" decoding="async"
-          key={idx}
-          src={url}
-          alt={`Promotional Banner ${idx + 1}`}
-          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${idx === activeIndex ? 'opacity-100' : 'opacity-0'
-            }`}
-        />
-      ))}
+    <div className="relative w-full aspect-[3/4] rounded-2xl overflow-hidden bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 shadow-sm">
+      {adList.map((ad, idx) => {
+        const visible = idx === activeIndex;
+        const image = (
+          <img loading="lazy" decoding="async"
+            src={ad.image_url}
+            alt={ad.title || `Promotional banner ${idx + 1}`}
+            className="h-full w-full object-cover"
+          />
+        );
+        return (
+          <div
+            key={idx}
+            aria-hidden={!visible}
+            className={`absolute inset-0 transition-opacity duration-1000 ${visible ? 'opacity-100 z-[1]' : 'opacity-0 pointer-events-none'}`}
+          >
+            {ad.link ? (
+              <Link to={ad.link} tabIndex={visible ? 0 : -1} className="block h-full w-full">{image}</Link>
+            ) : image}
+          </div>
+        );
+      })}
       {adList.length > 1 && (
         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
           {adList.map((_, idx) => (
@@ -851,7 +877,7 @@ export default function StorefrontLayout() {
                   )}
                 </div>
 
-                <div className="flex min-w-0 flex-col gap-3 border-l border-gray-100 dark:border-white/10 pl-8 h-full justify-between">
+                <div className="flex min-w-0 flex-col gap-3 border-l border-gray-100 dark:border-white/10 pl-8 h-full justify-start">
                   <span className="font-sans font-extrabold text-xs  tracking-wider text-gray-950 dark:text-white border-b border-gray-200 dark:border-white/10 pb-2.5 flex items-center gap-1.5">
                     ✨ Featured Offers
                   </span>
