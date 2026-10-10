@@ -16,6 +16,7 @@ import PayPalCardFields from '../../components/storefront/PayPalCardFields';
 import { useLiveValidation } from '../../hooks/useLiveValidation';
 import { FieldMessage, PasswordStrength } from '../../components/ui/FieldMessage';
 import * as rules from '../../utils/validators';
+import PayPalPaymentModal from '../../components/storefront/PayPalPaymentModal';
 
 const CHECKOUT_PROMPTS = {
   details: 'Please check the highlighted details.',
@@ -130,6 +131,9 @@ export default function Checkout() {
   const [createdOrderDetails, setCreatedOrderDetails] = useState(null);
   const [paystackLoading, setPaystackLoading] = useState(false);
   const [paypalSubMethod, setPaypalSubMethod] = useState('paypal_balance');
+  // On-page PayPal payment (card form or PayPal popup) once the order exists.
+  const [paypalPayOpen, setPaypalPayOpen] = useState(false);
+  const [paypalPayMethod, setPaypalPayMethod] = useState('card');
   // Set when PayPal's inline card fields are unavailable for this merchant account,
   // so the card option falls back to the hosted redirect instead of dead-ending.
   const [cardFieldsUnavailable, setCardFieldsUnavailable] = useState(false);
@@ -417,8 +421,13 @@ export default function Checkout() {
       const data = await res.json();
 
       if (data.success) {
-        if (paymentMethod === 'paypal') {
-          // Initialize PayPal Order via Orders API v2
+        if (paymentMethod === 'paypal' && !paypalConfigRes?.data?.mock) {
+          // Pay on this page: card form or PayPal popup, no redirect.
+          setCreatedOrderDetails({ ...data.data, email: data.data.email || email });
+          setPaypalPayOpen(true);
+          setLoading(false);
+        } else if (paymentMethod === 'paypal') {
+          // Local simulation only (no PayPal credentials).
           try {
             const paypalRes = await fetch('/api/paypal/create-order', {
               method: 'POST',
@@ -1285,6 +1294,22 @@ export default function Checkout() {
       </div>
 
       {/* DYNAMIC GATEWAY OVERLAY MODAL (PORTALED DIRECTLY TO DOCUMENT.BODY) */}
+      <PayPalPaymentModal
+        open={paypalPayOpen && !!createdOrderDetails}
+        orderNumber={createdOrderDetails?.order_number}
+        method={paypalPayMethod}
+        onMethodChange={setPaypalPayMethod}
+        amountLabel={`${currencySymbol}${parseFloat(createdOrderDetails?.total_amount || 0).toFixed(2)}`}
+        onSuccess={() => { setPaypalPayOpen(false); handlePayPalCardSuccess(); }}
+        onClose={() => {
+          // The order is saved: empty the bag (so it is not ordered twice) and let the
+          // customer finish payment from the order's payment page.
+          setPaypalPayOpen(false);
+          clearCart();
+          navigate(`/pay/${encodeURIComponent(createdOrderDetails.order_number)}?contact=${encodeURIComponent(createdOrderDetails.email || email)}`);
+        }}
+      />
+
       {showPaystackModal && createdOrderDetails && createPortal(
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[999999] flex items-center justify-center p-4 overflow-y-auto overscroll-contain">
           <div className="bg-white dark:bg-[#1E1528] rounded-3xl p-7 max-w-md w-full shadow-2xl flex flex-col gap-6 text-center border border-[#EADBEE] dark:border-white/12 animate-scale-up my-auto relative z-10">
@@ -1373,32 +1398,6 @@ export default function Checkout() {
                       </div>
                     </div>
                     <CreditCard className="w-4 h-4 text-gray-500 dark:text-gray-400 shrink-0" />
-                  </label>
-
-                  <label
-                    onClick={() => setPaypalSubMethod('paypal_pay_in_4')}
-                    className={`flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer ${
-                      paypalSubMethod === 'paypal_pay_in_4'
-                        ? 'border-[#0079C1] bg-blue-50/60 dark:bg-blue-950/30 text-gray-900 dark:text-white shadow-xs'
-                        : 'border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 text-gray-600 dark:text-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="radio"
-                        name="paypal_sub"
-                        checked={paypalSubMethod === 'paypal_pay_in_4'}
-                        onChange={() => setPaypalSubMethod('paypal_pay_in_4')}
-                        className="text-[#0079C1] focus:ring-[#0079C1] w-4 h-4 cursor-pointer"
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-[#221B2B] dark:text-[#F3EFF6]">PayPal Pay in 4</span>
-                        <span className="text-[10px] text-gray-500 dark:text-[#9B8EA9]">Split total into 4 interest-free bi-weekly payments</span>
-                      </div>
-                    </div>
-                    <span className="text-[9px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
-                      0% Interest
-                    </span>
                   </label>
                 </div>
               </div>

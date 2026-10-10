@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Loader2, Lock, AlertCircle } from 'lucide-react';
+import { loadPayPalSdk } from '../../utils/paypalSdk';
 
 /**
  * Inline PayPal Advanced (Debit/Credit) card form.
@@ -8,30 +9,6 @@ import { Loader2, Lock, AlertCircle } from 'lucide-react';
  * never leaves the site. Card data is entered into PayPal-owned iframes, so no
  * PAN ever touches this app. Only the "pay with a PayPal account" path redirects.
  */
-
-let sdkPromise = null;
-
-function loadPayPalSdk({ clientId, currency, intent }) {
-  if (typeof window === 'undefined') return Promise.reject(new Error('no window'));
-  if (window.paypal?.CardFields) return Promise.resolve(window.paypal);
-  if (sdkPromise) return sdkPromise;
-
-  sdkPromise = new Promise((resolve, reject) => {
-    const params = new URLSearchParams({
-      'client-id': clientId,
-      components: 'card-fields',
-      currency,
-      intent: (intent || 'CAPTURE').toLowerCase(),
-    });
-    const script = document.createElement('script');
-    script.src = `https://www.paypal.com/sdk/js?${params.toString()}`;
-    script.async = true;
-    script.onload = () => (window.paypal ? resolve(window.paypal) : reject(new Error('PayPal SDK did not initialise')));
-    script.onerror = () => { sdkPromise = null; reject(new Error('Could not load the PayPal SDK')); };
-    document.head.appendChild(script);
-  });
-  return sdkPromise;
-}
 
 export default function PayPalCardFields({
   paypalOrderId,

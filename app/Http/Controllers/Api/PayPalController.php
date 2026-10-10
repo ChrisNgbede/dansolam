@@ -44,6 +44,8 @@ class PayPalController extends Controller
         $request->validate([
             'order_number' => 'required|string|exists:orders,order_number',
             'return_to' => 'nullable|in:checkout,pay',
+            // 'sdk': paid with PayPal's on-page buttons (card form / PayPal popup).
+            'flow' => 'nullable|in:redirect,sdk',
         ]);
 
         $order = Order::with('items')->where('order_number', $request->order_number)->firstOrFail();
@@ -72,7 +74,8 @@ class PayPalController extends Controller
                 : url("/checkout?paypal_return=true&order_number={$order->order_number}"),
             $request->return_to === 'pay'
                 ? url('/pay/' . rawurlencode($order->order_number) . '?paypal_cancel=true')
-                : url('/checkout?paypal_cancel=true&order_number=' . $order->order_number)
+                : url('/checkout?paypal_cancel=true&order_number=' . $order->order_number),
+            $request->flow === 'sdk'
         );
 
         if (!$result['success'] || empty($result['paypal_order_id'])) {

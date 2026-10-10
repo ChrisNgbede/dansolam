@@ -324,7 +324,8 @@ class PayPalService
         ?string $currency = null,
         array $items = [],
         ?string $returnUrl = null,
-        ?string $cancelUrl = null
+        ?string $cancelUrl = null,
+        bool $forSdkButtons = false
     ): array {
         if ($error = $this->getConfigError()) {
             return ['success' => false, 'message' => $error];
@@ -386,7 +387,17 @@ class PayPalService
             }
         }
 
-        $payload = [
+        // Orders paid through PayPal's on-page buttons (card form or PayPal popup) must
+        // not be tied to the PayPal wallet, or the card button cannot pay them.
+        $payload = $forSdkButtons ? [
+            'intent' => $this->intent,
+            'purchase_units' => [$unit],
+            'application_context' => [
+                'brand_name' => $this->brandName,
+                'shipping_preference' => 'NO_SHIPPING',
+                'user_action' => 'PAY_NOW',
+            ],
+        ] : [
             'intent' => $this->intent,
             'purchase_units' => [$unit],
             'payment_source' => [
@@ -404,7 +415,7 @@ class PayPalService
         ];
 
         // Same order + same amount => same PayPal order on retries.
-        $requestId = "create-{$orderNumber}-" . md5($targetCurrency . $unit['amount']['value']);
+        $requestId = "create-{$orderNumber}-" . ($forSdkButtons ? 'sdk-' : '') . md5($targetCurrency . $unit['amount']['value']);
         $response = $this->send('POST', '/v2/checkout/orders', $payload, $requestId);
         if (is_array($response)) {
             return $response;

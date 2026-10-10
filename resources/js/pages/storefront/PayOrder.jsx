@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, CreditCard, Landmark, Loader2, Lock, MessageCircle, ShieldCheck, CheckCircle2, AlertCircle } from 'lucide-react';
 import SEO from '../../components/seo/SEO';
-import PayPalCardFields from '../../components/storefront/PayPalCardFields';
+import PayPalPaymentModal from '../../components/storefront/PayPalPaymentModal';
 import { PayPalLogo } from '../../components/storefront/PaymentGatewayLogos';
 import { useAuth } from '../../hooks/useAuth';
 import { getCurrencySymbol } from '../../utils/currency';
@@ -23,9 +23,7 @@ export default function PayOrder() {
   const currency = getCurrencySymbol();
 
   const [method, setMethod] = useState('card');
-  const [starting, setStarting] = useState(false);
-  const [paypalOrder, setPaypalOrder] = useState(null); // { paypal_order_id, approve_url }
-  const [cardFallback, setCardFallback] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
   const [error, setError] = useState('');
   const [capturing, setCapturing] = useState(false);
 
@@ -90,44 +88,10 @@ export default function PayOrder() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Start a PayPal payment for this order (needed for both PayPal and card).
-  const startPayPal = async () => {
-    setError('');
-    setStarting(true);
-    try {
-      const res = await fetch('/api/paypal/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({ order_number: orderNumber, return_to: 'pay' }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!data.success) {
-        setError(data.message || 'We could not start the payment. Please try again.');
-        return null;
-      }
-      const created = { paypal_order_id: data.data.paypal_order_id, approve_url: data.data.approve_url };
-      setPaypalOrder(created);
-      return created;
-    } catch {
-      setError('Could not reach the server. Check your connection and try again.');
-      return null;
-    } finally {
-      setStarting(false);
-    }
+  const onPaid = () => {
+    setModalOpen(false);
+    navigate(`${trackingUrl}&paypal_success=true`, { replace: true });
   };
-
-  const payWithPayPal = async () => {
-    const created = paypalOrder || (await startPayPal());
-    if (created?.approve_url) window.location.href = created.approve_url;
-  };
-
-  // Card fields need a PayPal order before they can render.
-  useEffect(() => {
-    if (method === 'card' && isPayPalOrder && paypalAvailable && !isPaid && !paypalOrder && !starting && !capturing && orderMatches) {
-      startPayPal();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [method, isPayPalOrder, paypalAvailable, isPaid, orderMatches, capturing]);
 
   const whatsapp = String(settings.whatsapp_number || '').replace(/[^0-9]/g, '');
   const whatsappUrl = whatsapp
@@ -204,31 +168,23 @@ export default function PayOrder() {
                   ))}
                 </div>
 
-                {method === 'card' && !cardFallback ? (
-                  paypalOrder?.paypal_order_id ? (
-                    <PayPalCardFields
-                      paypalOrderId={paypalOrder.paypal_order_id}
-                      orderNumber={order.order_number}
-                      amountLabel={`${currency}${parseFloat(order.total_amount).toFixed(2)}`}
-                      onSuccess={() => navigate(`${trackingUrl}&paypal_success=true`, { replace: true })}
-                      onFallbackRequired={() => setCardFallback(true)}
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center gap-2 py-8 text-xs text-gray-500 dark:text-[#9B8EA9]" role="status">
-                      <Loader2 className="w-4 h-4 animate-spin" /> Preparing secure card form…
-                    </div>
-                  )
-                ) : (
-                  <button
-                    type="button"
-                    onClick={payWithPayPal}
-                    disabled={starting}
-                    className="w-full py-4 rounded-full bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold tracking-wider flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer disabled:opacity-70"
-                  >
-                    {starting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-                    {method === 'card' ? 'Pay by card on PayPal' : 'Continue to PayPal'} · {currency}{parseFloat(order.total_amount).toFixed(2)}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => { setError(''); setModalOpen(true); }}
+                  className="w-full py-4 rounded-full bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold tracking-wider flex items-center justify-center gap-2 shadow-md transition-colors cursor-pointer"
+                >
+                  <Lock className="w-4 h-4" />
+                  {method === 'card' ? 'Pay by card' : 'Pay with PayPal'} · {currency}{parseFloat(order.total_amount).toFixed(2)}
+                </button>
+                <PayPalPaymentModal
+                  open={modalOpen}
+                  onClose={() => setModalOpen(false)}
+                  orderNumber={order.order_number}
+                  method={method}
+                  onMethodChange={setMethod}
+                  amountLabel={`${currency}${parseFloat(order.total_amount).toFixed(2)}`}
+                  onSuccess={onPaid}
+                />
                 <p className="flex items-center justify-center gap-1.5 text-[11px] text-gray-400 dark:text-[#9B8EA9]">
                   <ShieldCheck className="w-3.5 h-3.5" /> Payments are processed securely by PayPal. We never see your card number.
                 </p>

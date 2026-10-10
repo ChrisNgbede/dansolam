@@ -370,6 +370,36 @@ class PayPalPaymentTest extends TestCase
         $this->postJson('/api/paypal/create-order', ['order_number' => $order->order_number, 'return_to' => 'pay'])->assertStatus(400);
     }
 
+    public function test_on_page_card_payments_get_an_order_the_card_button_can_pay(): void
+    {
+        $this->useRealCredentials();
+        $order = $this->makeOrder(150);
+        $this->fakePayPal([
+            self::API . '/v2/checkout/orders' => Http::response(['id' => 'PP-SDK', 'status' => 'CREATED', 'links' => []], 201),
+        ]);
+
+        $this->postJson('/api/paypal/create-order', ['order_number' => $order->order_number, 'flow' => 'sdk'])
+            ->assertOk()->assertJsonPath('data.paypal_order_id', 'PP-SDK');
+
+        // Not tied to the PayPal wallet, and a separate retry key from the redirect flow.
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/v2/checkout/orders')
+            && !isset($request['payment_source'])
+            && ($request['application_context']['shipping_preference'] ?? null) === 'NO_SHIPPING'
+            && str_contains($request->header('PayPal-Request-Id')[0] ?? '', '-sdk-'));
+    }
+
+    public function test_redirect_payments_still_use_the_paypal_wallet_flow(): void
+    {
+        $this->useRealCredentials();
+        $order = $this->makeOrder(150);
+        $this->fakePayPal([
+            self::API . '/v2/checkout/orders' => Http::response(['id' => 'PP-RED', 'status' => 'PAYER_ACTION_REQUIRED', 'links' => [['rel' => 'payer-action', 'href' => 'https://paypal.test/approve']]], 200),
+        ]);
+
+        $this->postJson('/api/paypal/create-order', ['order_number' => $order->order_number])->assertOk();
+        Http::assertSent(fn ($request) => str_ends_with($request->url(), '/v2/checkout/orders') && isset($request['payment_source']['paypal']));
+    }
+
     public function test_real_capture_with_wrong_amount_is_not_marked_paid(): void
     {
         $this->useRealCredentials();
