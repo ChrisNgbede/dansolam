@@ -161,20 +161,28 @@ export default function Checkout() {
   });
 
   const ecommerce = settingsRes?.data?.ecommerce || { name: 'Dansolam Beauty Home' };
-  const settings = settingsRes?.data?.settings || {
-    bank_name: 'Access Bank',
-    bank_account_number: '1234567890',
-    bank_account_name: 'Dansolam Ltd'
-  };
+  const settings = settingsRes?.data?.settings || {};
+  const hasBankDetails = Boolean(settings.bank_name && settings.bank_account_number && settings.bank_account_name);
   const storefrontEnabled = (key) => ['storefront', 'both'].includes(settings[key] || 'both');
+
+  // PayPal is offered only when the server says it can take real payments
+  // (enabled, configured and not in sandbox on the live site).
+  const { data: paypalConfigRes } = useQuery({
+    queryKey: ['paypal-client-config'],
+    queryFn: () => fetch('/api/paypal/client-config').then(res => res.json()),
+    staleTime: 60_000,
+  });
+  const paypalAvailable = paypalConfigRes?.data?.enabled === true;
 
   useEffect(() => {
     const available = [];
     if (storefrontEnabled('payment_transfer_channel')) available.push('bank_transfer');
-    if (storefrontEnabled('payment_card_channel') && settings.payment_gateway_active !== 'bank_transfer') available.push(settings.payment_gateway_active);
+    if (storefrontEnabled('payment_card_channel') && settings.payment_gateway_active !== 'bank_transfer'
+      && (settings.payment_gateway_active !== 'paypal' || paypalAvailable)) available.push(settings.payment_gateway_active);
     if (storefrontEnabled('payment_cash_channel') && settings.cod_enabled === 'true') available.push('cash_on_delivery');
-    if (available.length && !available.includes(paymentMethod)) setPaymentMethod(available[0]);
-  }, [settings.payment_transfer_channel, settings.payment_card_channel, settings.payment_cash_channel, settings.payment_gateway_active, settings.cod_enabled]);
+    if (paymentMethod === 'paypal' && paypalConfigRes && !paypalAvailable) setPaymentMethod(available[0] || 'bank_transfer');
+    else if (available.length && !available.includes(paymentMethod)) setPaymentMethod(available[0]);
+  }, [settings.payment_transfer_channel, settings.payment_card_channel, settings.payment_cash_channel, settings.payment_gateway_active, settings.cod_enabled, paypalAvailable, paypalConfigRes]);
 
   // Fetch public shipping rates
   const { data: shippingRatesRes } = useQuery({
@@ -1067,7 +1075,7 @@ export default function Checkout() {
                   )}
 
                   {/* 3. PayPal Gateway */}
-                  {storefrontEnabled('payment_card_channel') && (settings.paypal_enabled === undefined || ['true', '1', true, 1].includes(settings.paypal_enabled)) && (
+                  {storefrontEnabled('payment_card_channel') && paypalAvailable && (
                     <label className={`border rounded-2xl p-5 flex items-center justify-between cursor-pointer transition-all shadow-3xs ${
                       paymentMethod === 'paypal' ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85]/5 dark:bg-[#EC268F]/10 text-[#5D3E85] dark:text-[#EC268F]' : 'border-gray-200 dark:border-white/10 text-gray-600 dark:text-[#C9BED4] hover:bg-gray-50 dark:hover:bg-white/5'
                     }`}>
@@ -1139,10 +1147,16 @@ export default function Checkout() {
                 {paymentMethod === 'bank_transfer' && (
                   <div className="bg-[#FAF7FC] dark:bg-white/5 rounded-2xl p-5 text-xs text-gray-600 dark:text-[#C9BED4] flex flex-col gap-2 leading-relaxed animate-fade-in border border-gray-100 dark:border-white/10 shadow-3xs">
                     <span className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6] text-xs tracking-wider border-b border-[#5D3E85]/10 pb-1.5 ">Our Bank Details:</span>
-                    <p className="mt-1">🏦 <strong>Bank:</strong> {settings.bank_name}</p>
-                    <p>🔢 <strong>Account Number:</strong> {settings.bank_account_number}</p>
-                    <p>👤 <strong>Account Name:</strong> {settings.bank_account_name}</p>
-                    <p className="text-[10px] text-gray-400 dark:text-[#9B8EA9] mt-1 leading-normal border-t border-[#5D3E85]/10 pt-1.5">⚠️ Please transfer the exact amount and save your receipt for instant confirmation.</p>
+                    {hasBankDetails ? (
+                      <>
+                        <p className="mt-1">🏦 <strong>Bank:</strong> {settings.bank_name}</p>
+                        <p>🔢 <strong>Account Number:</strong> {settings.bank_account_number}</p>
+                        <p>👤 <strong>Account Name:</strong> {settings.bank_account_name}</p>
+                        <p className="text-[10px] text-gray-400 dark:text-[#9B8EA9] mt-1 leading-normal border-t border-[#5D3E85]/10 pt-1.5">⚠️ Please transfer the exact amount and use your order number as the reference.</p>
+                      </>
+                    ) : (
+                      <p className="mt-1">Place your order and we will email you our bank details and your order reference so you can complete the transfer. Your order is held until payment arrives.</p>
+                    )}
                   </div>
                 )}
 

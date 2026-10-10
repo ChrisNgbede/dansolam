@@ -57,7 +57,7 @@ export default function PayPalCardFields({
         const cfgRes = await fetch('/api/paypal/client-config');
         const cfg = (await cfgRes.json())?.data;
 
-        if (!cfg?.client_id) {
+        if (!cfg?.client_id || cfg.enabled === false) {
           if (!cancelled) { setStatus('unsupported'); setMessage('Card payments are not configured for this store yet.'); }
           return;
         }
