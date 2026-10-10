@@ -17,6 +17,7 @@ import { capturePayPalOrder, fetchPayPalConfig, loadPayPalSdk } from '../../util
  */
 export default function PayPalPaymentModal({ open, onClose, orderNumber, method, amountLabel, onSuccess, onMethodChange }) {
   const buttonsRef = useRef(null);
+  const buttonsInstance = useRef(null);
   const [stage, setStage] = useState('loading'); // loading | fields | buttons | capturing | error
   const [paypalOrderId, setPaypalOrderId] = useState(null);
   const [message, setMessage] = useState('');
@@ -98,14 +99,8 @@ export default function PayPalPaymentModal({ open, onClose, orderNumber, method,
           ? 'Card payment is not available for this order. Please choose PayPal instead.'
           : 'PayPal is not available for this order right now.');
 
-        setStage('buttons');
-        // Render after the container is on screen.
-        requestAnimationFrame(() => {
-          if (!cancelled && buttonsRef.current) {
-            buttonsRef.current.innerHTML = '';
-            buttons.render(buttonsRef.current).catch(() => {});
-          }
-        });
+        buttonsInstance.current = buttons;
+        setStage('buttons'); // the effect below draws it once its container exists
       } catch (e) {
         if (!cancelled) {
           setStage('error');
@@ -119,6 +114,17 @@ export default function PayPalPaymentModal({ open, onClose, orderNumber, method,
       try { buttons?.close?.(); } catch { /* already gone */ }
     };
   }, [open, method, orderNumber, attempt, forceCardButton]);
+
+  // Draw PayPal's button into its container after React has put it on screen.
+  useEffect(() => {
+    if (stage !== 'buttons' || !buttonsRef.current || !buttonsInstance.current) return;
+    const container = buttonsRef.current;
+    container.innerHTML = '';
+    buttonsInstance.current.render(container).catch((e) => {
+      setStage('error');
+      setMessage(e?.message ? `PayPal could not load: ${e.message}` : 'PayPal could not load. Please try again.');
+    });
+  }, [stage]);
 
   if (!open) return null;
 
