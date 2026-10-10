@@ -190,6 +190,56 @@ class PayPalService
     }
 
     /**
+     * Billing details PayPal uses to pre-fill its card form, from what the customer
+     * already gave at checkout. Only well-formed values are included.
+     */
+    public static function payerFromOrder(object $order): ?array
+    {
+        $country = \App\Support\Countries::code($order->delivery_country ?? null);
+        $payer = [];
+
+        $parts = preg_split('/\s+/', trim((string) ($order->customer_name ?? '')), -1, PREG_SPLIT_NO_EMPTY);
+        if ($parts) {
+            $surname = count($parts) > 1 ? array_pop($parts) : '';
+            $payer['name'] = array_filter([
+                'given_name' => mb_substr(implode(' ', $parts), 0, 140),
+                'surname' => mb_substr($surname, 0, 140),
+            ]);
+        }
+
+        if (filter_var($order->customer_email ?? null, FILTER_VALIDATE_EMAIL)) {
+            $payer['email_address'] = $order->customer_email;
+        }
+
+        // National number only: drop "+", the country's dialling code and a leading 0.
+        $digits = preg_replace('/\D/', '', (string) ($order->customer_phone ?? ''));
+        $calling = \App\Support\Countries::callingCode($order->delivery_country ?? null);
+        if ($digits !== '') {
+            if ($calling && str_starts_with($digits, $calling) && strlen($digits) > strlen($calling) + 6) {
+                $digits = substr($digits, strlen($calling));
+            }
+            $digits = ltrim($digits, '0');
+            if (strlen($digits) >= 6 && strlen($digits) <= 14) {
+                $payer['phone'] = ['phone_type' => 'MOBILE', 'phone_number' => ['national_number' => $digits]];
+            }
+        }
+
+        if ($country) {
+            $state = trim((string) ($order->delivery_state ?? ''));
+            $address = array_filter([
+                'address_line_1' => mb_substr(trim((string) ($order->delivery_address ?? '')), 0, 300),
+                'admin_area_2' => mb_substr(trim((string) ($order->delivery_city ?? '')), 0, 120),
+                'admin_area_1' => str_contains($state, 'All Regions') ? '' : mb_substr($state, 0, 300),
+                'postal_code' => mb_substr(strtoupper(trim((string) ($order->delivery_postcode ?? ''))), 0, 60),
+                'country_code' => $country,
+            ]);
+            $payer['address'] = $address;
+        }
+
+        return $payer ?: null;
+    }
+
+    /**
      * Public, browser-safe config for the PayPal JS SDK. Never includes the secret.
      */
     public function getClientConfig(): array
@@ -325,7 +375,8 @@ class PayPalService
         array $items = [],
         ?string $returnUrl = null,
         ?string $cancelUrl = null,
-        bool $forSdkButtons = false
+        bool $forSdkButtons = false,
+        ?array $payer = null
     ): array {
         if ($error = $this->getConfigError()) {
             return ['success' => false, 'message' => $error];
@@ -414,9 +465,24 @@ class PayPalService
             ],
         ];
 
-        // Same order + same amount => same PayPal order on retries.
-        $requestId = "create-{$orderNumber}-" . ($forSdkButtons ? 'sdk-' : '') . md5($targetCurrency . $unit['amount']['value']);
+        // Pre-fills PayPal's card form (billing name, address, email, mobile).
+        if ($forSdkButtons && $payer) {
+            $payload['payer'] = $payer;
+        }
+
+        // Same order + same amount (+ same details) => same PayPal order on retries.
+        $requestId = "create-{$orderNumber}-" . ($forSdkButtons ? 'sdk-' : '')
+            . md5($targetCurrency . $unit['amount']['value'] . json_encode($payload['payer'] ?? null));
         $response = $this->send('POST', '/v2/checkout/orders', $payload, $requestId);
+
+        // Pre-filled details are a convenience: if PayPal objects to any of them,
+        // create the order without them rather than block the payment.
+        if (!is_array($response) && isset($payload['payer']) && in_array($response->status(), [400, 422], true)
+            && str_contains($response->body(), '/payer')) {
+            Log::info('PayPal rejected pre-filled payer details; retrying without them', ['order' => $orderNumber, 'body' => $response->json('details')]);
+            unset($payload['payer']);
+            $response = $this->send('POST', '/v2/checkout/orders', $payload, $requestId . '-plain');
+        }
         if (is_array($response)) {
             return $response;
         }

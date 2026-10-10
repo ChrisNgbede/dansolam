@@ -263,7 +263,7 @@
                     <strong>Recipient:</strong> {{ $order->customer_name }} ({{ $order->customer_phone }})<br>
                     <strong>Fulfillment Method:</strong> {{ strtoupper($order->delivery_method) }}<br>
                     @if($order->delivery_method === 'delivery')
-                        <strong>Address:</strong> {{ $order->delivery_address }}, {{ $order->delivery_city }}, {{ $order->delivery_state }}, {{ $order->delivery_country }}
+                        <strong>Address:</strong> {{ collect([$order->delivery_address, $order->delivery_city, $order->delivery_state, $order->delivery_postcode ?? null, $order->delivery_country])->filter()->implode(', ') }}
                     @else
                         <strong>Pickup:</strong> Collect from our store
                     @endif

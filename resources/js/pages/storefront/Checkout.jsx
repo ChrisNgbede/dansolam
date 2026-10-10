@@ -68,6 +68,7 @@ export default function Checkout() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
+  const [postcode, setPostcode] = useState('');
   const [state, setState] = useState('');
   const [country, setCountry] = useState('');
   // Shipping options for this country and item count (re-evaluated every render;
@@ -102,16 +103,17 @@ export default function Checkout() {
     authPasswordConfirm: [rules.required('Type your password again.'), rules.matches('authPassword', 'The passwords do not match.')],
   }, { fieldMap: { name: 'authName', email: 'authEmail', phone: 'authPhone', password: 'authPassword', password_confirmation: 'authPasswordConfirm' } });
 
-  const deliveryV = useLiveValidation({ name, phone, email, address, city, country, state, notes }, {
+  const deliveryV = useLiveValidation({ name, phone, email, address, city, postcode, country, state, notes }, {
     name: [rules.required("Enter the recipient's full name."), rules.maxLength(255)],
     phone: [rules.required('Enter a phone number for the courier.'), rules.phone(), rules.maxLength(50)],
     email: [rules.required('Enter an email for your receipt and tracking.'), rules.email()],
     address: [rules.required('Enter the street address.'), rules.minLength(5, 'Enter the full street address, including the house number.')],
     city: [rules.required('Enter the town or city.'), rules.maxLength(255)],
+    postcode: [rules.postcodeFor('country')],
     country: [rules.required('Choose a country to see shipping options.')],
     state: [rules.required(country ? 'Choose a county, state or region.' : 'Choose a country first.')],
     notes: [rules.maxLength(1000)],
-  }, { fieldMap: { customer_name: 'name', customer_phone: 'phone', customer_email: 'email', delivery_address: 'address', delivery_city: 'city', delivery_country: 'country', delivery_state: 'state' } });
+  }, { fieldMap: { customer_name: 'name', customer_phone: 'phone', customer_email: 'email', delivery_address: 'address', delivery_city: 'city', delivery_postcode: 'postcode', delivery_country: 'country', delivery_state: 'state' } });
 
   // "Fix this first" prompts above the Place Order button clear themselves as soon
   // as the customer has fixed what they point at.
@@ -220,6 +222,7 @@ export default function Checkout() {
         if (defaultAddr) {
           if (defaultAddr.address_line_1) setAddress(defaultAddr.address_line_1);
           if (defaultAddr.city) setCity(defaultAddr.city);
+          if (defaultAddr.postcode) setPostcode(defaultAddr.postcode);
           if (defaultAddr.state) setState(defaultAddr.state);
           if (defaultAddr.country) setCountry(defaultAddr.country);
         }
@@ -231,6 +234,7 @@ export default function Checkout() {
             const parsed = JSON.parse(cached);
             if (parsed.address) setAddress(parsed.address);
             if (parsed.city) setCity(parsed.city);
+            if (parsed.postcode) setPostcode(parsed.postcode);
             if (parsed.state) setState(parsed.state);
             if (parsed.country) setCountry(parsed.country);
             if (parsed.phone && !customer.phone) setPhone(parsed.phone);
@@ -252,12 +256,14 @@ export default function Checkout() {
             if (defaultAddr) {
               if (defaultAddr.address_line_1) setAddress(defaultAddr.address_line_1);
               if (defaultAddr.city) setCity(defaultAddr.city);
+          if (defaultAddr.postcode) setPostcode(defaultAddr.postcode);
               if (defaultAddr.state) setState(defaultAddr.state);
               if (defaultAddr.country) setCountry(defaultAddr.country);
 
               localStorage.setItem(`dansolam_shipping_${customer.email}`, JSON.stringify({
                 address: defaultAddr.address_line_1 || '',
                 city: defaultAddr.city || '',
+                postcode: defaultAddr.postcode || '',
                 state: defaultAddr.state || '',
                 country: defaultAddr.country || '',
                 phone: customer.phone || ''
@@ -297,6 +303,7 @@ export default function Checkout() {
           if (defaultAddr) {
             if (defaultAddr.address_line_1) setAddress(defaultAddr.address_line_1);
             if (defaultAddr.city) setCity(defaultAddr.city);
+          if (defaultAddr.postcode) setPostcode(defaultAddr.postcode);
             if (defaultAddr.state) setState(defaultAddr.state);
             if (defaultAddr.country) setCountry(defaultAddr.country);
           } else {
@@ -306,6 +313,7 @@ export default function Checkout() {
                 const parsed = JSON.parse(cached);
                 if (parsed.address) setAddress(parsed.address);
                 if (parsed.city) setCity(parsed.city);
+            if (parsed.postcode) setPostcode(parsed.postcode);
                 if (parsed.state) setState(parsed.state);
                 if (parsed.country) setCountry(parsed.country);
               } catch (err) {
@@ -387,6 +395,7 @@ export default function Checkout() {
       localStorage.setItem(`dansolam_shipping_${activeEmail}`, JSON.stringify({
         address,
         city,
+        postcode,
         state,
         country,
         phone: phone || customer?.phone || ''
@@ -399,6 +408,7 @@ export default function Checkout() {
       customer_phone: phone || customer.phone,
       delivery_address: address,
       delivery_city: city,
+      delivery_postcode: postcode.trim().toUpperCase(),
       delivery_state: state,
       delivery_country: country,
       shipping_rate_id: selectedShipping ? selectedShipping.id : null,
@@ -938,7 +948,7 @@ export default function Checkout() {
                       <FieldMessage {...deliveryV.message('address')} />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">City</label>
                         <input
@@ -950,6 +960,19 @@ export default function Checkout() {
                           placeholder="e.g. London"
                         />
                         <FieldMessage {...deliveryV.message('city')} />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label htmlFor={deliveryV.idFor('postcode')} className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">Postcode{rules.isUkCountry(country) ? '' : ' (if any)'}</label>
+                        <input
+                          {...deliveryV.bind('postcode')}
+                          type="text"
+                          autoComplete="postal-code"
+                          value={postcode}
+                          onChange={e => setPostcode(e.target.value.toUpperCase())}
+                          className={`px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF9F6] dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] shadow-3xs w-full font-medium transition-colors ${deliveryV.stateClass('postcode')}`}
+                          placeholder={rules.isUkCountry(country) ? 'e.g. SW1A 1AA' : 'Postcode / ZIP'}
+                        />
+                        <FieldMessage {...deliveryV.message('postcode')} />
                       </div>
                       <div className="flex flex-col gap-1.5">
                         <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">Country</label>

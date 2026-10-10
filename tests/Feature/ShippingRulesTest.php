@@ -61,7 +61,7 @@ class ShippingRulesTest extends TestCase
             'customer_email' => 'jane@example.com',
             'customer_phone' => '+447700900000',
             'delivery_address' => '1 High Street',
-            'delivery_city' => 'London',
+            'delivery_city' => 'London', 'delivery_postcode' => 'SW1A 1AA',
             'delivery_state' => 'Greater London',
             'delivery_country' => $country,
             'payment_method' => 'bank_transfer',

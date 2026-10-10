@@ -246,6 +246,7 @@ class CustomerAuthController extends Controller
             'address_line_2' => 'nullable|string|max:255',
             'city' => 'required|string|max:255',
             'state' => 'required|string|max:255',
+            'postcode' => 'nullable|string|max:20',
             'country' => 'required|string|max:255',
             'is_default' => 'boolean',
         ]);
@@ -262,6 +263,7 @@ class CustomerAuthController extends Controller
             'address_line_1' => $request->address_line_1,
             'address_line_2' => $request->address_line_2,
             'city' => $request->city,
+            'postcode' => $request->postcode ? strtoupper(trim($request->postcode)) : null,
             'state' => $request->state,
             'country' => $request->country,
             'is_default' => $request->is_default ?? false,

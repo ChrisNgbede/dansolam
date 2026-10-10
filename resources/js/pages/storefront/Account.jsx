@@ -89,6 +89,7 @@ export default function Account() {
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [addressLine, setAddressLine] = useState('');
   const [addressCity, setAddressCity] = useState('');
+  const [addressPostcode, setAddressPostcode] = useState('');
   const [addressState, setAddressState] = useState('');
   const [addressCountry, setAddressCountry] = useState('');
   const [addressDefault, setAddressDefault] = useState(true);
@@ -108,12 +109,13 @@ export default function Account() {
     regPasswordConf: [rules.required('Type your password again.'), rules.matches('regPassword', 'The passwords do not match.')],
   }, { fieldMap: { name: 'regName', email: 'regEmail', phone: 'regPhone', password: 'regPassword', password_confirmation: 'regPasswordConf' } });
 
-  const addrV = useLiveValidation({ addressLine, addressCity, addressState, addressCountry }, {
+  const addrV = useLiveValidation({ addressLine, addressCity, addressPostcode, addressState, addressCountry }, {
     addressLine: [rules.required('Enter the street address.'), rules.minLength(3, 'Enter the full street address.')],
     addressCity: [rules.required('Enter the town or city.')],
+    addressPostcode: [rules.postcodeFor('addressCountry')],
     addressState: [rules.required('Enter the county or state.')],
     addressCountry: [rules.required('Enter the country.')],
-  }, { fieldMap: { address_line_1: 'addressLine', city: 'addressCity', state: 'addressState', country: 'addressCountry' } });
+  }, { fieldMap: { address_line_1: 'addressLine', city: 'addressCity', postcode: 'addressPostcode', state: 'addressState', country: 'addressCountry' } });
 
   // Skin Profile states
   const [skinType, setSkinType] = useState('Combination');
@@ -203,6 +205,7 @@ export default function Account() {
         body: JSON.stringify({
           address_line_1: addressLine,
           city: addressCity,
+          postcode: addressPostcode.trim().toUpperCase(),
           state: addressState,
           country: addressCountry,
           is_default: addressDefault
@@ -215,6 +218,7 @@ export default function Account() {
         setShowAddressForm(false);
         setAddressLine('');
         setAddressCity('');
+        setAddressPostcode('');
         addrV.reset();
         queryClient.invalidateQueries(['customer-addresses']);
       } else if (!addrV.applyServerErrors(data.errors)) {
@@ -791,6 +795,20 @@ export default function Account() {
                   </div>
                 </div>
 
+                <div className="flex flex-col gap-1.5 sm:max-w-[50%]">
+                  <label htmlFor={addrV.idFor('addressPostcode')} className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Postcode{rules.isUkCountry(addressCountry) ? '' : ' (if any)'}</label>
+                  <input
+                    {...addrV.bind('addressPostcode')}
+                    type="text"
+                    autoComplete="postal-code"
+                    value={addressPostcode}
+                    onChange={e => setAddressPostcode(e.target.value.toUpperCase())}
+                    className={`px-3 py-2 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 text-[#221B2B] dark:text-[#F3EFF6] transition-colors ${addrV.stateClass('addressPostcode')}`}
+                    placeholder="e.g. SW1A 1AA"
+                  />
+                  <FieldMessage {...addrV.message('addressPostcode')} />
+                </div>
+
                 <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-600 dark:text-[#C9BED4]">
                   <input
                     type="checkbox"
@@ -833,7 +851,7 @@ export default function Account() {
 
                     <div className="text-xs text-gray-600 dark:text-[#C9BED4] flex flex-col gap-1 pr-12">
                       <p className="font-bold text-[#221B2B] dark:text-[#F3EFF6]">{addr.address_line_1}</p>
-                      <p>{addr.city}, {addr.state}</p>
+                      <p>{[addr.city, addr.state, addr.postcode].filter(Boolean).join(", ")}</p>
                       <p>{addr.country}</p>
                     </div>
 

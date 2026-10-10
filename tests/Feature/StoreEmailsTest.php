@@ -158,7 +158,7 @@ class StoreEmailsTest extends TestCase
 
         $this->postJson('/api/checkout', [
             'customer_name' => 'Jane Doe', 'customer_email' => 'jane@example.com', 'customer_phone' => '+447700900000',
-            'delivery_address' => '1 High Street', 'delivery_city' => 'London', 'delivery_state' => 'London',
+            'delivery_address' => '1 High Street', 'delivery_city' => 'London', 'delivery_postcode' => 'SW1A 1AA', 'delivery_state' => 'London',
             'delivery_country' => 'United Kingdom', 'payment_method' => 'bank_transfer',
             'shipping_rate_id' => ShippingRate::where('name', 'Uk Shipping (1-3 Items)')->value('id'),
             'items' => [['product_id' => $product->id, 'quantity' => 2]],

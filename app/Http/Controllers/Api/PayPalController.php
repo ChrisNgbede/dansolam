@@ -75,7 +75,8 @@ class PayPalController extends Controller
             $request->return_to === 'pay'
                 ? url('/pay/' . rawurlencode($order->order_number) . '?paypal_cancel=true')
                 : url('/checkout?paypal_cancel=true&order_number=' . $order->order_number),
-            $request->flow === 'sdk'
+            $request->flow === 'sdk',
+            $request->flow === 'sdk' ? PayPalService::payerFromOrder($order) : null
         );
 
         if (!$result['success'] || empty($result['paypal_order_id'])) {

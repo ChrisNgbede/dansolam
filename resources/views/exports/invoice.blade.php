@@ -367,6 +367,7 @@
                                 📍 {{ $order->delivery_address }}
                                 @if(!empty($order->delivery_city)), {{ $order->delivery_city }}@endif
                                 @if(!empty($order->delivery_state)), {{ $order->delivery_state }}@endif
+                                @if(!empty($order->delivery_postcode)), {{ $order->delivery_postcode }}@endif
                                 @if(!empty($order->delivery_country)), {{ $order->delivery_country }}@endif
                             @else
                                 📍 Store Pickup

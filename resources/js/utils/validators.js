@@ -72,3 +72,14 @@ export const url = (message = 'Enter a full link starting with https://') => (va
     return message;
   }
 };
+
+const UK_POSTCODE_RE = /^(GIR ?0AA|[A-PR-UWYZ][A-HK-Y]?\d[A-Z\d]? ?\d[ABD-HJLNP-UW-Z]{2})$/i;
+export const isUkCountry = (country) => /^(united kingdom|uk|gb|great britain|england|scotland|wales|northern ireland)$/i.test(String(country || '').trim());
+
+/** Postcode: required and checked for the UK, optional elsewhere. */
+export const postcodeFor = (countryField) => (value, values) => {
+  const uk = isUkCountry(values[countryField]);
+  if (isEmpty(value)) return uk ? 'Enter your postcode.' : null;
+  if (uk) return UK_POSTCODE_RE.test(String(value).trim()) ? null : 'Enter a valid UK postcode, like SW1A 1AA.';
+  return String(value).trim().length <= 20 ? null : 'Keep the postcode under 20 characters.';
+};

@@ -388,6 +388,67 @@ class PayPalPaymentTest extends TestCase
             && str_contains($request->header('PayPal-Request-Id')[0] ?? '', '-sdk-'));
     }
 
+    public function test_card_form_is_prefilled_with_the_customers_billing_details(): void
+    {
+        $order = new Order([
+            'customer_name' => 'Chris Onuminya Ngbede', 'customer_email' => 'chris@example.com', 'customer_phone' => '+44 7700 900123',
+            'delivery_address' => '12 High Street', 'delivery_city' => 'London', 'delivery_state' => 'Greater London',
+            'delivery_postcode' => 'sw1a 1aa', 'delivery_country' => 'United Kingdom',
+        ]);
+
+        $this->assertSame([
+            'name' => ['given_name' => 'Chris Onuminya', 'surname' => 'Ngbede'],
+            'email_address' => 'chris@example.com',
+            'phone' => ['phone_type' => 'MOBILE', 'phone_number' => ['national_number' => '7700900123']],
+            'address' => ['address_line_1' => '12 High Street', 'admin_area_2' => 'London', 'admin_area_1' => 'Greater London', 'postal_code' => 'SW1A 1AA', 'country_code' => 'GB'],
+        ], PayPalService::payerFromOrder($order));
+
+        // Nigerian number with the country code but no "+"; placeholder region left out.
+        $ng = PayPalService::payerFromOrder(new Order(['customer_name' => 'Ada', 'customer_phone' => '2347064773171', 'delivery_country' => 'Nigeria', 'delivery_state' => 'All Regions / Nationwide', 'delivery_city' => 'Zaria']));
+        $this->assertSame('7064773171', $ng['phone']['phone_number']['national_number']);
+        $this->assertSame(['admin_area_2' => 'Zaria', 'country_code' => 'NG'], $ng['address']);
+        $this->assertSame(['given_name' => 'Ada'], $ng['name']);
+    }
+
+    public function test_sdk_order_sends_prefill_and_retries_without_it_if_paypal_objects(): void
+    {
+        $this->useRealCredentials();
+        $order = $this->makeOrder(150, ['customer_name' => 'Jane Doe', 'delivery_country' => 'United Kingdom', 'delivery_postcode' => 'SW1A 1AA']);
+
+        Http::fake([
+            self::API . '/v1/oauth2/token' => Http::response(['access_token' => 'token', 'expires_in' => 3600]),
+            self::API . '/v2/checkout/orders' => Http::sequence()
+                ->push(['name' => 'UNPROCESSABLE_ENTITY', 'details' => [['field' => '/payer/phone/phone_number/national_number', 'issue' => 'INVALID_PARAMETER_SYNTAX']]], 422)
+                ->push(['id' => 'PP-PLAIN', 'status' => 'CREATED', 'links' => []], 201),
+        ]);
+
+        $this->postJson('/api/paypal/create-order', ['order_number' => $order->order_number, 'flow' => 'sdk'])
+            ->assertOk()->assertJsonPath('data.paypal_order_id', 'PP-PLAIN');
+
+        $creates = collect(Http::recorded())->filter(fn ($pair) => str_ends_with($pair[0]->url(), '/v2/checkout/orders'))->values();
+        $this->assertCount(2, $creates);
+        $this->assertSame('SW1A 1AA', $creates[0][0]['payer']['address']['postal_code']);
+        $this->assertArrayNotHasKey('payer', $creates[1][0]->data());
+    }
+
+    public function test_uk_checkout_needs_a_valid_postcode(): void
+    {
+        $base = [
+            'customer_name' => 'Jane Doe', 'customer_email' => 'jane@example.com', 'customer_phone' => '+447700900000',
+            'delivery_address' => '1 Street', 'delivery_city' => 'London', 'delivery_state' => 'London', 'delivery_country' => 'United Kingdom',
+            'shipping_rate_id' => \App\Models\ShippingRate::where('name', 'Pick Up')->value('id'),
+            'payment_method' => 'bank_transfer',
+            'items' => [['product_id' => $this->product->id, 'quantity' => 1]],
+        ];
+        $this->postJson('/api/checkout', $base)->assertStatus(422)->assertJsonValidationErrors('delivery_postcode');
+        $this->postJson('/api/checkout', $base + ['delivery_postcode' => '12345'])->assertStatus(422)->assertJsonValidationErrors('delivery_postcode');
+        $this->postJson('/api/checkout', $base + ['delivery_postcode' => 'sw1a 1aa'])->assertOk();
+        $this->assertSame('SW1A 1AA', Order::latest('id')->first()->delivery_postcode);
+
+        // Elsewhere a postcode is optional.
+        $this->postJson('/api/checkout', array_merge($base, ['delivery_country' => 'Nigeria', 'delivery_city' => 'Lagos', 'delivery_state' => 'Lagos']))->assertOk();
+    }
+
     public function test_redirect_payments_still_use_the_paypal_wallet_flow(): void
     {
         $this->useRealCredentials();

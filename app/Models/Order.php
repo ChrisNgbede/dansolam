@@ -21,6 +21,7 @@ class Order extends Model
         'delivery_address',
         'delivery_city',
         'delivery_state',
+        'delivery_postcode',
         'delivery_country',
         'subtotal',
         'discount_amount',

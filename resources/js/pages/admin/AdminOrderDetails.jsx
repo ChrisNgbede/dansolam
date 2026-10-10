@@ -382,7 +382,7 @@ export default function AdminOrderDetails() {
                     <span className="text-gray-400 block text-[10px] uppercase font-bold">Shipping Destination</span>
                     <span className="font-medium text-[#221B2B] dark:text-[#F3EFF6] leading-relaxed">
                       {order.delivery_method === 'delivery' ? (
-                        `${order.delivery_address || ''}, ${order.delivery_city || ''}, ${order.delivery_state || ''}, ${order.delivery_country || 'United Kingdom'}`
+                        [order.delivery_address, order.delivery_city, order.delivery_state, order.delivery_postcode, order.delivery_country || 'United Kingdom'].filter(Boolean).join(', ')
                       ) : (
                         'Dansolam Beauty Home Main Branch'
                       )}

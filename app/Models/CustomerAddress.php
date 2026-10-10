@@ -16,6 +16,7 @@ class CustomerAddress extends Model
         'address_line_2',
         'city',
         'state',
+        'postcode',
         'country',
         'is_default',
     ];

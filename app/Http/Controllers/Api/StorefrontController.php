@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
+use Illuminate\Validation\Rule;
+
 use App\Mail\StoreMessage;
 use App\Services\StoreMailer;
 
@@ -775,6 +777,11 @@ class StorefrontController extends Controller
             'delivery_address' => 'required|string',
             'delivery_city' => 'required|string|max:255',
             'delivery_state' => 'required|string|max:255',
+            'delivery_postcode' => ['nullable', 'string', 'max:20', Rule::requiredIf(fn () => \App\Support\Countries::isUk((string) request('delivery_country'))), function ($attr, $value, $fail) {
+                if ($value && \App\Support\Countries::isUk((string) request('delivery_country')) && !\App\Support\Countries::validUkPostcode($value)) {
+                    $fail('Enter a valid UK postcode, like SW1A 1AA.');
+                }
+            }],
             'delivery_country' => 'required|string|max:255',
             'shipping_rate_id' => 'required|integer|exists:shipping_rates,id',
             'payment_method' => 'required|in:paystack,bank_transfer,stripe,paypal,flutterwave,cash_on_delivery',
@@ -1062,6 +1069,7 @@ class StorefrontController extends Controller
                 'customer_phone' => $request->customer_phone,
                 'delivery_address' => $request->delivery_address,
                 'delivery_city' => $request->delivery_city,
+                'delivery_postcode' => $request->delivery_postcode ? strtoupper(trim($request->delivery_postcode)) : null,
                 'delivery_state' => $request->delivery_state,
                 'delivery_country' => $request->delivery_country,
                 'subtotal' => $subtotal,
@@ -1099,6 +1107,7 @@ class StorefrontController extends Controller
                         if ($existingAddr) {
                             $existingAddr->update([
                                 'city' => $request->delivery_city ?? '',
+                                'postcode' => $request->delivery_postcode ? strtoupper(trim($request->delivery_postcode)) : $existingAddr->postcode,
                                 'state' => $request->delivery_state ?? '',
                                 'country' => $request->delivery_country ?? '',
                                 'is_default' => true,
@@ -1108,6 +1117,7 @@ class StorefrontController extends Controller
                                 'customer_id' => $cust->id,
                                 'address_line_1' => $request->delivery_address,
                                 'city' => $request->delivery_city ?? '',
+                                'postcode' => $request->delivery_postcode ? strtoupper(trim($request->delivery_postcode)) : null,
                                 'state' => $request->delivery_state ?? '',
                                 'country' => $request->delivery_country ?? '',
                                 'is_default' => true,
@@ -1148,7 +1158,7 @@ class StorefrontController extends Controller
                         'Items' => collect($orderItemsForEmail)->map(fn ($i) => $i['quantity'] . ' × ' . ($i['product_name'] ?? 'Item'))->implode("\n"),
                         'Delivery' => $order->delivery_method === 'pickup'
                             ? 'Pick up'
-                            : implode(', ', array_filter([$order->delivery_address, $order->delivery_city, $order->delivery_country])),
+                            : implode(', ', array_filter([$order->delivery_address, $order->delivery_city, $order->delivery_postcode, $order->delivery_country])),
                         'Payment' => ucwords(str_replace('_', ' ', $order->payment_method)),
                     ],
                     buttonText: 'Open order',
