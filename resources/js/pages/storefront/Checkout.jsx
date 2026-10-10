@@ -22,9 +22,14 @@ export default function Checkout() {
   // Zustand State hooks
   const items = useCartStore(state => state.items);
   const coupon = useCartStore(state => state.coupon);
-  const deliveryMethod = useCartStore(state => state.deliveryMethod);
-  const deliveryZone = useCartStore(state => state.deliveryZone);
-  const shippingOption = useCartStore(state => state.shippingOption);
+  // Subscribed so the shipping list updates as items, rates or country change.
+  const shippingRates = useCartStore(state => state.shippingRates);
+  const shippingMethodId = useCartStore(state => state.shippingMethodId);
+  // Re-render once the store has the country the form just set.
+  const storeCountry = useCartStore(state => state.deliveryCountry);
+  const setShippingMethodId = useCartStore(state => state.setShippingMethodId);
+  const getEligibleShipping = useCartStore(state => state.getEligibleShipping);
+  const getSelectedShipping = useCartStore(state => state.getSelectedShipping);
   const getSubtotal = useCartStore(state => state.getSubtotal);
   const getDiscountAmount = useCartStore(state => state.getDiscountAmount);
   const getDeliveryFee = useCartStore(state => state.getDeliveryFee);
@@ -32,9 +37,6 @@ export default function Checkout() {
   const clearCart = useCartStore(state => state.clearCart);
   const setShippingRates = useCartStore(state => state.setShippingRates);
   const getAppliedShippingRates = useCartStore(state => state.getAppliedShippingRates);
-  const setDeliveryMethod = useCartStore(state => state.setDeliveryMethod);
-  const setDeliveryZone = useCartStore(state => state.setDeliveryZone);
-  const setShippingOption = useCartStore(state => state.setShippingOption);
   const setDeliveryCountry = useCartStore(state => state.setDeliveryCountry);
 
   // Authentication Mode on Checkout (for guest users)
@@ -56,6 +58,11 @@ export default function Checkout() {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [country, setCountry] = useState('');
+  // Shipping options for this country and item count (re-evaluated every render;
+  // the subscriptions above trigger it when rates, choice or items change).
+  const eligibleShipping = country ? getEligibleShipping() : [];
+  const selectedShipping = country ? getSelectedShipping() : null;
+  void shippingRates; void shippingMethodId; void storeCountry;
   const [checkoutCaptchaVerified, setCheckoutCaptchaVerified] = useState(false);
 
   useEffect(() => {
@@ -131,20 +138,6 @@ export default function Checkout() {
       setShippingRates(shippingRatesRes.data);
     }
   }, [shippingRatesRes, setShippingRates]);
-
-  // Fetch delivery zones list
-  const { data: zonesRes } = useQuery({
-    queryKey: ['delivery-zones-checkout'],
-    queryFn: () => fetch('/api/delivery-zones').then(res => res.json())
-  });
-  const zones = zonesRes?.data || [];
-
-  // Default pre-select zone
-  useEffect(() => {
-    if (zones.length > 0 && !deliveryZone) {
-      setDeliveryZone(zones[0]);
-    }
-  }, [zones, deliveryZone, setDeliveryZone]);
 
   // Sync default active gateway from settings
   useEffect(() => {
@@ -311,6 +304,11 @@ export default function Checkout() {
       return;
     }
 
+    if (!selectedShipping) {
+      setErrorMsg(country ? 'Please choose a shipping method.' : 'Please select your country to see shipping options.');
+      return;
+    }
+
     const isCaptchaEnabled = settings.captcha_enabled === 'true' || settings.captcha_enabled === true;
     const isCheckoutEnabled = settings.captcha_on_checkout === undefined ? true : (settings.captcha_on_checkout === 'true' || settings.captcha_on_checkout === true);
     if (isCaptchaEnabled && isCheckoutEnabled && !checkoutCaptchaVerified) {
@@ -349,9 +347,7 @@ export default function Checkout() {
       delivery_city: city,
       delivery_state: state,
       delivery_country: country,
-      delivery_method: deliveryMethod,
-      delivery_zone_id: deliveryZone ? deliveryZone.id : null,
-      shipping_option: shippingOption,
+      shipping_rate_id: selectedShipping ? selectedShipping.id : null,
       payment_method: paymentMethod,
       coupon_code: coupon ? coupon.code : null,
       notes: notes,
@@ -633,7 +629,7 @@ export default function Checkout() {
                   <form onSubmit={handleInlineLogin} className="flex flex-col gap-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Email Address</label>
+                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Email Address</label>
                         <div className="relative">
                           <input
                             type="email"
@@ -647,7 +643,7 @@ export default function Checkout() {
                         </div>
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Password</label>
+                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Password</label>
                         <div className="relative">
                           <input
                             type="password"
@@ -693,7 +689,7 @@ export default function Checkout() {
                   <form onSubmit={handleInlineRegister} className="flex flex-col gap-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Full Name</label>
+                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Full Name</label>
                         <div className="relative">
                           <input
                             type="text"
@@ -707,7 +703,7 @@ export default function Checkout() {
                         </div>
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Email Address</label>
+                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Email Address</label>
                         <div className="relative">
                           <input
                             type="email"
@@ -724,7 +720,7 @@ export default function Checkout() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Phone (Optional)</label>
+                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Phone (Optional)</label>
                         <div className="relative">
                           <input
                             type="tel"
@@ -737,7 +733,7 @@ export default function Checkout() {
                         </div>
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Password</label>
+                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Password</label>
                         <div className="relative">
                           <input
                             type="password"
@@ -751,7 +747,7 @@ export default function Checkout() {
                         </div>
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Confirm Password</label>
+                        <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Confirm Password</label>
                         <div className="relative">
                           <input
                             type="password"
@@ -815,10 +811,10 @@ export default function Checkout() {
 
                 {/* Contact Information */}
                 <div className="flex flex-col gap-3">
-                  <h3 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase tracking-widest border-b border-gray-100 dark:border-white/10 pb-2">Recipient Contact Details</h3>
+                  <h3 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6]  tracking-widest border-b border-gray-100 dark:border-white/10 pb-2">Recipient Contact Details</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Full Name</label>
+                      <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">Full Name</label>
                       <input
                         type="text"
                         required
@@ -829,7 +825,7 @@ export default function Checkout() {
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Phone Number</label>
+                      <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">Phone Number</label>
                       <input
                         type="tel"
                         required
@@ -840,7 +836,7 @@ export default function Checkout() {
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Email (Receipts & Tracking)</label>
+                      <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">Email (Receipts & Tracking)</label>
                       <input
                         type="email"
                         required
@@ -853,77 +849,13 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                {/* Delivery Method Options */}
-                <div className="flex flex-col gap-3 border-t border-gray-100 dark:border-white/10 pt-4">
-                  <h3 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase tracking-widest border-b border-gray-100 dark:border-white/10 pb-2">Fulfillment Method</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setDeliveryMethod('delivery')}
-                      className={`py-3 rounded-2xl border text-center font-bold text-xs transition-all cursor-pointer shadow-3xs btn-spring ${
-                        deliveryMethod === 'delivery' ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85] dark:bg-[#EC268F] text-white shadow-md' : 'border-gray-200 dark:border-white/15 text-gray-500 dark:text-[#C9BED4] bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10'
-                      }`}
-                    >
-                      🏠 Courier & Standard Delivery
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeliveryMethod('pickup')}
-                      className={`py-3 rounded-2xl border text-center font-bold text-xs transition-all cursor-pointer shadow-3xs btn-spring ${
-                        deliveryMethod === 'pickup' ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85] dark:bg-[#EC268F] text-white shadow-md' : 'border-gray-200 dark:border-white/15 text-gray-500 dark:text-[#C9BED4] bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10'
-                      }`}
-                    >
-                      🏪 Boutique Pickup (Free)
-                    </button>
-                  </div>
-                </div>
-
-                {/* Shipping Type & Delivery Zones */}
-                {deliveryMethod === 'delivery' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-[#FAF9F6] dark:bg-white/5 p-5 rounded-2xl border border-gray-100 dark:border-white/10 shadow-3xs w-full">
-                    <div className="flex flex-col gap-1.5 text-left">
-                      <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Shipping Service Priority</label>
-                      <select
-                        value={shippingOption}
-                        onChange={(e) => setShippingOption(e.target.value)}
-                        className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] bg-white dark:bg-[#231B30] text-xs text-[#221B2B] dark:text-[#F3EFF6] font-medium h-10 w-full cursor-pointer shadow-3xs"
-                      >
-                        <option value="standard">Standard Courier Delivery</option>
-                        <option value="same_day">⚡ Express Priority (+{currencySymbol}{parseFloat(settings.shipping_same_day_surcharge || 5000).toLocaleString()})</option>
-                        <option value="international">✈️ International Courier Shipping ({currencySymbol}{parseFloat(settings.shipping_international_base || 25000).toLocaleString()})</option>
-                      </select>
-                    </div>
-
-                    {shippingOption !== 'international' && zones.length > 0 && (
-                      <div className="flex flex-col gap-1.5 text-left">
-                        <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Delivery Area / Zone</label>
-                        <select
-                          value={deliveryZone?.id || ''}
-                          onChange={(e) => {
-                            const z = zones.find(x => x.id === parseInt(e.target.value));
-                            if (z) setDeliveryZone(z);
-                          }}
-                          className="px-3.5 py-2.5 rounded-full border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] bg-white dark:bg-[#231B30] text-xs text-[#221B2B] dark:text-[#F3EFF6] font-medium h-10 w-full cursor-pointer shadow-3xs"
-                        >
-                          <option value="" disabled>-- Select Zone --</option>
-                          {zones.map((z) => (
-                            <option key={z.id} value={z.id}>
-                              {z.name} (+{currencySymbol}{parseFloat(z.shipping_fee).toLocaleString()})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                  </div>
-                )}
-
                 {/* Delivery Address Fields */}
-                {deliveryMethod === 'delivery' && (
+                {(
                   <>
-                    <h3 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase tracking-widest border-b border-gray-100 dark:border-white/10 pb-2 mt-2">Physical Delivery Address</h3>
+                    <h3 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6]  tracking-widest border-b border-gray-100 dark:border-white/10 pb-2 mt-2">Physical Delivery Address</h3>
                     
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Street Address & Landmark</label>
+                      <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">Street Address & Landmark</label>
                       <input
                         type="text"
                         required
@@ -936,7 +868,7 @@ export default function Checkout() {
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">City</label>
+                        <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">City</label>
                         <input
                           type="text"
                           required
@@ -947,7 +879,7 @@ export default function Checkout() {
                         />
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Country</label>
+                        <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">Country</label>
                         <select
                           required
                           value={country}
@@ -961,7 +893,7 @@ export default function Checkout() {
                         </select>
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">State / Province</label>
+                        <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">State / Province</label>
                         <select
                           required
                           value={state}
@@ -978,8 +910,54 @@ export default function Checkout() {
                   </>
                 )}
 
+                {/* Shipping method — only the methods that apply to this country and item count */}
+                <div className="flex flex-col gap-3 pt-4">
+                  <h3 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] tracking-widest pb-1">Shipping Method</h3>
+                  {!country ? (
+                    <p className="text-xs text-gray-500 dark:text-[#9B8EA9]">Select your country above to see shipping options.</p>
+                  ) : eligibleShipping.length === 0 ? (
+                    <p className="text-xs text-rose-600">No shipping option is available for this order. Please contact us to arrange delivery.</p>
+                  ) : (
+                    <div role="radiogroup" aria-label="Shipping method" className="flex flex-col gap-2">
+                      {eligibleShipping.map((method) => {
+                        const checked = selectedShipping?.id === method.id;
+                        const price = parseFloat(method.rate || 0);
+                        return (
+                          <label
+                            key={method.id}
+                            className={`flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border cursor-pointer transition-colors ${
+                              checked
+                                ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85]/5 dark:bg-white/5'
+                                : 'border-gray-200 dark:border-white/15 hover:border-[#5D3E85]/50'
+                            }`}
+                          >
+                            <span className="flex items-center gap-3 min-w-0">
+                              <input
+                                type="radio"
+                                name="shipping_method"
+                                checked={checked}
+                                onChange={() => setShippingMethodId(method.id)}
+                                className="accent-[#5D3E85] w-4 h-4 shrink-0"
+                              />
+                              <span className="min-w-0">
+                                <span className="block text-sm font-bold text-[#221B2B] dark:text-[#F3EFF6]">{method.name}</span>
+                                {method.description && (
+                                  <span className="block text-xs text-gray-500 dark:text-[#9B8EA9] mt-0.5">{method.description}</span>
+                                )}
+                              </span>
+                            </span>
+                            <span className={`shrink-0 text-sm font-extrabold ${price === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-[#221B2B] dark:text-[#F3EFF6]'}`}>
+                              {price === 0 ? 'Free' : `${currencySymbol}${price.toFixed(2)}`}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
                 {/* Payment Gateways Selection */}
-                <h3 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase tracking-widest border-b border-gray-100 dark:border-white/10 pb-2 mt-2">Payment Channels</h3>
+                <h3 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6]  tracking-widest border-b border-gray-100 dark:border-white/10 pb-2 mt-2">Payment Channels</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   
                   {/* 1. Paystack Gateway */}
@@ -1111,7 +1089,7 @@ export default function Checkout() {
                 )}
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Order Notes (Optional)</label>
+                  <label className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider">Order Notes (Optional)</label>
                   <textarea
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
@@ -1199,31 +1177,21 @@ export default function Checkout() {
 
                 {/* Dynamic Applied Shipping Breakdown */}
                 <div className="flex flex-col gap-1 py-1 border-y border-dashed border-gray-100 dark:border-white/10">
-                  {deliveryMethod === 'pickup' ? (
+                  {getAppliedShippingRates().length === 0 ? (
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-gray-500 dark:text-[#9B8EA9]">Boutique Pickup</span>
-                      <span className="font-bold text-emerald-600 dark:text-emerald-400">FREE</span>
+                      <span className="text-gray-500 dark:text-[#9B8EA9]">Shipping</span>
+                      <span className="text-gray-400">{country ? 'Not available' : 'Select country'}</span>
                     </div>
-                  ) : (
-                    <>
-                      {getAppliedShippingRates(settings).map((rateLine, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-[11px]">
-                          <span className="text-gray-500 dark:text-[#9B8EA9] truncate pr-2">{rateLine.name}</span>
-                          <span className="font-semibold text-[#221B2B] dark:text-[#F3EFF6] shrink-0">
-                            {rateLine.amount === 0 ? (
-                              <span className="text-emerald-600 dark:text-emerald-400 font-bold">FREE</span>
-                            ) : (
-                              `${currencySymbol}${rateLine.amount.toLocaleString()}`
-                            )}
-                          </span>
-                        </div>
-                      ))}
-                      <div className="flex justify-between items-center text-xs pt-1">
-                        <span className="font-bold text-gray-700 dark:text-gray-300">Total Shipping Fee</span>
-                        <span className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6]">{currencySymbol}{getDeliveryFee(settings).toLocaleString()}</span>
-                      </div>
-                    </>
-                  )}
+                  ) : getAppliedShippingRates().map((rateLine, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-xs">
+                      <span className="text-gray-500 dark:text-[#9B8EA9] truncate pr-2">Shipping · {rateLine.name}</span>
+                      <span className="font-semibold text-[#221B2B] dark:text-[#F3EFF6] shrink-0">
+                        {rateLine.amount === 0
+                          ? <span className="text-emerald-600 dark:text-emerald-400 font-bold">Free</span>
+                          : `${currencySymbol}${rateLine.amount.toFixed(2)}`}
+                      </span>
+                    </div>
+                  ))}
                 </div>
 
                 <div className="flex justify-between items-center gap-4 border-t border-gray-100 dark:border-white/10 pt-3 text-[#221B2B] dark:text-[#F3EFF6] mt-0.5">
@@ -1279,7 +1247,7 @@ export default function Checkout() {
             {/* PayPal Funding Options Selection (when PayPal gateway is chosen) */}
             {paymentMethod === 'paypal' && (
               <div className="flex flex-col gap-2 text-left">
-                <span className="text-[10px] font-bold text-gray-400 dark:text-[#9B8EA9] uppercase tracking-wider">
+                <span className="text-[10px] font-bold text-gray-400 dark:text-[#9B8EA9]  tracking-wider">
                   Select payment source
                 </span>
                 <div className="flex flex-col gap-2">

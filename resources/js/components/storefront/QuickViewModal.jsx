@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { X, Star, ShoppingBag, Heart, ShieldCheck, Truck, ArrowRight, Check, RefreshCw, Eye } from 'lucide-react';
 import { useCartStore } from '../../store/cartStore';
@@ -9,9 +10,11 @@ import { toast as systemToast } from '../../components/ui/ToastProvider';
 import { FormattedText } from '../../utils/formatText';
 
 export default function QuickViewModal({ product, isOpen, onClose }) {
-  if (!isOpen || !product) return null;
-
   const navigate = useNavigate();
+  const [quantity, setQuantity] = useState(1);
+  const [selectedSize, setSelectedSize] = useState(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isAdded, setIsAdded] = useState(false);
   const currencySymbol = getCurrencySymbol();
   const addItemToCart = useCartStore(state => state.addItem);
   const toggleWishlist = useWishlistStore(state => state.toggleItem);
@@ -19,20 +22,37 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
   const addRecentlyViewed = useRecentlyViewedStore(state => state.addRecentlyViewed);
 
   // Track product in recently viewed on modal open
-  React.useEffect(() => {
-    if (product) {
+  useEffect(() => {
+    if (product && isOpen) {
       addRecentlyViewed(product);
     }
-  }, [product]);
+  }, [product, isOpen]);
 
-  const [quantity, setQuantity] = useState(1);
-  const [selectedSize, setSelectedSize] = useState(product.sizes?.[0] || 'UK 10');
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [isAdded, setIsAdded] = useState(false);
+  // Lock body scroll when QuickViewModal is open
+  useEffect(() => {
+    if (isOpen && product) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') onClose();
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = '';
+    }
+  }, [isOpen, product, onClose]);
+
+  if (!isOpen || !product) return null;
+
 
   const isWishlisted = wishlistItems.some(item => item.id === product.id);
 
-  const DEFAULT_FALLBACK = 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=600';
+  const reviewCount = Number(product?.reviews_count ?? product?.reviews?.length ?? 0);
+  const avgRating = Number(product?.average_rating ?? product?.rating ?? (product?.reviews?.length ? product.reviews.reduce((a, r) => a + Number(r.rating || 0), 0) / product.reviews.length : 0));
+  const DEFAULT_FALLBACK = '/images/placeholder-product.svg';
   const images = product.images?.length > 0
     ? product.images.map(img => img.image_url)
     : [product.image_url || product.image || DEFAULT_FALLBACK];
@@ -80,18 +100,20 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
     navigate('/cart');
   };
 
-  const availableSizes = ['Standard (500g)', '750ml', '250ml', '30g', 'Combo Set'];
+  // Only offer a choice when the product really has more than one size.
+  const availableSizes = Array.from(new Set((product.variants || []).map((v) => v.size)))
+    .filter((sz) => sz && !/^(standard|default)$/i.test(sz));
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto animate-fade-in" role="dialog" aria-modal="true">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto overscroll-contain animate-fade-in" role="dialog" aria-modal="true">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-[#17101F]/80 backdrop-blur-md transition-opacity"
+        className="fixed inset-0 bg-black/75 backdrop-blur-md transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal Card Container */}
-      <div className="relative w-full max-w-4xl bg-white dark:bg-[#1E1528] text-[#221B2B] dark:text-[#F3EFF6] rounded-[32px] border border-[#EADBEE] dark:border-white/10 shadow-2xl overflow-hidden z-10 flex flex-col md:flex-row my-auto max-h-[90vh]">
+      <div className="relative w-full max-w-4xl bg-white dark:bg-[#1E1528] text-[#221B2B] dark:text-[#F3EFF6] rounded-[32px] border border-[#EADBEE] dark:border-white/10 shadow-[0_25px_70px_rgba(0,0,0,0.5)] overflow-hidden z-10 flex flex-col md:flex-row my-auto max-h-[90vh]">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -104,7 +126,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
         {/* Left Column: Image Gallery */}
         <div className="w-full md:w-1/2 bg-[#FAF7FC] dark:bg-[#150F1D] p-6 flex flex-col justify-between items-center relative border-b md:border-b-0 md:border-r border-[#EADBEE] dark:border-white/10">
           <div className="relative w-full aspect-4/5 rounded-2xl overflow-hidden bg-white dark:bg-[#100A16] border border-[#EADBEE] dark:border-white/10 shadow-inner flex items-center justify-center group">
-            <img
+            <img decoding="async" width="600" height="600"
               src={mainImage}
               alt={product.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
@@ -151,7 +173,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
                   className={`w-14 h-14 rounded-xl overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${activeImageIndex === idx ? 'border-[#5D3E85] dark:border-[#EC268F] scale-105 shadow-md' : 'border-gray-200 dark:border-white/15 opacity-60 hover:opacity-100'
                     }`}
                 >
-                  <img src={imgUrl} alt="" className="w-full h-full object-cover" />
+                  <img loading="lazy" decoding="async" width="80" height="80" src={imgUrl} alt="" className="w-full h-full object-cover" />
                 </button>
               ))}
             </div>
@@ -164,16 +186,18 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
             {/* Category & Ratings */}
             <div className="flex items-center justify-between gap-2 pr-14">
               <span className="text-[10px] font-extrabold  tracking-widest text-[#5D3E85] dark:text-[#EC268F] bg-[#5D3E85]/10 dark:bg-[#EC268F]/15 px-3 py-1 rounded-full border border-[#5D3E85]/20 dark:border-[#EC268F]/30">
-                {product.categories?.[0]?.name || product.category?.name || 'SHOP Luxury'}
+                {product.categories?.[0]?.name || product.category?.name || 'Skincare'}
               </span>
-              <div className="flex items-center gap-1 text-amber-500 text-xs font-bold">
-                <div className="flex items-center">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  ))}
+              {reviewCount > 0 && (
+                <div className="flex items-center gap-1 text-amber-500 text-xs font-bold">
+                  <div className="flex items-center">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className={`w-3.5 h-3.5 ${i < Math.round(avgRating) ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`} />
+                    ))}
+                  </div>
+                  <span className="text-gray-600 dark:text-[#C9BED4] text-[11px] ml-1">({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})</span>
                 </div>
-                <span className="text-gray-600 dark:text-[#C9BED4] text-[11px] ml-1">(24 reviews)</span>
-              </div>
+              )}
             </div>
 
             {/* Title */}
@@ -195,14 +219,14 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
 
             {/* Description */}
             <div className="max-h-28 overflow-y-auto text-xs text-gray-600 dark:text-[#C9BED4]">
-              <FormattedText text={product.description || 'Experience ultimate luxury with this 100% organic skincare formula, crafted from premium botanicals, essential oils, and natural herbs designed to nourish, hydrate, and reveal your skin radiance.'} />
+              <FormattedText text={product.description || ''} />
             </div>
 
-            {/* Volume / Package Selector */}
-            <div className="flex flex-col gap-2 pt-2 border-t border-gray-100 dark:border-white/10">
+            {/* Size selector — only for products with real size variants */}
+            {availableSizes.length > 1 && (
+<div className="flex flex-col gap-2 pt-2 border-t border-gray-100 dark:border-white/10">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold text-[#221B2B] dark:text-[#F3EFF6]  tracking-wider">Select Volume / Package</span>
-                <Link to="/pages/tips" className="text-[10px] text-[#EC268F] font-bold hover:underline cursor-pointer">Beauty Tips</Link>
+                <span className="text-xs font-extrabold text-[#221B2B] dark:text-[#F3EFF6]  tracking-wider">Select Size</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {availableSizes.map((size) => (
@@ -220,6 +244,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
                 ))}
               </div>
             </div>
+            )}
 
             {/* Quantity Selector */}
             <div className="flex items-center gap-4 pt-2">
@@ -275,7 +300,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
                   +
                 </button>
               </div>
-              <span className={`text-[10px] font-bold uppercase tracking-wider ${isStock ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
+              <span className={`text-[10px] font-bold  tracking-wider ${isStock ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}`}>
                 {isStock ? '✓ In Stock Ready to Ship' : 'Out of Stock'}
               </span>
             </div>
@@ -288,7 +313,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
                 type="button"
                 onClick={handleAddToCart}
                 disabled={!isStock}
-                className={`flex-1 py-3.5 px-6 rounded-full text-xs font-extrabold uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] btn-spring ${isAdded
+                className={`flex-1 py-3.5 px-6 rounded-full text-xs font-extrabold  tracking-wider flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] btn-spring ${isAdded
                     ? 'bg-emerald-600 text-white'
                     : 'bg-[#5D3E85] hover:bg-[#EC268F] text-white shadow-[#5D3E85]/25'
                   }`}
@@ -341,6 +366,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

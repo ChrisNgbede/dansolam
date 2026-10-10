@@ -67,77 +67,74 @@ export default function ContactUs() {
   };
 
   return (
-    <div className="bg-[#FBFAF8] dark:bg-[#17101F] min-h-screen font-sans pb-20 transition-colors duration-300">
+    <div className="bg-white dark:bg-[#17101F] min-h-screen font-sans pb-20 transition-colors duration-300">
       <SEO
         title="Contact Us - Dansolam Beauty Home"
-        description="Get in touch with Dansolam Beauty Home. Contact us for spa appointments, facial consultations, and skincare inquiries."
+        description="Get in touch with Dansolam Beauty Home. Contact us with questions about our organic skincare products and orders."
       />
 
       <div className="max-w-[1400px] mx-auto px-3 sm:px-5 lg:px-6 pt-20 sm:pt-22 md:pt-24 pb-12 flex flex-col gap-6">
         {/* Hero Banner Card - Compact, Wide, Back to Home Inside */}
-        <div className="h-[200px] sm:h-[240px] md:h-[270px] rounded-[28px] sm:rounded-[36px] overflow-hidden bg-gray-900 relative shadow-md w-full">
-          <img
-            loading="eager"
-            decoding="async"
-            src="https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=1200"
-            className="w-full h-full object-cover object-center"
-            alt="Contact Dansolam"
-          />
+        <section className="h-[200px] sm:h-[240px] md:h-[270px] rounded-[28px] sm:rounded-[36px] overflow-hidden bg-gradient-to-br from-[#5D3E85] via-[#4A2B68] to-[#2A1740] relative shadow-md w-full">
 
           {/* Header Action Buttons Inside Banner */}
           <div className="absolute top-4 sm:top-5 left-4 sm:left-6 right-4 sm:right-6 flex justify-between items-center z-20">
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 text-[11px] font-bold text-white shadow-sm transition-all duration-300 btn-spring"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-[11px] font-bold text-white shadow-sm transition-all duration-300 btn-spring"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Home</span>
             </Link>
           </div>
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20 flex flex-col justify-end p-5 sm:p-7 md:p-9 text-left z-10">
+          <div className="absolute inset-0 flex flex-col justify-end p-5 sm:p-7 md:p-9 text-left z-10">
             <span className="text-[9px] sm:text-[10px] font-extrabold text-[#5D3E85] bg-white px-3.5 py-1 rounded-full  tracking-widest self-start mb-2 border border-white/40 shadow-sm">
               Get In Touch
             </span>
-            <h1 className="font-extrabold text-xl sm:text-2xl md:text-3xl lg:text-4xl text-white leading-tight">
-              Contact Beauty SHOP
+            <h1 className="font-serif font-bold text-2xl sm:text-3xl md:text-4xl text-white leading-tight">
+              Contact Us
             </h1>
             <p className="text-[11px] sm:text-xs md:text-sm text-gray-200 mt-1 max-w-2xl font-sans leading-snug line-clamp-2">
-              Have questions about our luxury facial services, spa bookings, or skincare formulas? Our dedicated team is here to assist you.
+              Questions about our products, an order or delivery? Our team is here to help.
             </p>
           </div>
-        </div>
+        </section>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
+        <section className="grid grid-cols-1 md:grid-cols-12 gap-10 items-start">
           {/* Info Column */}
           <div className="md:col-span-5 flex flex-col gap-6 text-left">
 
             {/* Contact Details Card */}
             <div className="bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-3xl p-8 shadow-sm flex flex-col gap-6 text-[#221B2B] dark:text-[#F3EFF6]">
-              <h3 className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6] text-xl border-b border-gray-100 dark:border-white/10 pb-4">Beauty Center Contact Details</h3>
+              <h3 className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6] text-xl border-b border-gray-100 dark:border-white/10 pb-4">Contact Details</h3>
 
               <div className="flex flex-col gap-6">
+                {settings.store_address && (
                 <div className="flex gap-4">
                   <div className="w-10 h-10 rounded-full bg-[#5D3E85]/10 dark:bg-[#EC268F]/20 flex items-center justify-center text-[#5D3E85] dark:text-[#EC268F] shrink-0 font-bold">
                     <MapPin className="w-5 h-5" />
                   </div>
                   <div>
-                    <span className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider block">SHOP Address</span>
-                    <span className="text-xs text-gray-700 dark:text-[#C9BED4] font-semibold block mt-0.5">Plot 1234, Wuse II, Abuja, Nigeria</span>
+                    <span className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider block">Address</span>
+                    <span className="text-xs text-gray-700 dark:text-[#C9BED4] font-semibold block mt-0.5">{settings.store_address}</span>
                   </div>
                 </div>
+                )}
 
+                {(settings.support_email || settings.contact_email) && (
                 <div className="flex gap-3">
                   <div className="w-9 h-9 rounded-full bg-[#5D3E85]/10 dark:bg-[#EC268F]/20 flex items-center justify-center text-[#5D3E85] dark:text-[#EC268F] shrink-0 font-bold">
                     <Mail className="w-4 h-4" />
                   </div>
                   <div>
                     <span className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider block">Email Support</span>
-                    <a href="mailto:support@dansolam.com" className="text-xs text-gray-750 dark:text-[#F3EFF6] font-bold hover:text-[#EC268F] transition-colors block mt-0.5">
-                      support@dansolam.com
+                    <a href={`mailto:${settings.support_email || settings.contact_email}`} className="text-xs text-gray-750 dark:text-[#F3EFF6] font-bold hover:text-[#EC268F] transition-colors block mt-0.5">
+                      {settings.support_email || settings.contact_email}
                     </a>
                   </div>
                 </div>
+                )}
 
                 <div className="flex gap-3">
                   <div className="w-9 h-9 rounded-full bg-[#5D3E85]/10 dark:bg-[#EC268F]/20 flex items-center justify-center text-[#5D3E85] dark:text-[#EC268F] shrink-0 font-bold">
@@ -145,8 +142,13 @@ export default function ContactUs() {
                   </div>
                   <div>
                     <span className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider block">WhatsApp Business</span>
-                    <a href="https://wa.me/2348000000000" target="_blank" rel="noopener noreferrer" className="text-xs text-[#5D3E85] dark:text-[#EC268F] font-bold hover:underline block mt-0.5">
-                      +234 800 000 0000
+                    <a
+                      href={`https://wa.me/${String(settings.whatsapp_number || '+234 800 000 0000').replace(/[^0-9]/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[#5D3E85] dark:text-[#EC268F] font-bold hover:underline block mt-0.5"
+                    >
+                      {settings.whatsapp_number || '+234 800 000 0000'}
                     </a>
                   </div>
                 </div>
@@ -157,8 +159,12 @@ export default function ContactUs() {
                   </div>
                   <div>
                     <span className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider block">Opening Hours</span>
-                    <span className="text-xs text-gray-700 dark:text-[#C9BED4] font-semibold block mt-0.5">Monday–Saturday: 9:00 AM - 6:00 PM</span>
-                    <span className="text-[10px] text-rose-500 dark:text-rose-400 font-bold block mt-1  tracking-wider">Closed on Sundays</span>
+                    <span className="text-xs text-gray-700 dark:text-[#C9BED4] font-semibold block mt-0.5">{settings.opening_hours || 'Monday–Saturday: 9:00 AM - 6:00 PM'}</span>
+                    {(settings.opening_hours_note !== undefined && settings.opening_hours_note !== '') ? (
+                      <span className="text-[10px] text-rose-500 dark:text-rose-400 font-bold block mt-1  tracking-wider">{settings.opening_hours_note}</span>
+                    ) : (
+                      <span className="text-[10px] text-rose-500 dark:text-rose-400 font-bold block mt-1  tracking-wider">Closed on Sundays</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -201,7 +207,7 @@ export default function ContactUs() {
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Your Name *</label>
+                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Your Name *</label>
                       <input
                         type="text"
                         required
@@ -212,7 +218,7 @@ export default function ContactUs() {
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Email Address *</label>
+                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Email Address *</label>
                       <input
                         type="email"
                         required
@@ -225,7 +231,7 @@ export default function ContactUs() {
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Subject *</label>
+                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Subject *</label>
                     <input
                       type="text"
                       required
@@ -237,7 +243,7 @@ export default function ContactUs() {
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Message / Detail *</label>
+                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Message / Detail *</label>
                     <textarea
                       required
                       rows="5"
@@ -267,37 +273,38 @@ export default function ContactUs() {
               )}
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="max-w-5xl mx-auto px-6 pb-12">
+        <section className="max-w-5xl mx-auto w-full px-0 sm:px-6 pb-12">
           <FaqSection
             title="Questions Before You Reach Out?"
             eyebrow="Quick Answers"
-            description="Find immediate guidance about facial services, bookings, payments, and beauty products."
+            description="Find quick answers about orders, payments, delivery and our products."
           />
-        </div>
+        </section>
 
-        {/* Map Section with Fallback card */}
-        <div className="max-w-5xl mx-auto px-6 pb-16">
+        {/* Map — only when an address is set in Admin → Settings */}
+        {settings.store_address && (
+        <section className="max-w-5xl mx-auto w-full px-0 sm:px-6 pb-16">
           <div className="bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-3xl p-4 shadow-xs overflow-hidden h-[380px] relative group text-center">
             <iframe
-              src="https://maps.google.com/maps?q=Plot%201234%20Wuse%20II%20Abuja%20Nigeria&t=&z=14&ie=UTF8&iwloc=&output=embed"
+              src={`https://maps.google.com/maps?q=${encodeURIComponent(settings.store_address)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
               className="w-full h-full rounded-2xl border-0 relative z-10"
               allowFullScreen=""
               loading="lazy" decoding="async"
               referrerPolicy="no-referrer-when-downgrade"
               title="Dansolam Location Map"
             />
-            <div className="absolute inset-0 bg-[#FBFAF8] dark:bg-[#17101F] flex flex-col items-center justify-center gap-3 p-6 text-[#221B2B] dark:text-[#F3EFF6]">
+            <div className="absolute inset-0 bg-white dark:bg-[#17101F] flex flex-col items-center justify-center gap-3 p-6 text-[#221B2B] dark:text-[#F3EFF6]">
               <div className="w-12 h-12 rounded-full bg-[#5D3E85]/10 dark:bg-[#EC268F]/20 flex items-center justify-center text-[#5D3E85] dark:text-[#EC268F]">
                 <Map className="w-5 h-5" />
               </div>
-              <h4 className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6] text-base">Dansolam Beauty SHOP</h4>
+              <h4 className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6] text-base">Dansolam</h4>
               <p className="text-xs text-gray-500 dark:text-[#9B8EA9] max-w-xs leading-relaxed font-medium">
-                Plot 1234, Wuse II, Abuja, Nigeria. Locate us on Google Maps for step-by-step directions.
+                {settings.store_address}. Locate us on Google Maps for step-by-step directions.
               </p>
               <a
-                href="https://maps.google.com/?q=Plot%201234%20Wuse%20II%20Abuja%20Nigeria"
+                href={`https://maps.google.com/?q=${encodeURIComponent(settings.store_address)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-2 px-6 py-3 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-[10px] font-extrabold tracking-wider rounded-full shadow-md transition-all btn-spring"
@@ -306,7 +313,8 @@ export default function ContactUs() {
               </a>
             </div>
           </div>
-        </div>
+        </section>
+        )}
       </div>
     </div>
   );

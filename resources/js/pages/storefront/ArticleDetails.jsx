@@ -163,7 +163,7 @@ export default function ArticleDetails() {
   ];
 
   return (
-    <div className="bg-[#FBFAF8] dark:bg-[#17101F] min-h-screen pt-28 sm:pt-36 pb-20 px-4 md:px-8 font-sans text-left transition-colors duration-300">
+    <div className="bg-white dark:bg-[#17101F] min-h-screen pt-28 sm:pt-36 pb-20 px-4 md:px-8 font-sans text-left transition-colors duration-300">
       <SEO
         title={article.title}
         description={article.content ? article.content.replace(/<[^>]*>?/gm, '').slice(0, 155) : 'Read this article on Dansolam Beauty Home.'}

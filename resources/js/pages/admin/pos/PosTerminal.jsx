@@ -12,6 +12,7 @@ import {
 import { toast } from '../../../components/ui/ToastProvider';
 import { getCurrencySymbol } from '../../../utils/currency';
 import { getOfflineQueue, getPosOfflineCache, makeOfflineReference, queueOfflineSale, removeOfflineSale, updateOfflineSale, updatePosOfflineCache } from '../../../utils/posOffline';
+import SearchableSelect from '../../../components/ui/SearchableSelect';
 
 export default function PosTerminal() {
   const navigate = useNavigate();
@@ -959,16 +960,16 @@ export default function PosTerminal() {
               <div className="space-y-2 mt-3 pt-2 border-t border-gray-200/50 dark:border-gray-800">
                 <div className="grid grid-cols-2 gap-2">
                   <label className="text-[10px] font-bold text-gray-500">PAYMENT METHOD
-                    <select value={selectedPayments[0]?.method || paymentMethods[0]} onChange={e => setSelectedPayments([{ method: e.target.value, amount: totalPayable, reference: '' }])}
+                    <SearchableSelect value={selectedPayments[0]?.method || paymentMethods[0]} onChange={e => setSelectedPayments([{ method: e.target.value, amount: totalPayable, reference: '' }])}
                       className="block w-full mt-1 px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-800">
                       {paymentMethods.map(method => <option key={method} value={method}>{method.charAt(0).toUpperCase() + method.slice(1)}</option>)}
-                    </select>
+                    </SearchableSelect>
                   </label>
                   <label className="text-[10px] font-bold text-gray-500">FULFILMENT
-                    <select value={shippingRateId} onChange={e => setShippingRateId(e.target.value)} className="block w-full mt-1 px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-800">
+                    <SearchableSelect value={shippingRateId} onChange={e => setShippingRateId(e.target.value)} className="block w-full mt-1 px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-800">
                       <option value="">In-store pickup</option>
                       {shippingRates.map(rate => <option key={rate.id} value={rate.id}>{rate.name}</option>)}
-                    </select>
+                    </SearchableSelect>
                   </label>
                 </div>
                 <div className="flex items-center justify-between mb-1.5">
@@ -1501,11 +1502,11 @@ export default function PosTerminal() {
                   className={`p-4 bg-gray-50 border border-gray-200 rounded-xl max-h-96 overflow-y-auto text-[10px] leading-tight text-gray-900 text-left ${receiptFormat === 'thermal' ? 'font-mono' : 'font-sans'}`}
                 >
                   <div className="text-center">
-                    <h3 className="text-xs font-bold font-serif">DANSOLAM</h3>
+                    <h3 className="text-xs font-bold font-serif">{(posConfig.store_name || 'DANSOLAM').toUpperCase()}</h3>
                     {lastTransaction.offline_pending && <p className="text-[8px] font-bold text-amber-700">OFFLINE SALE · PENDING SYNC</p>}
                     <p className="text-[8px] text-gray-500">Luxury Beauty SHOP</p>
-                    <p className="text-[8px] text-gray-500">Plot 1234, SHOP Boulevard</p>
-                    <p className="text-[8px] text-gray-500">Tel: +234 800 000 0000</p>
+                    <p className="text-[8px] text-gray-500">{posConfig.store_address}</p>
+                    <p className="text-[8px] text-gray-500">Tel: {posConfig.store_phone || '+234 800 000 0000'}</p>
                   </div>
 
                   <div className="divider border-t border-dashed border-gray-400 my-2"></div>

@@ -9,6 +9,7 @@ import { apiFetch } from '../../hooks/useAuth';
 import { useTableState } from '../../hooks/useTableState';
 import TablePaginationControls from '../../components/ui/TablePaginationControls';
 import BarcodePrintModal from '../../components/admin/BarcodePrintModal';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 export default function AdminProducts() {
   const currencySymbol = getCurrencySymbol();
@@ -704,7 +705,7 @@ export default function AdminProducts() {
 
           <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
             <Filter className="w-3.5 h-3.5 text-gray-450 shrink-0" />
-            <select
+            <SearchableSelect
               value={categoryFilter}
               onChange={e => setCategoryFilter(e.target.value)}
               className="text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg focus:outline-none bg-white cursor-pointer text-gray-700 h-[34px] font-medium"
@@ -713,9 +714,9 @@ export default function AdminProducts() {
               {categories.map(cat => (
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
-            </select>
+            </SearchableSelect>
 
-            <select
+            <SearchableSelect
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
               className="text-xs px-2.5 py-1.5 border border-gray-200 rounded-lg focus:outline-none bg-white cursor-pointer text-gray-700 h-[34px] font-medium"
@@ -724,7 +725,7 @@ export default function AdminProducts() {
               <option value="published">Published / Active</option>
               <option value="draft">Drafts</option>
               <option value="low_stock">Low Stock (≤ 3)</option>
-            </select>
+            </SearchableSelect>
           </div>
         </div>
 
@@ -1019,7 +1020,7 @@ export default function AdminProducts() {
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] text-gray-500 font-semibold uppercase">Parent Category</label>
-                    <select
+                    <SearchableSelect
                       value={catParentId}
                       onChange={e => setCatParentId(e.target.value)}
                       className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white cursor-pointer"
@@ -1030,7 +1031,7 @@ export default function AdminProducts() {
                         .map(cat => (
                           <option key={cat.id} value={cat.id}>{cat.name}</option>
                         ))}
-                    </select>
+                    </SearchableSelect>
                   </div>
 
                   {/* Category Image Upload & Manager */}
@@ -1722,7 +1723,20 @@ export default function AdminProducts() {
                 {/* Expiry Datetime & Discount % */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Countdown Timer Ends At</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Countdown Timer Ends At</label>
+                      {flashSaleEndTime && (
+                        new Date(flashSaleEndTime).getTime() <= Date.now() ? (
+                          <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                            (Expired · Auto-hidden on Storefront)
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                            (Active · Visible on Storefront)
+                          </span>
+                        )
+                      )}
+                    </div>
                     <input
                       type="datetime-local"
                       value={flashSaleEndTime}
@@ -1736,7 +1750,7 @@ export default function AdminProducts() {
                       type="text"
                       value={flashSaleDiscount}
                       onChange={e => setFlashSaleDiscount(e.target.value)}
-                      placeholder="e.g. 30% OFF or SAVE ₦10,000"
+                      placeholder="e.g. 30% OFF or SAVE £50"
                       className="px-3.5 py-2 border border-gray-200 focus:outline-none focus:border-primary text-xs rounded-lg w-full bg-white text-gray-800 font-medium"
                     />
                   </div>

@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Loader2, Plus, Trash2, Upload, X, Image as ImageIcon, Weight, Ruler, Palette, ShieldAlert, ChevronDown, Search, Check } from 'lucide-react';
 import { apiFetch } from '../../hooks/useAuth';
 import RichTextEditor from '../../components/ui/RichTextEditor';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 export default function AdminProductForm() {
   const currencySymbol = getCurrencySymbol();
@@ -487,7 +488,7 @@ export default function AdminProductForm() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-gray-50 pt-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-[10px] text-gray-500 font-semibold uppercase">Status</label>
-            <select
+            <SearchableSelect
               value={status}
               onChange={e => setStatus(e.target.value)}
               className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
@@ -496,7 +497,7 @@ export default function AdminProductForm() {
               <option value="draft">Draft</option>
               <option value="hidden">Hidden</option>
               <option value="archived">Archived</option>
-            </select>
+            </SearchableSelect>
           </div>
 
           <div className="flex flex-col gap-1.5">

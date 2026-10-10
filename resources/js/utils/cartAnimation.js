@@ -1,4 +1,3 @@
-import { gsap } from 'gsap';
 
 /**
  * Trigger an advanced Trailing Lines & Particle Comet Add-to-Cart Animation.
@@ -11,7 +10,22 @@ import { gsap } from 'gsap';
  * @param {'add'|'subtract'} [options.type='add'] - Operation type
  * @param {number} [options.count=1] - Quantity delta
  */
-export function triggerCartAnimation({
+export function triggerCartAnimation(options = {}) {
+  if (typeof window === 'undefined') return;
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+  // Capture the origin now; the element may move before gsap finishes loading.
+  const { fromElement } = options;
+  const rect = fromElement?.getBoundingClientRect();
+  const resolved = rect && (options.startX === undefined || options.startY === undefined)
+    ? { ...options, startX: rect.left + rect.width / 2, startY: rect.top + rect.height / 2 }
+    : options;
+
+  // gsap is only needed once someone adds to cart, so keep it out of the initial bundle.
+  import('gsap').then(({ gsap }) => runCartAnimation(gsap, resolved));
+}
+
+function runCartAnimation(gsap, {
   startX,
   startY,
   fromElement,
@@ -19,7 +33,6 @@ export function triggerCartAnimation({
   type = 'add',
   count = 1
 } = {}) {
-  if (typeof window === 'undefined') return;
 
   // 1. Resolve start coordinates
   let originX = startX;
@@ -226,7 +239,7 @@ export function triggerCartAnimation({
       const now = performance.now();
       if (now - lastSparkTime > 35 && t > 0.05 && t < 0.95) {
         lastSparkTime = now;
-        spawnSpark(curX, curY, type);
+        spawnSpark(gsap, curX, curY, type);
       }
     }
   }, 0);
@@ -235,7 +248,7 @@ export function triggerCartAnimation({
 /**
  * Spawns a glowing particle spark behind the flying comet
  */
-function spawnSpark(x, y, type) {
+function spawnSpark(gsap, x, y, type) {
   const spark = document.createElement('div');
   spark.className = 'fixed pointer-events-none z-[99999] rounded-full';
   const size = Math.random() * 6 + 3;

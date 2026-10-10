@@ -1,5 +1,18 @@
 import { create } from 'zustand';
 
+// Same rules as App\Services\ShippingCalculator: UK is the United Kingdom only;
+// every other country (incl. Jersey, Guernsey, Isle of Man) is International.
+const UK_NAMES = ['united kingdom', 'uk', 'u.k.', 'gb', 'great britain', 'britain', 'england', 'scotland', 'wales', 'northern ireland'];
+export const isUkCountry = (country) => UK_NAMES.includes(String(country || '').trim().toLowerCase());
+
+export const shippingMethodApplies = (method, country, quantity) => {
+  const zone = method.zone || 'all';
+  if (zone !== 'all' && zone !== (isUkCountry(country) ? 'uk' : 'international')) return false;
+  if (method.min_quantity != null && quantity < Number(method.min_quantity)) return false;
+  if (method.max_quantity != null && quantity > Number(method.max_quantity)) return false;
+  return true;
+};
+
 export const useCartStore = create((set, get) => {
   // Helper to load cart from localStorage
   const loadInitialCart = () => {
@@ -23,20 +36,24 @@ export const useCartStore = create((set, get) => {
   return {
     items: loadInitialCart(),
     coupon: null,
-    deliveryZone: null,
-    deliveryMethod: 'delivery', // delivery or pickup
-    shippingOption: 'standard', // standard, same_day, international
+    // Shipping: the customer picks one of the methods that apply to their country
+    // and item count; the server re-checks the choice and charges its fixed fee.
     shippingRates: [],
+    shippingMethodId: null,
+    setShippingMethodId: (id) => set({ shippingMethodId: id }),
     setShippingRates: (rates) => set({ shippingRates: rates }),
-    deliveryCountry: 'Nigeria',
+    deliveryCountry: 'United Kingdom',
     setDeliveryCountry: (country) => set({ deliveryCountry: country }),
-    currencySymbol: '₦',
-    currencyCode: 'NGN',
-    setCurrency: (symbol, code) => set({ currencySymbol: symbol || '₦', currencyCode: code || 'NGN' }),
+    currencySymbol: '£',
+    currencyCode: 'GBP',
+    setCurrency: (symbol, code) => set({ currencySymbol: symbol || '£', currencyCode: code || 'GBP' }),
     formatPrice: (amount) => {
-      const sym = get().currencySymbol || '₦';
-      return sym + parseFloat(amount || 0).toLocaleString(undefined, {
-        minimumFractionDigits: 0,
+      const sym = get().currencySymbol || '£';
+      const value = parseFloat(amount || 0);
+      // Whole amounts stay clean (£20); anything with pence always shows two digits (£16.50).
+      const decimals = Number.isInteger(Math.round(value * 100) / 100) ? 0 : 2;
+      return sym + value.toLocaleString(undefined, {
+        minimumFractionDigits: decimals,
         maximumFractionDigits: 2
       });
     },
@@ -76,7 +93,7 @@ export const useCartStore = create((set, get) => {
           image = product.images[0]?.image_url;
         }
         if (!image) {
-          image = 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=600';
+          image = '/images/placeholder-product.svg';
         }
 
         const label = variant 
@@ -140,18 +157,6 @@ export const useCartStore = create((set, get) => {
       set({ coupon });
     },
 
-    setDeliveryZone: (zone) => {
-      set({ deliveryZone: zone });
-    },
-
-    setDeliveryMethod: (method) => {
-      set({ deliveryMethod: method });
-    },
-
-    setShippingOption: (option) => {
-      set({ shippingOption: option });
-    },
-
     getSubtotal: () => {
       return get().items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     },
@@ -169,91 +174,39 @@ export const useCartStore = create((set, get) => {
       return 0;
     },
 
-    getAppliedShippingRates: (settings = {}) => {
-      if (get().deliveryMethod === 'pickup') {
-        return [{ name: 'Storefront Boutique Pickup', amount: 0 }];
-      }
+    getItemCount: () => get().items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
 
+    getEligibleShipping: () => {
+      const country = get().deliveryCountry;
+      const quantity = get().getItemCount();
+      // Without a country we can't tell UK from International.
+      if (!country || quantity < 1) return [];
+      return (get().shippingRates || [])
+        .filter((method) => method.is_active !== false && shippingMethodApplies(method, country, quantity))
+        .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || parseFloat(a.rate) - parseFloat(b.rate));
+    },
+
+    // The chosen method if it still applies, else the default for this cart.
+    getSelectedShipping: () => {
+      const eligible = get().getEligibleShipping();
+      return eligible.find((m) => m.id === get().shippingMethodId)
+        || eligible.find((m) => m.is_default)
+        || eligible.find((m) => !m.is_pickup)
+        || eligible[0]
+        || null;
+    },
+
+    getAppliedShippingRates: () => {
+      const method = get().getSelectedShipping();
+      if (!method) return [];
       const coupon = get().coupon;
       if (coupon && coupon.type === 'free_delivery') {
-        return [{ name: 'Free Delivery Coupon Applied', amount: 0 }];
+        return [{ name: `${method.name} (free with coupon)`, amount: 0 }];
       }
-
-      const subtotal = get().getSubtotal();
-      const freeThreshold = parseFloat(settings.shipping_free_threshold || 100000);
-      const isFreeThresholdAchieved = freeThreshold > 0 && subtotal >= freeThreshold;
-
-      const option = get().shippingOption || 'standard';
-      const applied = [];
-
-      // 1. Calculate Base Delivery Rate
-      if (isFreeThresholdAchieved && option !== 'international') {
-        applied.push({ name: 'Free Shipping (Order Threshold Reached)', amount: 0 });
-      } else if (option === 'international') {
-        const intlBase = parseFloat(settings.shipping_international_base || 25000);
-        applied.push({ name: 'Worldwide International Courier', amount: intlBase });
-      } else {
-        // Domestic delivery: Use user-selected deliveryZone or matched rate or default
-        const zone = get().deliveryZone;
-        const activeRates = get().shippingRates || [];
-        
-        let baseFee = 0;
-        let baseName = 'Standard Nationwide Delivery';
-
-        if (zone && zone.shipping_fee !== undefined && zone.shipping_fee !== null) {
-          baseFee = parseFloat(zone.shipping_fee) || 0;
-          baseName = `Delivery Area: ${zone.name}`;
-        } else if (activeRates.length > 0) {
-          const custCountry = get().deliveryCountry || 'Nigeria';
-          const matchedRate = activeRates.find(r => r.is_active && (r.shipping_zone_type === 'domestic' || r.shipping_zone_type === 'all'));
-          if (matchedRate) {
-            baseFee = parseFloat(matchedRate.rate) || 0;
-            baseName = matchedRate.name;
-          } else {
-            baseFee = parseFloat(settings.shipping_base_domestic || 2000);
-          }
-        } else {
-          baseFee = parseFloat(settings.shipping_base_domestic || 2000);
-        }
-
-        applied.push({
-          name: baseName,
-          amount: Math.round(baseFee * 100) / 100
-        });
-      }
-
-      // 2. Shipping Service Priority Surcharges (Real-time reactivity)
-      if (option === 'same_day') {
-        const surcharge = parseFloat(settings.shipping_same_day_surcharge || 5000);
-        if (surcharge > 0) {
-          applied.push({
-            name: '⚡ Same Day Priority Express Surcharge',
-            amount: surcharge
-          });
-        }
-      }
-
-      // 3. Bulk items surcharge if more than 5 items
-      const totalItems = get().items.reduce((sum, item) => sum + item.quantity, 0);
-      if (totalItems > 5 && option !== 'international') {
-        const extraItems = totalItems - 5;
-        const multiplier = parseFloat(settings.shipping_item_multiplier || 1500);
-        if (multiplier > 0) {
-          const bulkFee = extraItems * multiplier;
-          applied.push({
-            name: `Bulk Order Handling (+${extraItems} items)`,
-            amount: bulkFee
-          });
-        }
-      }
-
-      return applied;
+      return [{ name: method.name, amount: Math.round(parseFloat(method.rate || 0) * 100) / 100 }];
     },
 
-    getDeliveryFee: (settings = {}) => {
-      const applied = get().getAppliedShippingRates(settings);
-      return applied.reduce((sum, r) => sum + r.amount, 0);
-    },
+    getDeliveryFee: () => get().getAppliedShippingRates().reduce((sum, r) => sum + r.amount, 0),
 
     getTotal: (settings = {}) => {
       const subtotal = get().getSubtotal();

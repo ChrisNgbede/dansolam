@@ -65,6 +65,15 @@ class StorefrontController extends Controller
             }
         }
 
+        // Auto-expire flash sale campaign if countdown end time has passed
+        if (!empty($settings['flash_sale_end_time'])) {
+            $flashEndTime = strtotime($settings['flash_sale_end_time']);
+            if ($flashEndTime && $flashEndTime <= time()) {
+                $settings['flash_sale_show'] = 'false';
+                $settings['flash_sale_is_ended'] = 'true';
+            }
+        }
+
         // Provide a random product image as dynamic fallback if auth_image_url is not customized
         $randomProductImage = null;
         if (empty($settings['auth_image_url'])) {
@@ -185,6 +194,38 @@ class StorefrontController extends Controller
     public function getCollections()
     {
         $collections = Collection::where('is_published', true)->with('categories')->get();
+
+        // A few product thumbnails per category so the mega menu can show one beside each name.
+        $categoryIds = $collections->pluck('categories')->flatten()->pluck('id')->unique()->values();
+        if ($categoryIds->isNotEmpty()) {
+            $thumbnails = Cache::remember(
+                'storefront.category.thumbnails.' . md5($categoryIds->join(',')),
+                now()->addMinutes(30),
+                function () use ($categoryIds) {
+                    return Product::where('status', 'published')
+                        ->whereHas('categories', fn ($q) => $q->whereIn('categories.id', $categoryIds))
+                        ->with(['images' => fn ($q) => $q->orderBy('id'), 'categories:id'])
+                        ->latest('id')
+                        ->take(300)
+                        ->get()
+                        ->flatMap(function ($product) {
+                            $image = $product->images->first()?->image_url;
+                            return $image
+                                ? $product->categories->map(fn ($c) => ['category_id' => $c->id, 'image' => $image])
+                                : [];
+                        })
+                        ->groupBy('category_id')
+                        ->map(fn ($rows) => $rows->pluck('image')->unique()->take(6)->values()->all());
+                }
+            );
+
+            $collections->each(function ($collection) use ($thumbnails) {
+                $collection->categories->each(function ($category) use ($thumbnails) {
+                    $category->sample_images = $thumbnails[$category->id] ?? [];
+                });
+            });
+        }
+
         return response()->json([
             'success' => true,
             'data' => $collections
@@ -208,12 +249,94 @@ class StorefrontController extends Controller
      */
     public function getShippingRates()
     {
-        $rates = ShippingRate::where('is_active', true)
-            ->whereIn('sales_channel', ['storefront', 'both'])
-            ->with(['products', 'categories'])->get();
+        // Everything the storefront needs to show the same options checkout will accept.
+        $rates = app(\App\Services\ShippingCalculator::class)->activeMethods()
+            ->map(fn ($rate) => $rate->only(['id', 'name', 'zone', 'min_quantity', 'max_quantity', 'rate', 'description', 'is_default', 'is_pickup', 'sort_order', 'is_active']))
+            ->values();
         return response()->json([
             'success' => true,
             'data' => $rates
+        ]);
+    }
+
+    /**
+     * Admin-defined concern cards, normalised. Each card maps to real categories,
+     * collections or hand-picked products.
+     */
+    private function shopConcernItems(): array
+    {
+        $raw = EcommerceSetting::where('ecommerce_id', Ecommerce::query()->value('id'))
+            ->where('key', 'shop_by_concern_items')->value('value');
+        $items = is_string($raw) ? json_decode($raw, true) : $raw;
+
+        return collect(is_array($items) ? $items : [])
+            ->filter(fn ($item) => !empty($item['name']))
+            ->map(function ($item) {
+                $values = $item['filter_values'] ?? [];
+                return [
+                    'slug' => $item['slug'] ?? Str::slug($item['name']),
+                    'name' => $item['name'],
+                    'blurb' => $item['blurb'] ?? '',
+                    'image' => $item['image'] ?? '',
+                    'filter_type' => in_array($item['filter_type'] ?? '', ['category', 'collection', 'products'], true) ? $item['filter_type'] : 'category',
+                    'filter_values' => array_values(array_filter(is_array($values) ? $values : explode(',', (string) $values))),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function applyConcernFilter($query, array $concern): void
+    {
+        $values = $concern['filter_values'];
+        if (!$values) {
+            $query->whereRaw('1 = 0');
+            return;
+        }
+
+        match ($concern['filter_type']) {
+            'collection' => $query->whereHas('collections', fn ($q) => $q->whereIn('collections.slug', $values)),
+            'products' => $query->whereIn('products.id', $values),
+            default => $query->whereHas('categories', fn ($q) => $q->whereIn('categories.slug', $values)),
+        };
+    }
+
+    /**
+     * Homepage "Shop by concern" section with live product counts.
+     */
+    public function getShopConcerns()
+    {
+        $settings = EcommerceSetting::where('ecommerce_id', Ecommerce::query()->value('id'))
+            ->whereIn('key', ['shop_by_concern_show', 'shop_by_concern_eyebrow', 'shop_by_concern_title'])
+            ->pluck('value', 'key');
+
+        $items = collect($this->shopConcernItems())->map(function ($concern) {
+            $query = Product::where('status', 'published');
+            $this->applyConcernFilter($query, $concern);
+            $count = (clone $query)->count();
+            $previews = $query->with('images')->latest()->take(3)->get()
+                ->map(fn ($p) => $p->images->first()?->image_url)
+                ->filter()->values()->all();
+
+            return [
+                'slug' => $concern['slug'],
+                'name' => $concern['name'],
+                'blurb' => $concern['blurb'],
+                'image' => $concern['image'],
+                'preview_images' => $previews,
+                'count' => $count,
+                'link' => '/shop?concern=' . $concern['slug'],
+            ];
+        })->filter(fn ($item) => $item['count'] > 0)->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'show' => ($settings['shop_by_concern_show'] ?? 'true') !== 'false',
+                'eyebrow' => $settings['shop_by_concern_eyebrow'] ?? 'Shop by concern',
+                'title' => $settings['shop_by_concern_title'] ?? 'Start where your skin is',
+                'items' => $items,
+            ],
         ]);
     }
 
@@ -247,6 +370,12 @@ class StorefrontController extends Controller
                       ->orWhereIn('collections.id', $collections);
                 });
             }
+        }
+
+        // Shop-by-concern filter (mapping managed in Admin → Collections → Shop by concern)
+        if ($request->filled('concern')) {
+            $concern = collect($this->shopConcernItems())->firstWhere('slug', $request->concern);
+            $concern ? $this->applyConcernFilter($query, $concern) : $query->whereRaw('1 = 0');
         }
 
         // Size filter
@@ -291,7 +420,15 @@ class StorefrontController extends Controller
 
         // Flash sale filter
         if ($request->filled('is_flash_sale') && in_array($request->is_flash_sale, ['true', '1', 1, true], true)) {
-            $query->where('is_flash_sale', true);
+            $flashSaleEndTime = EcommerceSetting::where('ecommerce_id', Ecommerce::query()->value('id'))
+                ->where('key', 'flash_sale_end_time')
+                ->value('value');
+            if (!empty($flashSaleEndTime) && strtotime($flashSaleEndTime) <= time()) {
+                // Flash sale campaign has ended, return 0 products
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where('is_flash_sale', true);
+            }
         }
 
         // Featured filter
@@ -636,9 +773,7 @@ class StorefrontController extends Controller
             'delivery_city' => 'required|string|max:255',
             'delivery_state' => 'required|string|max:255',
             'delivery_country' => 'required|string|max:255',
-            'delivery_method' => 'required|in:delivery,pickup',
-            'delivery_zone_id' => 'required_if:delivery_method,delivery|nullable|exists:delivery_zones,id',
-            'shipping_option' => 'nullable|in:standard,same_day,international',
+            'shipping_rate_id' => 'required|integer|exists:shipping_rates,id',
             'payment_method' => 'required|in:paystack,bank_transfer,stripe,paypal,flutterwave,cash_on_delivery',
             'coupon_code' => 'nullable|string',
             'notes' => 'nullable|string',
@@ -669,6 +804,14 @@ class StorefrontController extends Controller
             };
             if (!in_array($settings[$paymentScopeKey] ?? 'both', ['storefront', 'both'], true)) {
                 return response()->json(['success' => false, 'message' => 'This payment method is not available on the storefront.'], 422);
+            }
+
+            // Refuse PayPal up front (before stock is reserved) if it can't take payments.
+            if ($request->payment_method === 'paypal') {
+                $paypalError = app(\App\Services\PayPalService::class)->getConfigError();
+                if ($paypalError) {
+                    return response()->json(['success' => false, 'message' => $paypalError], 422);
+                }
             }
 
             if ($request->payment_method === 'cash_on_delivery') {
@@ -786,219 +929,28 @@ class StorefrontController extends Controller
                 ];
             }
 
-            // Calculate dynamic delivery fee
-            $deliveryFee = 0;
-            $appliedShippingDetails = [];
+            // Shipping: the customer's chosen method must apply to this cart's
+            // quantity and delivery country; its fixed charge is what we bill.
+            $totalQuantity = (int) collect($request->items)->sum('quantity');
+            $shippingMethod = app(\App\Services\ShippingCalculator::class)
+                ->resolve((int) $request->shipping_rate_id, $request->delivery_country, $totalQuantity);
 
-            if ($request->delivery_method == 'delivery') {
-                $activeRates = ShippingRate::where('is_active', true)
-                    ->whereIn('sales_channel', ['storefront', 'both'])
-                    ->with(['products', 'categories'])->get();
-
-                if ($activeRates->count() > 0) {
-                    // Pre-load all products for attribute checks
-                    $cartProducts = [];
-                    foreach ($request->items as $item) {
-                        $cartProducts[$item['product_id']] = Product::find($item['product_id']);
-                    }
-
-                    foreach ($activeRates as $rate) {
-                        $applies = false;
-                        $matchingQuantity = 0;
-                        $matchingWeight = 0;
-                        $matchingVolume = 0;
-                        $hasFragile = false;
-
-                        if ($rate->applicability === 'global') {
-                            $applies = true;
-                            foreach ($request->items as $item) {
-                                $p = $cartProducts[$item['product_id']] ?? null;
-                                $qty = $item['quantity'];
-                                $matchingQuantity += $qty;
-                                if ($p) {
-                                    $matchingWeight += floatval($p->weight ?? 0) * $qty;
-                                    $vol = floatval($p->width ?? 0) * floatval($p->height ?? 0) * floatval($p->depth ?? 0);
-                                    $matchingVolume += $vol * $qty;
-                                    if ($p->is_fragile) $hasFragile = true;
-                                }
-                            }
-                        } elseif ($rate->applicability === 'products') {
-                            $allowedProductIds = $rate->products->pluck('id')->toArray();
-                            foreach ($request->items as $item) {
-                                if (in_array($item['product_id'], $allowedProductIds)) {
-                                    $applies = true;
-                                    $p = $cartProducts[$item['product_id']] ?? null;
-                                    $qty = $item['quantity'];
-                                    $matchingQuantity += $qty;
-                                    if ($p) {
-                                        $matchingWeight += floatval($p->weight ?? 0) * $qty;
-                                        $vol = floatval($p->width ?? 0) * floatval($p->height ?? 0) * floatval($p->depth ?? 0);
-                                        $matchingVolume += $vol * $qty;
-                                        if ($p->is_fragile) $hasFragile = true;
-                                    }
-                                }
-                            }
-                        } elseif ($rate->applicability === 'categories') {
-                            $allowedCategoryIds = $rate->categories->pluck('id')->toArray();
-                            foreach ($request->items as $item) {
-                                $p = $cartProducts[$item['product_id']] ?? null;
-                                if ($p && count(array_intersect($p->categories->pluck('id')->toArray(), $allowedCategoryIds)) > 0) {
-                                    $applies = true;
-                                    $qty = $item['quantity'];
-                                    $matchingQuantity += $qty;
-                                    $matchingWeight += floatval($p->weight ?? 0) * $qty;
-                                    $vol = floatval($p->width ?? 0) * floatval($p->height ?? 0) * floatval($p->depth ?? 0);
-                                    $matchingVolume += $vol * $qty;
-                                    if ($p->is_fragile) $hasFragile = true;
-                                }
-                            }
-                        }
-
-                        // --- Attribute-based filtering & Location scope filtering ---
-                        if ($applies) {
-                            // Location scope country filter
-                            $custCountry = $request->delivery_country ?? 'Nigeria';
-                            $custState = $request->delivery_state ?? null;
-                            $zoneType = $rate->shipping_zone_type ?? 'all';
-                            $domesticCountry = $settings['system_domestic_country'] ?? 'Nigeria';
-
-                            if ($zoneType === 'domestic') {
-                                if (strtolower($custCountry) !== strtolower($domesticCountry)) {
-                                    continue;
-                                }
-                            } elseif ($zoneType === 'international') {
-                                if (strtolower($custCountry) === strtolower($domesticCountry)) {
-                                    continue;
-                                }
-                            } elseif ($zoneType === 'specific_countries') {
-                                $allowedLocations = $rate->shipping_countries ?? [];
-                                $matched = false;
-                                foreach ($allowedLocations as $loc) {
-                                    if (strtolower($loc) === strtolower($custCountry) || ($custState && strtolower($loc) === strtolower($custState))) {
-                                        $matched = true;
-                                        break;
-                                    }
-                                }
-                                if (!$matched) {
-                                    continue;
-                                }
-                            }
-
-                            // Fragile-only filter
-                            if ($rate->only_fragile && !$hasFragile) {
-                                continue;
-                            }
-                            // Weight range filter
-                            if ($rate->min_weight !== null && $matchingWeight < floatval($rate->min_weight)) {
-                                continue;
-                            }
-                            if ($rate->max_weight !== null && $matchingWeight > floatval($rate->max_weight)) {
-                                continue;
-                            }
-                            // Volume range filter
-                            if ($rate->min_volume !== null && $matchingVolume < floatval($rate->min_volume)) {
-                                continue;
-                            }
-                            if ($rate->max_volume !== null && $matchingVolume > floatval($rate->max_volume)) {
-                                continue;
-                            }
-
-                            // --- Calculate fee based on calculation_method ---
-                            $fee = 0;
-                            $calcMethod = $rate->calculation_method ?? 'flat';
-
-                            if ($calcMethod === 'flat') {
-                                $fee = floatval($rate->rate);
-                            } elseif ($calcMethod === 'per_item') {
-                                $fee = floatval($rate->rate) * $matchingQuantity;
-                            } elseif ($calcMethod === 'per_kg') {
-                                $fee = floatval($rate->rate) * $matchingWeight;
-                            } elseif ($calcMethod === 'per_volume') {
-                                $fee = floatval($rate->rate) * ($matchingVolume / 1000); // per 1000 cubic cm
-                            }
-
-                            if ($fee > 0) {
-                                $deliveryFee += $fee;
-                                $appliedShippingDetails[] = [
-                                    'name' => $rate->name,
-                                    'rate' => floatval($rate->rate),
-                                    'type' => $calcMethod,
-                                    'amount' => round($fee, 2),
-                                ];
-                            }
-                        }
-                    }
-                } else {
-                    // Fallback to classic settings-based calculation
-                    $freeThreshold = floatval($settings['shipping_free_threshold'] ?? 100000);
-                    if ($freeThreshold > 0 && $subtotal >= $freeThreshold) {
-                        $deliveryFee = 0;
-                        $appliedShippingDetails[] = [
-                            'name' => 'Free Shipping (Promotion Threshold Achieved)',
-                            'rate' => 0,
-                            'type' => 'flat',
-                            'amount' => 0,
-                        ];
-                    } else {
-                        $option = $request->shipping_option ?? 'standard';
-                        if ($option === 'international') {
-                            $deliveryFee = floatval($settings['shipping_international_base'] ?? 25000);
-                            $appliedShippingDetails[] = [
-                                'name' => 'International Delivery Base Fee',
-                                'rate' => $deliveryFee,
-                                'type' => 'flat',
-                                'amount' => $deliveryFee,
-                            ];
-                        } else {
-                            $zone = DeliveryZone::find($request->delivery_zone_id);
-                            $zoneFee = $zone ? floatval($zone->shipping_fee) : floatval($settings['shipping_base_domestic'] ?? 2000);
-                            $deliveryFee = $zoneFee;
-                            $appliedShippingDetails[] = [
-                                'name' => $zone ? "Delivery Zone: {$zone->name}" : 'Domestic Delivery Base Fee',
-                                'rate' => $zoneFee,
-                                'type' => 'flat',
-                                'amount' => $zoneFee,
-                            ];
-                            
-                            if ($option === 'same_day') {
-                                $surcharge = floatval($settings['shipping_same_day_surcharge'] ?? 5000);
-                                $deliveryFee += $surcharge;
-                                $appliedShippingDetails[] = [
-                                    'name' => 'Same-Day Express Surcharge',
-                                    'rate' => $surcharge,
-                                    'type' => 'flat',
-                                    'amount' => $surcharge,
-                                ];
-                            }
-                        }
-                    }
-
-                    // Add surcharge if items count is more than 5
-                    $totalItemsCount = 0;
-                    foreach ($request->items as $item) {
-                        $totalItemsCount += $item['quantity'];
-                    }
-                    if ($totalItemsCount > 5) {
-                        $extraItems = $totalItemsCount - 5;
-                        $multiplier = floatval($settings['shipping_item_multiplier'] ?? 1500);
-                        $bulkFee = $extraItems * $multiplier;
-                        $deliveryFee += $bulkFee;
-                        $appliedShippingDetails[] = [
-                            'name' => 'Bulk Order Items Surcharge',
-                            'rate' => $multiplier,
-                            'type' => 'per_item',
-                            'amount' => $bulkFee,
-                        ];
-                    }
-                }
-            } else {
-                $appliedShippingDetails[] = [
-                    'name' => 'Ecommerce Store Pickup',
-                    'rate' => 0,
-                    'type' => 'flat',
-                    'amount' => 0,
-                ];
+            if (!$shippingMethod) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'That shipping option isn\'t available for your country and number of items. Please choose another.',
+                ], 422);
             }
+
+            $deliveryFee = round((float) $shippingMethod->rate, 2);
+            $deliveryMethod = $shippingMethod->is_pickup ? 'pickup' : 'delivery';
+            $appliedShippingDetails = [[
+                'id' => $shippingMethod->id,
+                'name' => $shippingMethod->name,
+                'rate' => $deliveryFee,
+                'type' => 'flat',
+                'amount' => $deliveryFee,
+            ]];
 
             // Process Coupon
             $discountAmount = 0;
@@ -1080,7 +1032,7 @@ class StorefrontController extends Controller
                 }
             }
 
-            $totalAmount = ($subtotal + $deliveryFee + $taxAmount) - $discountAmount;
+            $totalAmount = round(($subtotal + $deliveryFee + $taxAmount) - $discountAmount, 2);
             if ($totalAmount < 0) {
                 $totalAmount = 0;
             }
@@ -1121,7 +1073,7 @@ class StorefrontController extends Controller
                 'payment_method' => $request->payment_method,
                 'payment_status' => 'pending',
                 'order_status' => $request->payment_method === 'cash_on_delivery' ? 'processing' : 'pending_payment',
-                'delivery_method' => $request->delivery_method,
+                'delivery_method' => $deliveryMethod,
                 'notes' => $request->notes,
             ]);
 
@@ -1134,7 +1086,7 @@ class StorefrontController extends Controller
                         $cust->save();
                     }
 
-                    if ($request->delivery_method === 'delivery' && !empty($request->delivery_address)) {
+                    if ($deliveryMethod === 'delivery' && !empty($request->delivery_address)) {
                         CustomerAddress::where('customer_id', $cust->id)->update(['is_default' => false]);
                         
                         $existingAddr = CustomerAddress::where('customer_id', $cust->id)
@@ -1244,9 +1196,25 @@ class StorefrontController extends Controller
             return response()->json(['success' => false, 'message' => 'Order not found'], 404);
         }
 
-        $gateway = strtolower($request->gateway ?? $order->payment_method ?? 'paystack');
+        // The order decides which gateway verifies it; the client can't pick an easier one.
+        $gateway = strtolower((string) $order->payment_method);
+        if ($request->filled('gateway') && strtolower($request->gateway) !== $gateway) {
+            return response()->json(['success' => false, 'message' => 'Payment method does not match this order.'], 422);
+        }
+        if ($gateway === 'paypal') {
+            return response()->json(['success' => false, 'message' => 'PayPal payments are confirmed through PayPal checkout.'], 422);
+        }
+        if (!in_array($gateway, ['paystack', 'stripe', 'flutterwave'], true)) {
+            return response()->json(['success' => false, 'message' => 'This order cannot be verified online.'], 422);
+        }
+
+        // Simulated payments (references containing "mock", missing or test keys) are dev/test only.
+        $allowSimulation = (bool) config('services.payments.allow_simulation', false);
 
         $payment = Payment::where('transaction_reference', $request->reference)->first();
+        if ($payment && $payment->order_id !== $order->id) {
+            return response()->json(['success' => false, 'message' => 'This payment reference belongs to a different order.'], 422);
+        }
         if (!$payment) {
             $payment = Payment::create([
                 'order_id' => $order->id,
@@ -1278,7 +1246,7 @@ class StorefrontController extends Controller
         // 1. STRIPE GATEWAY VERIFICATION
         if ($gateway === 'stripe') {
             $stripeSecret = $settings['stripe_key_secret'] ?? config('services.stripe.secret') ?? '';
-            $isMockStripe = Str::contains($request->reference, 'mock') || empty($stripeSecret) || Str::startsWith($stripeSecret, 'sk_test_mock');
+            $isMockStripe = $allowSimulation && (Str::contains($request->reference, 'mock') || empty($stripeSecret) || Str::startsWith($stripeSecret, 'sk_test_mock'));
 
             if ($isMockStripe) {
                 $isVerified = true;
@@ -1305,41 +1273,17 @@ class StorefrontController extends Controller
                 } catch (\Throwable $e) {
                     Log::warning("Stripe verify api call: " . $e->getMessage());
                     // Fallback to verified if test transaction
-                    if (Str::startsWith($stripeSecret, 'sk_test_')) {
+                    if ($allowSimulation && Str::startsWith($stripeSecret, 'sk_test_')) {
                         $isVerified = true;
                     }
                 }
             }
         }
         // 2. PAYPAL GATEWAY VERIFICATION
-        elseif ($gateway === 'paypal') {
-            $paypalService = app(\App\Services\PayPalService::class);
-            if (Str::contains($request->reference, 'mock') || $paypalService->isMockMode()) {
-                $isVerified = true;
-                $gatewayResponse = [
-                    'gateway' => 'paypal',
-                    'status' => 'COMPLETED',
-                    'mode' => 'sandbox_mock',
-                    'reference' => $request->reference,
-                ];
-            } else {
-                $captureRes = $paypalService->captureOrder($request->reference);
-                if ($captureRes['success']) {
-                    $isVerified = true;
-                    $gatewayResponse = $captureRes['raw'] ?? [];
-                } else {
-                    $details = $paypalService->showOrderDetails($request->reference);
-                    if ($details['success'] && in_array($details['raw']['status'] ?? '', ['COMPLETED', 'APPROVED'])) {
-                        $isVerified = true;
-                        $gatewayResponse = $details['raw'];
-                    }
-                }
-            }
-        }
         // 3. PAYSTACK / FLUTTERWAVE GATEWAY VERIFICATION
         else {
             $paystackSecret = $settings['paystack_key_secret'] ?? config('services.paystack.secret_key') ?? '';
-            $isMockPaystack = Str::contains($request->reference, 'mock') || empty($paystackSecret) || Str::startsWith($paystackSecret, 'sk_test_mock');
+            $isMockPaystack = $allowSimulation && (Str::contains($request->reference, 'mock') || empty($paystackSecret) || Str::startsWith($paystackSecret, 'sk_test_mock'));
 
             if ($isMockPaystack) {
                 $isVerified = true;
@@ -1357,7 +1301,7 @@ class StorefrontController extends Controller
                     }
                 } catch (\Throwable $e) {
                     Log::warning("Paystack verify error: " . $e->getMessage());
-                    if (Str::startsWith($paystackSecret, 'sk_test_')) {
+                    if ($allowSimulation && Str::startsWith($paystackSecret, 'sk_test_')) {
                         $isVerified = true;
                     }
                 }
@@ -1498,8 +1442,31 @@ class StorefrontController extends Controller
      */
     public function getPage($slug)
     {
-        $page = Page::where('slug', $slug)->first();
+        $page = Page::where('slug', $slug)
+            ->orWhere(function($q) use ($slug) {
+                if ($slug === 'about-us') {
+                    $q->where('slug', 'about');
+                } elseif ($slug === 'about') {
+                    $q->where('slug', 'about-us');
+                }
+            })
+            ->first();
+
         if (!$page) {
+            if ($slug === 'about-us' || $slug === 'about') {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'title' => 'About Dansolam Beauty Home',
+                        'slug' => 'about-us',
+                        'content' => 'Dansolam Beauty Home is a premier luxury skincare, cosmetics, and botanical sanctuary dedicated to empowering natural radiance and timeless beauty.',
+                        'meta_title' => 'About Us - Dansolam Beauty Home',
+                        'meta_description' => 'Learn about Dansolam Beauty Home, our heritage, organic beauty formulations, and luxury skincare sanctuary.'
+                    ]
+                ]);
+            }
+
+
             return response()->json([
                 'success' => false,
                 'message' => 'Page not found'

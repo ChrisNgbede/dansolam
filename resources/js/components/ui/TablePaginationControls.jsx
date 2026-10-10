@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import SearchableSelect from './SearchableSelect';
 
 /**
  * Reusable Table Pagination Controls UI.
@@ -57,7 +58,7 @@ export default function TablePaginationControls({
       <div className="flex flex-wrap items-center gap-4 text-left">
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold text-gray-400">Show</span>
-          <select
+          <SearchableSelect
             value={pageSize}
             onChange={(e) => onPageSizeChange(parseInt(e.target.value))}
             className="px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold cursor-pointer text-xs transition-all"
@@ -66,7 +67,7 @@ export default function TablePaginationControls({
             <option value="10">10</option>
             <option value="25">25</option>
             <option value="50">50</option>
-          </select>
+          </SearchableSelect>
           <span className="text-[11px] font-semibold text-gray-400">entries</span>
         </div>
         

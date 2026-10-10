@@ -5,6 +5,7 @@ import { apiFetch } from '../../hooks/useAuth';
 import { useTableState } from '../../hooks/useTableState';
 import TablePaginationControls from '../../components/ui/TablePaginationControls';
 import LocationMultiSelect from '../../components/ui/LocationMultiSelect';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 export default function AdminTaxes() {
   const queryClient = useQueryClient();
@@ -25,7 +26,7 @@ export default function AdminTaxes() {
     queryFn: () => apiFetch('/api/admin/settings').then(res => res.json())
   });
   const settings = settingsRes?.data?.settings || {};
-  const domesticCountry = settings.system_domestic_country || 'Nigeria';
+  const domesticCountry = settings.system_domestic_country || 'United Kingdom';
 
   const { data: taxesRes, isLoading } = useQuery({
     queryKey: ['admin-taxes'],
@@ -275,10 +276,10 @@ export default function AdminTaxes() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-gray-550 font-bold uppercase">Type *</label>
-                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white">
+                  <SearchableSelect value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white">
                     <option value="exclusive">Exclusive (added on top of price)</option>
                     <option value="inclusive">Inclusive (already in price)</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
@@ -291,12 +292,12 @@ export default function AdminTaxes() {
                   placeholder="Select applicable states or countries (leave empty for all regions)"
                 />
                 <label className="text-[10px] text-gray-550 font-bold uppercase mt-3">Sales channel</label>
-                <select value={form.sales_channel} onChange={e => setForm({ ...form, sales_channel: e.target.value })}
+                <SearchableSelect value={form.sales_channel} onChange={e => setForm({ ...form, sales_channel: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs">
                   <option value="storefront">Storefront only</option>
                   <option value="pos">POS only</option>
                   <option value="both">Storefront and POS</option>
-                </select>
+                </SearchableSelect>
                 <span className="text-[9px] text-gray-400">Leave empty to apply everywhere. Select specific states or countries to restrict this tax.</span>
               </div>
 

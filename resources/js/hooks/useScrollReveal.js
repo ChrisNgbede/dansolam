@@ -1,10 +1,13 @@
 import { useEffect } from 'react';
 
+const TARGETS = 'main section, main [data-reveal], main .reveal-group > *';
+
 /**
  * Reveals page sections as they scroll into view.
  *
- * Runs once per route: every direct section of the page gets the `.reveal`
- * class and is unobserved as soon as it has appeared, so scrolling stays cheap.
+ * Scans on every route change and keeps watching <main> for content that
+ * renders later (e.g. sections that wait on an API call). Each element is
+ * unobserved as soon as it has appeared, so scrolling stays cheap.
  * Honours prefers-reduced-motion by leaving the content visible and untouched.
  *
  * @param {string} routeKey re-runs the scan whenever the route changes
@@ -15,11 +18,6 @@ export default function useScrollReveal(routeKey) {
 
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced || !('IntersectionObserver' in window)) return undefined;
-
-    const targets = document.querySelectorAll(
-      'main section, main [data-reveal], main .reveal-group > *'
-    );
-    if (!targets.length) return undefined;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -32,16 +30,38 @@ export default function useScrollReveal(routeKey) {
       { threshold: 0.08, rootMargin: '0px 0px -5% 0px' }
     );
 
-    targets.forEach((el) => {
-      // Anything already on screen at mount stays visible — no first-paint flicker.
-      if (el.getBoundingClientRect().top < window.innerHeight) {
-        el.classList.add('reveal', 'is-visible');
-      } else {
-        el.classList.add('reveal');
-        observer.observe(el);
-      }
-    });
+    const scan = () => {
+      document.querySelectorAll(TARGETS).forEach((el) => {
+        if (el.dataset.revealed) return;
+        el.dataset.revealed = '1';
+        // Anything already on screen is left alone — no first-paint flicker.
+        if (el.getBoundingClientRect().top >= window.innerHeight) {
+          el.classList.add('reveal');
+          observer.observe(el);
+        }
+      });
+    };
 
-    return () => observer.disconnect();
+    scan();
+
+    // Batch DOM changes into one scan per frame.
+    let frame = 0;
+    const main = document.querySelector('main');
+    const mutations = main
+      ? new MutationObserver(() => {
+          if (frame) return;
+          frame = requestAnimationFrame(() => {
+            frame = 0;
+            scan();
+          });
+        })
+      : null;
+    mutations?.observe(main, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      mutations?.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, [routeKey]);
 }

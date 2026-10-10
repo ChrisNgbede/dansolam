@@ -47,49 +47,42 @@ export default function Blog() {
   }
 
   return (
-    <div className="bg-[#FBFAF8] dark:bg-[#17101F] min-h-screen font-sans pb-20 transition-colors duration-300">
+    <div className="bg-white dark:bg-[#17101F] min-h-screen font-sans pb-20 transition-colors duration-300">
       <SEO
         title="Beauty Guides, Articles & Skincare Blog | Dansolam Beauty Home"
-        description="Discover beauty tips, facial care guides, and skincare articles from Dansolam Beauty Home."
+        description="Skincare tips, body care guides and articles from Dansolam Beauty Home."
       />
 
       <div className="max-w-[1400px] mx-auto px-3 sm:px-5 lg:px-6 pt-20 sm:pt-22 md:pt-24 pb-16 flex flex-col gap-6">
         {/* Hero Banner Card - Compact, Wide, Back to Home Inside */}
-        <div className="h-[200px] sm:h-[240px] md:h-[270px] rounded-[28px] sm:rounded-[36px] overflow-hidden bg-gray-900 relative shadow-md w-full">
-          <img
-            loading="eager"
-            decoding="async"
-            src="https://images.unsplash.com/photo-1512290900672-1f5be4df1d3a?q=80&w=1200"
-            className="w-full h-full object-cover object-center"
-            alt="Dansolam Blog & Articles"
-          />
+        <section className="h-[200px] sm:h-[240px] md:h-[270px] rounded-[28px] sm:rounded-[36px] overflow-hidden bg-gradient-to-br from-[#5D3E85] via-[#4A2B68] to-[#2A1740] relative shadow-md w-full">
 
           {/* Header Action Buttons Inside Banner */}
           <div className="absolute top-4 sm:top-5 left-4 sm:left-6 right-4 sm:right-6 flex justify-between items-center z-20">
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 text-[11px] font-bold text-white shadow-sm transition-all duration-300 btn-spring"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-[11px] font-bold text-white shadow-sm transition-all duration-300 btn-spring"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Home</span>
             </Link>
           </div>
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20 flex flex-col justify-end p-5 sm:p-7 md:p-9 text-left z-10">
+          <div className="absolute inset-0 flex flex-col justify-end p-5 sm:p-7 md:p-9 text-left z-10">
             <span className="text-[9px] sm:text-[10px] font-extrabold text-[#5D3E85] bg-white px-3.5 py-1 rounded-full  tracking-widest self-start mb-2 border border-white/40 shadow-sm">
               Dansolam Blog
             </span>
-            <h1 className="font-extrabold text-xl sm:text-2xl md:text-3xl lg:text-4xl text-white leading-tight">
+            <h1 className="font-serif font-bold text-2xl sm:text-3xl md:text-4xl text-white leading-tight">
               Beauty Guides & Skincare Articles
             </h1>
             <p className="text-[11px] sm:text-xs md:text-sm text-gray-200 mt-1 max-w-2xl font-sans leading-snug line-clamp-2">
-              Stay updated with luxury beauty advice, facial treatment routines, and skincare secrets.
+              Tips and guides on organic skincare and body care routines.
             </p>
           </div>
-        </div>
+        </section>
 
         {articles.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-2">
+          <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-2">
             {articles.map((art) => {
               const cleanText = art.content
                 ? art.content.replace(/<[^>]*>?/gm, '')
@@ -158,15 +151,15 @@ export default function Blog() {
                 </article>
               );
             })}
-          </div>
+          </section>
         ) : (
-          <div className="bg-white dark:bg-[#1E1528] rounded-3xl py-20 text-center flex flex-col items-center gap-3 shadow-xs max-w-lg mx-auto w-full border border-[#EADBEE] dark:border-white/10">
+          <section className="bg-white dark:bg-[#1E1528] rounded-3xl py-20 text-center flex flex-col items-center gap-3 shadow-xs max-w-lg mx-auto w-full border border-[#EADBEE] dark:border-white/10">
             <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-400 dark:text-[#9B8EA9]">
               <BookOpen className="w-6 h-6" />
             </div>
             <h3 className="font-bold text-[#221B2B] dark:text-[#F3EFF6] text-sm mt-1">Stories Coming Soon</h3>
-            <p className="text-xs text-gray-400 dark:text-[#9B8EA9] max-w-sm">We are currently drafting skincare guides, lookbooks, and beauty tips. Please check back soon.</p>
-          </div>
+            <p className="text-xs text-gray-400 dark:text-[#9B8EA9] max-w-sm">New skincare articles will be published soon.</p>
+          </section>
         )}
       </div>
     </div>

@@ -12,8 +12,27 @@ export default function FlashSaleSpotlightSection({ settings = {}, flashSaleProd
   const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef(null);
 
-  // 1. Build composite slides (Editorial Spotlight + Product Flash Sales)
-  const slides = useMemo(() => {
+  // Live real-time clock timestamp (ticks every second to auto-expire ended slides)
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Helper to parse slide end time into numeric timestamp
+  const getSlideEndTime = (slide) => {
+    if (slide?.endTime) {
+      const parsed = new Date(slide.endTime).getTime();
+      if (!isNaN(parsed)) return parsed;
+    }
+    return null;
+  };
+
+  // 1. Build composite candidate slides (Editorial Spotlight + Product Flash Sales)
+  const rawSlides = useMemo(() => {
     const list = [];
 
     // Editorial / Custom Admin Flash Banner Slide (shown if enabled and explicitly customized or when no product flash sales exist)
@@ -46,7 +65,7 @@ export default function FlashSaleSpotlightSection({ settings = {}, flashSaleProd
         const rawImg = prod.images?.[0]?.image_url || prod.image_url || prod.image;
         const pImg = (rawImg && typeof rawImg === 'string' && rawImg.trim().length > 3)
           ? (rawImg.startsWith('http') || rawImg.startsWith('/') ? rawImg.trim() : `/${rawImg.trim()}`)
-          : 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=600';
+          : '/images/placeholder-product.svg';
 
         list.push({
           id: `product-${prod.id}`,
@@ -56,7 +75,7 @@ export default function FlashSaleSpotlightSection({ settings = {}, flashSaleProd
           subtitle: prod.short_description || prod.description?.replace(/<[^>]*>?/gm, '').slice(0, 110) || 'Exclusive limited-time flash discount on our signature organic formulation.',
           ctaText: salePrice ? `CLAIM ${currencySymbol}${salePrice.toLocaleString()} DEAL →` : 'SHOP THIS DEAL →',
           ctaLink: `/products/${prod.slug || prod.id}`,
-          endTime: settings.flash_sale_end_time || null,
+          endTime: prod.flash_sale_end_time || settings.flash_sale_end_time || null,
           price: rawPrice,
           salePrice: salePrice,
           product: prod,
@@ -68,48 +87,37 @@ export default function FlashSaleSpotlightSection({ settings = {}, flashSaleProd
     return list;
   }, [settings, flashSaleProducts, currencySymbol]);
 
-  // If no slides or disabled, return null
-  const isEnabled = settings.flash_sale_show === 'true' || settings.flash_sale_show === true || slides.length > 0;
-  if (!isEnabled || slides.length === 0) {
-    return null;
-  }
+  // 2. Filter candidate slides: ANY slide that has ended automatically disappears immediately
+  const slides = useMemo(() => {
+    return rawSlides.filter((slide) => {
+      const targetTime = getSlideEndTime(slide);
+      // If an explicit end time was configured, check if it has ended
+      if (targetTime !== null) {
+        return targetTime > now;
+      }
+      // If global flash sale end time is configured, check that as well
+      if (settings.flash_sale_end_time) {
+        const globalTarget = new Date(settings.flash_sale_end_time).getTime();
+        if (!isNaN(globalTarget) && globalTarget <= now) {
+          return false;
+        }
+      }
+      // If explicitly marked ended by server
+      if (settings.flash_sale_is_ended === 'true' || settings.flash_sale_is_ended === true) {
+        return false;
+      }
+      return true;
+    });
+  }, [rawSlides, now, settings.flash_sale_end_time, settings.flash_sale_is_ended]);
 
-  const activeSlide = slides[currentSlideIndex] || slides[0];
-
-  // 2. Active Slide Countdown Timer
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: false });
-
+  // Adjust currentSlideIndex if slides count shrunk due to an expiring slide
   useEffect(() => {
-    const calculateTime = () => {
-      let targetTime;
-      if (activeSlide?.endTime) {
-        targetTime = new Date(activeSlide.endTime).getTime();
-      } else {
-        // Default rolling 24-hour flash sale timer if none specified
-        const now = new Date();
-        targetTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 23, 59, 59).getTime();
-      }
+    if (currentSlideIndex >= slides.length && slides.length > 0) {
+      setCurrentSlideIndex(0);
+    }
+  }, [slides.length, currentSlideIndex]);
 
-      const diff = targetTime - Date.now();
-      if (diff <= 0) {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: true });
-      } else {
-        setTimeLeft({
-          days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((diff / 1000 / 60) % 60),
-          seconds: Math.floor((diff / 1000) % 60),
-          expired: false
-        });
-      }
-    };
-
-    calculateTime();
-    const timer = setInterval(calculateTime, 1000);
-    return () => clearInterval(timer);
-  }, [activeSlide?.endTime, currentSlideIndex]);
-
-  // 3. Auto slide rotation every 7 seconds
+  // Auto slide rotation every 7 seconds among active slides
   useEffect(() => {
     if (slides.length <= 1 || isPaused) return;
     const interval = setInterval(() => {
@@ -117,6 +125,50 @@ export default function FlashSaleSpotlightSection({ settings = {}, flashSaleProd
     }, 7000);
     return () => clearInterval(interval);
   }, [slides.length, isPaused]);
+
+  // If no slides remain or section is disabled, completely auto-disappear from the page
+  const isEnabled = (settings.flash_sale_show === 'true' || settings.flash_sale_show === true || slides.length > 0) &&
+    settings.flash_sale_show !== 'false' &&
+    settings.flash_sale_is_ended !== 'true' &&
+    settings.flash_sale_is_ended !== true;
+
+  if (!isEnabled || slides.length === 0) {
+    return null;
+  }
+
+  // Guard active index to ensure it is always within valid bounds of remaining active slides
+  const safeIndex = currentSlideIndex >= slides.length ? 0 : currentSlideIndex;
+  const activeSlide = slides[safeIndex] || slides[0];
+
+  if (!activeSlide) {
+    return null;
+  }
+
+  // 3. Real-time countdown timer for the active slide
+  const targetTime = getSlideEndTime(activeSlide);
+
+  let diff = 0;
+  if (targetTime !== null) {
+    diff = targetTime - now;
+  } else {
+    // Default rolling 24-hour flash sale timer if none specified
+    const nowObj = new Date(now);
+    const endOfDay = new Date(nowObj.getFullYear(), nowObj.getMonth(), nowObj.getDate(), 23, 59, 59, 999).getTime();
+    diff = endOfDay - now;
+  }
+
+  // If diff <= 0, the slide has just ended on this tick!
+  if (diff <= 0) {
+    return null;
+  }
+
+  const timeLeft = {
+    days: Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24))),
+    hours: Math.max(0, Math.floor((diff / (1000 * 60 * 60)) % 24)),
+    minutes: Math.max(0, Math.floor((diff / 1000 / 60) % 60)),
+    seconds: Math.max(0, Math.floor((diff / 1000) % 60)),
+    expired: false
+  };
 
   const handlePrev = (e) => {
     e.stopPropagation();
@@ -134,10 +186,10 @@ export default function FlashSaleSpotlightSection({ settings = {}, flashSaleProd
 
   const handleTouchEnd = (e) => {
     if (!touchStartX.current) return;
-    const diff = touchStartX.current - e.changedTouches[0].clientX;
-    if (diff > 50) {
+    const diffTouch = touchStartX.current - e.changedTouches[0].clientX;
+    if (diffTouch > 50) {
       handleNext(e);
-    } else if (diff < -50) {
+    } else if (diffTouch < -50) {
       handlePrev(e);
     }
     touchStartX.current = null;
@@ -238,7 +290,7 @@ export default function FlashSaleSpotlightSection({ settings = {}, flashSaleProd
                       key={i}
                       type="button"
                       onClick={() => setCurrentSlideIndex(i)}
-                      className={`h-1.5 rounded-full transition-all cursor-pointer ${i === currentSlideIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/70'
+                      className={`h-1.5 rounded-full transition-all cursor-pointer ${i === safeIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/40 hover:bg-white/70'
                         }`}
                       aria-label={`Go to slide ${i + 1}`}
                     />

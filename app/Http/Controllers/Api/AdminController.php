@@ -124,10 +124,15 @@ class AdminController extends Controller
     {
         return $request->validate([
             'eyebrow' => 'nullable|string|max:100',
+            'show_eyebrow' => 'nullable|boolean',
             'title' => 'required|string|max:180',
             'accent_title' => 'nullable|string|max:180',
             'subtitle' => 'nullable|string|max:500',
             'image_url' => 'required|string|max:2048',
+            'gallery' => 'nullable|array|max:12',
+            'gallery.*.image_url' => 'required|string|max:2048',
+            'gallery.*.link_url' => 'nullable|string|max:2048',
+            'gallery.*.label' => 'nullable|string|max:120',
             'link_url' => 'nullable|string|max:2048',
             'primary_cta_label' => 'nullable|string|max:60',
             'secondary_cta_label' => 'nullable|string|max:60',
@@ -136,6 +141,7 @@ class AdminController extends Controller
             'top_text' => 'nullable|string|max:180',
             'bottom_kicker' => 'nullable|string|max:100',
             'bottom_text' => 'nullable|string|max:180',
+            'show_highlights' => 'nullable|boolean',
             'layout_mode' => 'nullable|string|in:default,full',
             'is_active' => 'required|boolean',
             'sort_order' => 'required|integer|min:0|max:10000',
@@ -2504,7 +2510,7 @@ class AdminController extends Controller
     public function createReview(Request $request)
     {
         $request->validate([
-            'product_id' => 'required|exists:products,id',
+            'product_id' => 'nullable|exists:products,id',
             'customer_name' => 'required|string|max:255',
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string',
@@ -2535,7 +2541,7 @@ class AdminController extends Controller
         $review = Review::findOrFail($id);
 
         $request->validate([
-            'product_id' => 'required|exists:products,id',
+            'product_id' => 'nullable|exists:products,id',
             'customer_name' => 'required|string|max:255',
             'rating' => 'required|integer|min:1|max:5',
             'comment' => 'nullable|string',
@@ -2551,7 +2557,7 @@ class AdminController extends Controller
             'comment' => $request->comment,
             'avatar_url' => $request->avatar_url,
             'image_url' => $request->image_url,
-            'is_approved' => $request->is_approved,
+            'is_approved' => $request->is_approved ?? $review->is_approved,
         ]);
 
         return response()->json([
@@ -3489,122 +3495,68 @@ class AdminController extends Controller
     }
 
     /**
-     * Get Shipping Rates
+     * Shipping methods, in the order customers see them.
      */
     public function getShippingRates()
     {
-        $rates = ShippingRate::with(['products', 'categories'])->get();
+        $rates = ShippingRate::orderByDesc('is_active')->orderBy('sort_order')->orderBy('rate')->orderBy('id')->get();
         return response()->json(['success' => true, 'data' => $rates]);
     }
 
     /**
-     * Create Shipping Rate
+     * Fields for a shipping method: a fixed charge that applies to a zone
+     * (UK / International / everywhere) and a cart-quantity range.
      */
-    public function createShippingRate(Request $request)
+    private function validatedShippingMethod(Request $request): array
     {
-        $request->validate([
+        $data = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:flat,per_item',
             'rate' => 'required|numeric|min:0',
-            'applicability' => 'required|in:global,products,categories',
-            'sales_channel' => 'required|in:storefront,pos,both',
-            'product_ids' => 'nullable|array',
-            'product_ids.*' => 'exists:products,id',
-            'category_ids' => 'nullable|array',
-            'category_ids.*' => 'exists:categories,id',
-            'calculation_method' => 'nullable|in:flat,per_item,per_kg,per_volume',
-            'min_weight' => 'nullable|numeric|min:0',
-            'max_weight' => 'nullable|numeric|min:0',
-            'min_volume' => 'nullable|numeric|min:0',
-            'max_volume' => 'nullable|numeric|min:0',
-            'only_fragile' => 'boolean',
-            'shipping_zone_type' => 'nullable|string|max:50',
-            'shipping_countries' => 'nullable|array',
+            'zone' => 'required|in:all,uk,international',
+            'min_quantity' => 'nullable|integer|min:0',
+            'max_quantity' => 'nullable|integer|min:0|gte:min_quantity',
+            'description' => 'nullable|string|max:500',
+            'is_default' => 'boolean',
+            'is_pickup' => 'boolean',
+            'is_active' => 'boolean',
+            'sort_order' => 'nullable|integer|min:0|max:10000',
         ]);
 
-        $rate = ShippingRate::create([
-            'name' => $request->name,
-            'type' => $request->type,
-            'rate' => $request->rate,
-            'applicability' => $request->applicability,
-            'sales_channel' => $request->sales_channel,
-            'is_active' => true,
-            'calculation_method' => $request->calculation_method ?? 'flat',
-            'min_weight' => $request->min_weight,
-            'max_weight' => $request->max_weight,
-            'min_volume' => $request->min_volume,
-            'max_volume' => $request->max_volume,
-            'only_fragile' => $request->only_fragile ?? false,
-            'shipping_zone_type' => $request->shipping_zone_type ?? 'all',
-            'shipping_countries' => $request->shipping_countries,
-        ]);
-
-        if ($request->applicability === 'products' && $request->has('product_ids')) {
-            $rate->products()->sync($request->product_ids);
-        } elseif ($request->applicability === 'categories' && $request->has('category_ids')) {
-            $rate->categories()->sync($request->category_ids);
-        }
-
-        return response()->json(['success' => true, 'message' => 'Shipping configuration created successfully', 'data' => $rate]);
+        return $data + [
+            'type' => 'flat',
+            'calculation_method' => 'flat',
+            'applicability' => 'global',
+            'sales_channel' => 'storefront',
+            'shipping_zone_type' => 'all',
+            'sort_order' => $data['sort_order'] ?? 0,
+        ];
     }
 
     /**
-     * Update Shipping Rate
+     * Only one method can be the pre-selected default.
      */
+    private function keepSingleDefault(ShippingRate $rate): void
+    {
+        if ($rate->is_default) {
+            ShippingRate::whereKeyNot($rate->id)->where('is_default', true)->update(['is_default' => false]);
+        }
+    }
+
+    public function createShippingRate(Request $request)
+    {
+        $rate = ShippingRate::create($this->validatedShippingMethod($request));
+        $this->keepSingleDefault($rate);
+
+        return response()->json(['success' => true, 'message' => 'Shipping method created.', 'data' => $rate], 201);
+    }
+
     public function updateShippingRate(Request $request, $id)
     {
         $rate = ShippingRate::findOrFail($id);
+        $rate->update($this->validatedShippingMethod($request));
+        $this->keepSingleDefault($rate);
 
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'type' => 'required|in:flat,per_item',
-            'rate' => 'required|numeric|min:0',
-            'applicability' => 'required|in:global,products,categories',
-            'sales_channel' => 'required|in:storefront,pos,both',
-            'product_ids' => 'nullable|array',
-            'product_ids.*' => 'exists:products,id',
-            'category_ids' => 'nullable|array',
-            'category_ids.*' => 'exists:categories,id',
-            'is_active' => 'boolean',
-            'calculation_method' => 'nullable|in:flat,per_item,per_kg,per_volume',
-            'min_weight' => 'nullable|numeric|min:0',
-            'max_weight' => 'nullable|numeric|min:0',
-            'min_volume' => 'nullable|numeric|min:0',
-            'max_volume' => 'nullable|numeric|min:0',
-            'only_fragile' => 'boolean',
-            'shipping_zone_type' => 'nullable|string|max:50',
-            'shipping_countries' => 'nullable|array',
-        ]);
-
-        $rate->update([
-            'name' => $request->name,
-            'type' => $request->type,
-            'rate' => $request->rate,
-            'applicability' => $request->applicability,
-            'sales_channel' => $request->sales_channel,
-            'is_active' => $request->is_active ?? $rate->is_active,
-            'calculation_method' => $request->calculation_method ?? $rate->calculation_method,
-            'min_weight' => $request->min_weight,
-            'max_weight' => $request->max_weight,
-            'min_volume' => $request->min_volume,
-            'max_volume' => $request->max_volume,
-            'only_fragile' => $request->only_fragile ?? false,
-            'shipping_zone_type' => $request->shipping_zone_type ?? $rate->shipping_zone_type,
-            'shipping_countries' => $request->has('shipping_countries') ? $request->shipping_countries : $rate->shipping_countries,
-        ]);
-
-        if ($request->applicability === 'products') {
-            $rate->products()->sync($request->product_ids ?? []);
-            $rate->categories()->detach();
-        } elseif ($request->applicability === 'categories') {
-            $rate->categories()->sync($request->category_ids ?? []);
-            $rate->products()->detach();
-        } else {
-            $rate->products()->detach();
-            $rate->categories()->detach();
-        }
-
-        return response()->json(['success' => true, 'message' => 'Shipping configuration updated successfully', 'data' => $rate]);
+        return response()->json(['success' => true, 'message' => 'Shipping method updated.', 'data' => $rate]);
     }
 
     /**
@@ -3615,7 +3567,7 @@ class AdminController extends Controller
         $rate = ShippingRate::findOrFail($id);
         $rate->delete();
 
-        return response()->json(['success' => true, 'message' => 'Shipping configuration deleted successfully']);
+        return response()->json(['success' => true, 'message' => 'Shipping method deleted.']);
     }
 
     /**
@@ -3713,12 +3665,22 @@ class AdminController extends Controller
             'title' => 'required|string|max:255',
             'slug' => 'required|string|max:255|unique:pages,slug',
             'content' => 'required|string',
+            'subtitle' => 'nullable|string|max:500',
+            'hero_image_url' => 'nullable|string|max:255',
+            'sections' => 'nullable|array',
+            'meta_title' => 'nullable|string|max:255',
+            'meta_description' => 'nullable|string|max:500',
         ]);
 
         $page = \App\Models\Page::create([
             'title' => $request->title,
             'slug' => \Illuminate\Support\Str::slug($request->slug),
             'content' => $request->content,
+            'subtitle' => $request->subtitle,
+            'hero_image_url' => $request->hero_image_url,
+            'sections' => $request->has('sections') ? $request->sections : null,
+            'meta_title' => $request->meta_title,
+            'meta_description' => $request->meta_description,
         ]);
 
         return response()->json([
@@ -3739,12 +3701,22 @@ class AdminController extends Controller
             'title' => 'required|string|max:255',
             'slug' => 'required|string|max:255|unique:pages,slug,' . $id,
             'content' => 'required|string',
+            'subtitle' => 'nullable|string|max:500',
+            'hero_image_url' => 'nullable|string|max:255',
+            'sections' => 'nullable|array',
+            'meta_title' => 'nullable|string|max:255',
+            'meta_description' => 'nullable|string|max:500',
         ]);
 
         $page->update([
             'title' => $request->title,
             'slug' => \Illuminate\Support\Str::slug($request->slug),
             'content' => $request->content,
+            'subtitle' => $request->subtitle,
+            'hero_image_url' => $request->hero_image_url,
+            'sections' => $request->has('sections') ? $request->sections : $page->sections,
+            'meta_title' => $request->meta_title,
+            'meta_description' => $request->meta_description,
         ]);
 
         return response()->json([

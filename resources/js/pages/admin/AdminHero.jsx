@@ -10,7 +10,10 @@ const emptySlide = {
   title: 'Step Into Your',
   accent_title: 'Signature Style',
   subtitle: '',
+  show_eyebrow: true,
+  show_highlights: true,
   image_url: '',
+  gallery: [],
   link_url: '/shop',
   primary_cta_label: 'Explore Shop',
   secondary_cta_label: 'WhatsApp Order',
@@ -80,6 +83,13 @@ export default function AdminHero() {
   });
 
   const updateField = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+
+  const updateGalleryItem = (index, patch) => setForm((prev) => ({
+    ...prev,
+    gallery: (prev.gallery || []).map((item, i) => (i === index ? { ...item, ...patch } : item)),
+  }));
+  const addGalleryItem = () => setForm((prev) => ({ ...prev, gallery: [...(prev.gallery || []), { image_url: '', link_url: '', label: '' }] }));
+  const removeGalleryItem = (index) => setForm((prev) => ({ ...prev, gallery: (prev.gallery || []).filter((_, i) => i !== index) }));
 
   const openCreate = () => {
     setEditingId(null);
@@ -233,6 +243,11 @@ export default function AdminHero() {
 
                 <SectionTitle>Campaign content</SectionTitle>
                 <Field label="Eyebrow / badge" value={form.eyebrow} onChange={(v) => updateField('eyebrow', v)} placeholder="New Season Drops" />
+
+                <label className={`flex items-center justify-between gap-4 px-4 py-3 rounded-2xl border cursor-pointer ${form.show_eyebrow ? 'border-[#5D3E85]/40 bg-[#5D3E85]/5' : 'border-gray-200'}`}>
+                  <span className="text-xs font-bold text-gray-700">{form.show_eyebrow ? 'Eyebrow badge shown' : 'Eyebrow badge hidden'}</span>
+                  <input type="checkbox" checked={form.show_eyebrow} onChange={(e) => updateField('show_eyebrow', e.target.checked)} className="w-5 h-5 accent-[#5D3E85] cursor-pointer" />
+                </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <Field required label="Main heading" value={form.title} onChange={(v) => updateField('title', v)} placeholder="A quieter kind of luxury for" />
                   <Field label="Accent / highlight line" value={form.accent_title} onChange={(v) => updateField('accent_title', v)} placeholder="your skin." />
@@ -242,6 +257,32 @@ export default function AdminHero() {
                   <textarea value={form.subtitle || ''} onChange={(e) => updateField('subtitle', e.target.value)} rows="4" maxLength="500" className="admin-field-input resize-none" placeholder="Describe this campaign…" />
                 </label>
                 <ImageUploadField required label="Hero campaign image" value={form.image_url} onChange={(v) => updateField('image_url', v)} aspect="video" hint="High-resolution image recommended (appears without borders/shadows)" />
+
+                <SectionTitle>Hero image ring (optional)</SectionTitle>
+                <p className="text-[11px] text-gray-500 -mt-2">
+                  Add more images and they fan out into a ring of cards around the hero. Each card can link anywhere; leave a link empty to use the primary button URL.
+                </p>
+                <div className="space-y-3">
+                  {(form.gallery || []).map((item, index) => (
+                    <div key={index} className="grid grid-cols-1 sm:grid-cols-[120px_1fr_auto] gap-3 items-start p-3 rounded-xl border border-gray-200">
+                      <ImageUploadField
+                        label={`Image ${index + 1}`}
+                        value={item.image_url || ''}
+                        onChange={(v) => updateGalleryItem(index, { image_url: v })}
+                      />
+                      <div className="grid gap-3">
+                        <Field label="Links to" value={item.link_url || ''} onChange={(v) => updateGalleryItem(index, { link_url: v })} placeholder="/shop?category=creams" />
+                        <Field label="Label (for screen readers)" value={item.label || ''} onChange={(v) => updateGalleryItem(index, { label: v })} placeholder="Whitening cream" />
+                      </div>
+                      <button type="button" onClick={() => removeGalleryItem(index)} className="px-3 py-2 text-[11px] font-bold text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer">
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={addGalleryItem} className="px-4 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 cursor-pointer">
+                    + Add image
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-5">
@@ -260,6 +301,11 @@ export default function AdminHero() {
                   <Field label="Card badge / Title" value={form.bottom_kicker} onChange={(v) => updateField('bottom_kicker', v)} placeholder="PRISM Glow Serum" />
                   <Field label="Card subtitle / Category" value={form.bottom_text} onChange={(v) => updateField('bottom_text', v)} placeholder="Bestseller" />
                 </div>
+
+                <label className={`flex items-center justify-between gap-4 px-4 py-3 rounded-2xl border cursor-pointer ${form.show_highlights ? 'border-[#5D3E85]/40 bg-[#5D3E85]/5' : 'border-gray-200'}`}>
+                  <span className="text-xs font-bold text-gray-700">{form.show_highlights ? 'Highlights & stats shown' : 'Highlights & stats hidden'}</span>
+                  <input type="checkbox" checked={form.show_highlights} onChange={(e) => updateField('show_highlights', e.target.checked)} className="w-5 h-5 accent-[#5D3E85] cursor-pointer" />
+                </label>
 
                 <SectionTitle>Publishing</SectionTitle>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">

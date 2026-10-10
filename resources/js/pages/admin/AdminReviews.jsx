@@ -6,6 +6,7 @@ import { useTableState } from '../../hooks/useTableState';
 import TablePaginationControls from '../../components/ui/TablePaginationControls';
 import ImageUploadField from '../../components/ui/ImageUploadField';
 import FacelessAvatar from '../../components/ui/FacelessAvatar';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 export default function AdminReviews() {
   const queryClient = useQueryClient();
@@ -195,16 +196,10 @@ export default function AdminReviews() {
     setSuccessMsg('');
     setActionLoading(true);
 
-    if (!productId) {
-      setErrorMsg('Please select a product for the review.');
-      setActionLoading(false);
-      return;
-    }
-
     const payload = {
       customer_name: customerName,
       avatar_url: avatarUrl || null,
-      product_id: parseInt(productId),
+      product_id: productId ? parseInt(productId) : null,
       rating: parseInt(rating),
       comment,
       image_url: imageUrl || null,
@@ -220,16 +215,10 @@ export default function AdminReviews() {
     setSuccessMsg('');
     setActionLoading(true);
 
-    if (!productId) {
-      setErrorMsg('Please select a product for the review.');
-      setActionLoading(false);
-      return;
-    }
-
     const payload = {
       customer_name: customerName,
       avatar_url: avatarUrl || null,
-      product_id: parseInt(productId),
+      product_id: productId ? parseInt(productId) : null,
       rating: parseInt(rating),
       comment,
       image_url: imageUrl || null,
@@ -319,7 +308,7 @@ export default function AdminReviews() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-gray-650 font-medium max-w-[120px] truncate">
-                      {rev.product ? rev.product.name : <span className="text-gray-400 italic">Deleted Product</span>}
+                      {rev.product ? rev.product.name : <span className="text-gray-400 italic">{rev.product_id ? 'Deleted Product' : 'General testimonial'}</span>}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center text-amber-400 gap-0.5">
@@ -464,18 +453,17 @@ export default function AdminReviews() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-gray-550 font-bold uppercase">Target Product *</label>
-                  <select
+                  <label className="text-[10px] text-gray-550 font-bold uppercase">Product</label>
+                  <SearchableSelect
                     value={productId}
                     onChange={e => setProductId(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700 w-full h-8.5 cursor-pointer"
-                    required
                   >
-                    <option value="">-- Choose Product --</option>
+                    <option value="">General store testimonial (no product)</option>
                     {products.map(p => (
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
@@ -490,7 +478,7 @@ export default function AdminReviews() {
 
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-gray-555 font-bold uppercase">Star Rating *</label>
-                  <select
+                  <SearchableSelect
                     value={rating}
                     onChange={e => setRating(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700 w-full font-bold h-8.5 cursor-pointer"
@@ -500,7 +488,7 @@ export default function AdminReviews() {
                     <option value="3">⭐⭐⭐ (3 Stars)</option>
                     <option value="2">⭐⭐ (2 Stars)</option>
                     <option value="1">⭐ (1 Star)</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
@@ -600,18 +588,17 @@ export default function AdminReviews() {
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-gray-550 font-bold uppercase">Target Product *</label>
-                  <select
+                  <label className="text-[10px] text-gray-550 font-bold uppercase">Product</label>
+                  <SearchableSelect
                     value={productId}
                     onChange={e => setProductId(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700 w-full h-8.5 cursor-pointer"
-                    required
                   >
-                    <option value="">-- Choose Product --</option>
+                    <option value="">General store testimonial (no product)</option>
                     {products.map(p => (
                       <option key={p.id} value={p.id}>{p.name}</option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
@@ -626,7 +613,7 @@ export default function AdminReviews() {
 
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-gray-555 font-bold uppercase">Star Rating *</label>
-                  <select
+                  <SearchableSelect
                     value={rating}
                     onChange={e => setRating(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700 w-full font-bold h-8.5 cursor-pointer"
@@ -636,7 +623,7 @@ export default function AdminReviews() {
                     <option value="3">⭐⭐⭐ (3 Stars)</option>
                     <option value="2">⭐⭐ (2 Stars)</option>
                     <option value="1">⭐ (1 Star)</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 

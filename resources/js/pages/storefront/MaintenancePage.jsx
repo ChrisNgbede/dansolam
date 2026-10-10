@@ -6,7 +6,7 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
   const title = settings.maintenance_title || "We'll Be Back Shortly!";
   const message = settings.maintenance_message || "Our ecommerce is currently undergoing scheduled maintenance to upgrade your shopping experience. Stay tuned for stunning new designer drops!";
   const endTimeStr = settings.maintenance_end_time;
-  const whatsappNum = settings.whatsapp_number || '2348000000000';
+  const whatsappNum = settings.whatsapp_number || '2348033105473';
   const showNewsletter = settings.maintenance_show_newsletter !== 'false' && settings.maintenance_show_newsletter !== false;
   const showContact = settings.maintenance_show_contact !== 'false' && settings.maintenance_show_contact !== false;
 
@@ -110,7 +110,7 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
           )}
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-1 bg-[#E5C158]/10 border border-[#E5C158]/30 rounded-full text-[#E5C158] text-xs font-bold uppercase tracking-wider animate-pulse">
+        <div className="flex items-center gap-2 px-3 py-1 bg-[#E5C158]/10 border border-[#E5C158]/30 rounded-full text-[#E5C158] text-xs font-bold  tracking-wider animate-pulse">
           <Wrench className="w-3.5 h-3.5" />
           <span>Scheduled Maintenance</span>
         </div>
@@ -137,7 +137,7 @@ export default function MaintenancePage({ settings = {}, onBypass }) {
         {/* Countdown Timer Block (if end time is provided) */}
         {endTimeStr && (
           <div className="w-full mb-10">
-            <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#E5C158] mb-3 flex items-center justify-center gap-1.5">
+            <div className="text-[10px] font-extrabold  tracking-widest text-[#E5C158] mb-3 flex items-center justify-center gap-1.5">
               <span>Estimated Reopening In</span>
             </div>
 

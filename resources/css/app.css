@@ -18,6 +18,18 @@
     --font-outfit: 'Outfit', ui-sans-serif, system-ui, sans-serif;
     
     /* Dansolam Beauty Home Signature Brand Palette */
+    /* Half-step greys used throughout the UI. Without these, classes such as
+       `border-gray-150` fell back to currentColor and drew dark lines. */
+    --color-gray-55: #FAFAFB;
+    --color-gray-150: #EFF1F3;
+    --color-gray-250: #DDE1E6;
+    --color-gray-350: #C7CCD3;
+    --color-gray-450: #9BA3AF;
+    --color-gray-550: #5C6472;
+    --color-gray-650: #414A57;
+    --color-gray-750: #2E3542;
+    --color-gray-850: #1A1F29;
+
     --color-primary: #5D3E85; /* Deep Royal Plum */
     --color-primary-hover: #4A2B68;
     --color-accent: #EC268F; /* Electric Fuchsia */
@@ -35,7 +47,7 @@
     --color-night-muted: #C9BED4;
     
     /* Quiet Editorial (Light) Surfaces */
-    --color-light-bg: #FBFAF8;
+    --color-light-bg: #FFFFFF;
     --color-light-surface: #F1EDF2;
     --color-light-elevated: #FFFFFF;
     --color-light-border: #E8E2E9;
@@ -50,12 +62,12 @@
   --fq-pink: #EC268F;
   --fq-gold: #E5C158;
   --fq-ink: #17101F;
-  --fq-paper: #FBFAF8;
+  --fq-paper: #FFFFFF;
 }
 html{ scroll-behavior: smooth; }
 /* B Night Dark vs Light Theme Root Containers */
 .luxury-storefront{
-  background-color: #FBFAF8;
+  background-color: #FFFFFF;
   color: #221B2B;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
@@ -273,17 +285,36 @@ html.dark .luxury-marquee-control:hover,
   html { scroll-behavior: auto; }
   .luxury-storefront * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
-/* Glassmorphism sidebar active state highlight */
+/* Glassmorphism sidebar active state highlight & hover states */
 .active-glass{
-  background-color: rgba(197, 168, 128, 0.12) !important;
+  background-color: rgba(255, 255, 255, 0.12) !important;
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
-  color: var(--color-primary) !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
 }
+.active-glass:hover,
+.active-glass:focus,
+.active-glass:active {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+}
 .dark .active-glass{
-  background-color: rgba(197, 168, 128, 0.18) !important;
-  color: #FAF3E8 !important;
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+}
+.dark .active-glass:hover,
+.dark .active-glass:focus,
+.dark .active-glass:active {
+  background-color: rgba(255, 255, 255, 0.22) !important;
+  color: #ffffff !important;
+}
+/* Admin sidebar nav hover stays white — scoped, or it also hits the shop filters. */
+.admin-shell aside a:hover,
+.admin-shell aside a:hover span,
+.admin-shell aside button:hover,
+.admin-shell aside button:hover span {
+  color: #ffffff !important;
 }
 /* Storefront royal-gold interaction system */
 @keyframes royal-gold-sweep{
@@ -485,6 +516,139 @@ body{
 .animate-spiral-hit{
   animation: spiral-hit 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
+
+/* Floating checkout conversion CTA */
+@keyframes floating-checkout-enter {
+  0% { opacity: 0; transform: translate3d(-50%, 28px, 0) scale(.94); }
+  65% { opacity: 1; transform: translate3d(-50%, -3px, 0) scale(1.01); }
+  100% { opacity: 1; transform: translate3d(-50%, 0, 0) scale(1); }
+}
+
+@keyframes floating-checkout-bump {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  45% { transform: translateX(-50%) scale(1.035); }
+}
+
+.floating-checkout {
+  position: fixed;
+  z-index: 55;
+  left: 50%;
+  bottom: max(1.5rem, env(safe-area-inset-bottom));
+  width: min(calc(100% - 2rem), 560px);
+  min-height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .8rem .9rem .8rem 1rem;
+  color: #221b2b;
+  background: rgba(255,255,255,.94);
+  border: 1px solid rgba(255,255,255,.8);
+  border-radius: 26px;
+  box-shadow: 0 22px 60px rgba(34,27,43,.2), 0 3px 12px rgba(34,27,43,.08);
+  backdrop-filter: blur(22px) saturate(145%);
+  -webkit-backdrop-filter: blur(22px) saturate(145%);
+  animation: floating-checkout-enter .65s cubic-bezier(.22,1,.36,1) both;
+}
+
+.floating-checkout--bump { animation: floating-checkout-bump .55s cubic-bezier(.22,1,.36,1); }
+.floating-checkout__summary { display: flex; align-items: center; gap: 1rem; min-width: 0; }
+.floating-checkout__icon {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  border: 1px solid #e6e1e7;
+  border-radius: 15px;
+  background: #fff;
+  transition: transform .3s cubic-bezier(.22,1,.36,1), border-color .3s ease, background-color .3s ease, color .3s ease;
+}
+.floating-checkout__summary:hover .floating-checkout__icon { transform: rotate(-3deg) scale(1.04); color: #fff; background: #ec268f; border-color: #ec268f; }
+.floating-checkout__summary:hover .floating-checkout__price strong { color: #ec268f; }
+.floating-checkout__count {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  min-width: 27px;
+  height: 27px;
+  padding-inline: 6px;
+  display: grid;
+  place-items: center;
+  color: white;
+  background: #221b2b;
+  border: 2px solid white;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+.floating-checkout__price { display: grid; line-height: 1.05; }
+.floating-checkout__price small { margin-bottom: .35rem; color: #776f79; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
+.floating-checkout__price strong { font-size: clamp(1.15rem, 2.2vw, 1.65rem); letter-spacing: -.035em; white-space: nowrap; transition: color .3s ease; }
+.floating-checkout__cta {
+  min-height: 58px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .8rem;
+  padding: .8rem 1.75rem;
+  color: white;
+  background: #ec268f;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 750;
+  transition: transform .3s cubic-bezier(.22,1,.36,1), background-color .3s ease;
+}
+.floating-checkout__cta:hover { background: #111; transform: translateY(-2px); }
+.floating-checkout__actions { display: flex; align-items: center; gap: .5rem; flex: none; }
+.floating-checkout__clear {
+  height: 46px;
+  min-width: 46px;
+  padding-inline: .8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  color: #776f79;
+  background: transparent;
+  border: 1px solid #e6e1e7;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: color .25s ease, background-color .25s ease, border-color .25s ease, transform .25s ease;
+}
+.floating-checkout__clear:hover { color: #fff; background: #ec268f; border-color: #ec268f; }
+.floating-checkout__clear.is-confirming { color: #fff; background: #111; border-color: #111; }
+.floating-checkout__cta:hover svg { transform: translateX(4px); }
+.floating-checkout__cta svg { transition: transform .3s cubic-bezier(.22,1,.36,1); }
+.floating-checkout :is(a, button):focus-visible { outline: 2px solid #ec268f; outline-offset: 3px; }
+
+@media (max-width: 767px) {
+  .floating-checkout {
+    bottom: calc(4.75rem + env(safe-area-inset-bottom));
+    width: calc(100% - 1rem);
+    min-height: 76px;
+    padding: .55rem;
+    border-radius: 21px;
+  }
+  .floating-checkout__summary { gap: .7rem; }
+  .floating-checkout__icon { width: 52px; height: 52px; border-radius: 13px; }
+  .floating-checkout__price small { display: none; }
+  .floating-checkout__price strong { font-size: 1rem; }
+  .floating-checkout__cta { min-height: 52px; padding-inline: 1.25rem; font-size: .9rem; gap: .55rem; }
+  .floating-checkout__clear { height: 42px; min-width: 42px; padding-inline: .6rem; }
+}
+
+@media (max-width: 374px) {
+  .floating-checkout__price { display: none; }
+  .floating-checkout__actions, .floating-checkout__cta { flex: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .floating-checkout, .floating-checkout--bump { animation: none; }
+}
 /* Mega Menu Drop Animations */
 @keyframes mega-menu-drop{
   0% {
@@ -591,7 +755,8 @@ main td{
 .admin-shell a.bg-white,
 .admin-shell main button.border-gray-200,
 .admin-shell main button.border-gray-300,
-.admin-shell main button[type="button"]:not(.bg-primary):not([class*="bg-amber"]):not([class*="bg-yellow"]):not(.text-red-500):not(.text-gray-400){
+.admin-shell main button[type="button"]:not(.bg-primary):not([class*="bg-amber"]):not([class*="bg-yellow"]):not(.text-red-500):not(.text-gray-400):not(.text-white):not([class*="text-white"]):not([class*="bg-gradient"]):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-[#5D3E85]"]):not([class*="bg-[#EC268F]"]),
+.admin-shell main button[type="button"]:not(.bg-primary):not([class*="bg-amber"]):not([class*="bg-yellow"]):not(.text-red-500):not(.text-gray-400):not(.btn-gradient-primary):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-[#5D3E85]"]):not([class*="bg-[#EC268F]"]){
   background-color: #f3f4f6 !important;
   color: #1f2937 !important;
   border: none !important;
@@ -640,7 +805,8 @@ main td{
 }
 .admin-shell main button.border-gray-200,
 .admin-shell main button.border-gray-300,
-.admin-shell main button[type="button"]:not(.bg-primary):not(.text-red-500):not(.text-gray-400){
+.admin-shell main button[type="button"]:not(.bg-primary):not(.text-red-500):not(.text-gray-400):not(.text-white):not([class*="text-white"]):not([class*="bg-gradient"]):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-[#5D3E85]"]):not([class*="bg-[#EC268F]"]),
+.admin-shell main button[type="button"]:not(.bg-primary):not(.text-red-500):not(.text-gray-400):not(.btn-gradient-primary):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-[#5D3E85]"]):not([class*="bg-[#EC268F]"]){
   border-radius: 9999px !important;
   font-weight: 600 !important;
   transition: all 0.2s ease-in-out !important;
@@ -655,9 +821,23 @@ main td{
 .admin-shell main button.border-gray-300:hover{
   background-color: var(--color-bg-neutral-light) !important;
 }
-.dark .admin-shell main button.border-gray-200:hover,
-.dark .admin-shell main button.border-gray-300:hover{
+html.admin-dark .admin-shell main button.border-gray-200:hover,
+html.admin-dark .admin-shell main button.border-gray-300:hover{
   background-color: var(--color-bg-neutral-dark) !important;
+}
+/* Force explicit white text for primary, gradient, and brand action buttons in admin shell */
+.admin-shell main button.text-white,
+.admin-shell main button[class*="text-white"],
+.admin-shell main button[class*="bg-gradient"],
+.admin-shell main button.text-white *,
+.admin-shell main button[class*="text-white"] *,
+.admin-shell main button[class*="bg-gradient"] * {
+  color: #ffffff !important;
+}
+/* Explicit white text for designated gradient primary buttons */
+.admin-shell main button.btn-gradient-primary,
+.admin-shell main button.btn-gradient-primary * {
+  color: #ffffff !important;
 }
 /* Systematic High-Definition Visible Input Borders for Admin Panels & Modals */
 .admin-shell input[type="text"],
@@ -774,17 +954,17 @@ div[role="dialog"] textarea:focus {
 }
 
 /* Dark Mode Admin & Modal Inputs */
-.dark .admin-shell input[type="text"],
-.dark .admin-shell input[type="number"],
-.dark .admin-shell input[type="email"],
-.dark .admin-shell input[type="password"],
-.dark .admin-shell input[type="search"],
-.dark .admin-shell input[type="tel"],
-.dark .admin-shell input[type="date"],
-.dark .admin-shell select,
-.dark .admin-shell textarea,
-.dark .admin-shell .rich-editor,
-.dark .admin-shell [contenteditable="true"],
+html.admin-dark .admin-shell input[type="text"],
+html.admin-dark .admin-shell input[type="number"],
+html.admin-dark .admin-shell input[type="email"],
+html.admin-dark .admin-shell input[type="password"],
+html.admin-dark .admin-shell input[type="search"],
+html.admin-dark .admin-shell input[type="tel"],
+html.admin-dark .admin-shell input[type="date"],
+html.admin-dark .admin-shell select,
+html.admin-dark .admin-shell textarea,
+html.admin-dark .admin-shell .rich-editor,
+html.admin-dark .admin-shell [contenteditable="true"],
 .dark .fixed.inset-0 input[type="text"],
 .dark .fixed.inset-0 input[type="number"],
 .dark .fixed.inset-0 input[type="email"],
@@ -802,9 +982,9 @@ div[role="dialog"] textarea:focus {
   color: #F8FAFC !important;
 }
 
-.dark .admin-shell input:focus,
-.dark .admin-shell select:focus,
-.dark .admin-shell textarea:focus,
+html.admin-dark .admin-shell input:focus,
+html.admin-dark .admin-shell select:focus,
+html.admin-dark .admin-shell textarea:focus,
 .dark .fixed.inset-0 input:focus,
 .dark .fixed.inset-0 select:focus,
 .dark .fixed.inset-0 textarea:focus,
@@ -958,7 +1138,7 @@ svg[class*="fill-red"],
 }
 /* Luxury Policy Page Typography & Layout Enhancements */
 .policy-prose-content h2{
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Fraunces', Georgia, serif;
   font-size: clamp(1.25rem, 2.5vw, 1.65rem);
   font-weight: 800;
   color: #181120;
@@ -973,7 +1153,7 @@ svg[class*="fill-red"],
   border-left-color: #EC268F;
 }
 .policy-prose-content h3{
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   font-weight: 800;
   color: #5D3E85;
@@ -1041,7 +1221,7 @@ svg[class*="fill-red"],
   font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
 }
 .font-outfit{
-  font-family: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
 }
 /* Smooth Fade In Reveal */
 @keyframes fadeInScale{
@@ -1089,34 +1269,37 @@ svg[class*="fill-red"],
    Elements start slightly offset and settle as they enter the viewport.
    Fully disabled under prefers-reduced-motion.
 --------------------------------------------------------------------------- */
-.reveal {
-  opacity: 0;
-  transform: translate3d(0, 26px, 0);
-  transition:
-    opacity .7s cubic-bezier(.22, 1, .36, 1),
-    transform .7s cubic-bezier(.22, 1, .36, 1);
-  will-change: opacity, transform;
+/* Content is always visible by default (screenshots, print, no-JS); the hook adds
+   .is-visible as an element scrolls into view, which plays a one-off fade-up. */
+@keyframes reveal-in {
+  from { opacity: 0; transform: translate3d(0, 26px, 0); }
+  to { opacity: 1; transform: none; }
 }
-
-.reveal.is-visible {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-}
+.reveal.is-visible { animation: reveal-in .7s cubic-bezier(.22, 1, .36, 1) backwards; }
 
 /* Stagger siblings so grids and card rows cascade rather than pop together. */
-.reveal.is-visible:nth-child(2) { transition-delay: .07s; }
-.reveal.is-visible:nth-child(3) { transition-delay: .14s; }
-.reveal.is-visible:nth-child(4) { transition-delay: .21s; }
-.reveal.is-visible:nth-child(5) { transition-delay: .28s; }
-.reveal.is-visible:nth-child(6) { transition-delay: .35s; }
+.reveal.is-visible:nth-child(2) { animation-delay: .07s; }
+.reveal.is-visible:nth-child(3) { animation-delay: .14s; }
+.reveal.is-visible:nth-child(4) { animation-delay: .21s; }
+.reveal.is-visible:nth-child(5) { animation-delay: .28s; }
+.reveal.is-visible:nth-child(6) { animation-delay: .35s; }
+
+/* Route change: new page content fades up once its chunk has loaded. */
+@keyframes page-enter {
+  from { opacity: 0; transform: translate3d(0, 10px, 0); }
+  to { opacity: 1; transform: none; }
+}
+.page-enter { animation: page-enter .45s cubic-bezier(.22, 1, .36, 1) both; }
+
+/* Micro-interaction: pressed feedback on any storefront button or CTA link. */
+.luxury-storefront button:not(:disabled):active,
+.luxury-storefront a.btn-spring:active {
+  transform: scale(.97);
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal,
-  .reveal.is-visible {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
+  .page-enter { animation: none; }
+  .reveal.is-visible { animation: none; }
 }
 
 /* ---------------------------------------------------------------------------
@@ -1236,4 +1419,690 @@ svg[class*="fill-red"],
   width: 100% !important;
   display: block;
   border: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Legibility floor: storefront copy never renders below 12px
+   (tiny 9–11px labels failed readability checks on phones).
+--------------------------------------------------------------------------- */
+.luxury-storefront :is(.text-\[8px\], .text-\[9px\], .text-\[10px\], .text-\[11px\]) {
+  font-size: 12px;
+}
+
+/* Admin-wide dark compatibility for legacy modules without explicit variants. */
+:is(.admin-shell.dark, html.admin-dark .admin-shell) { color-scheme: dark; }
+
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="bg-white"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [style*="background-color: #FFFFFF"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [style*="background-color:#FFFFFF"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [style*="background-color: white"] {
+  background-color: #111827 !important;
+}
+
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="bg-gray-50"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="bg-gray-55"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="bg-gray-100"] {
+  background-color: #1f2937 !important;
+}
+
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="text-gray-950"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="text-gray-900"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="text-gray-850"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="text-gray-800"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="text-gray-700"] { color: #f3f4f6 !important; }
+
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="text-gray-655"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="text-gray-650"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="text-gray-600"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="text-gray-550"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="text-gray-500"] { color: #cbd5e1 !important; }
+
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="border-gray-50"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="border-gray-100"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="border-gray-150"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="border-gray-200"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="border-gray-250"],
+:is(.admin-shell.dark, html.admin-dark .admin-shell) [class~="border-gray-300"] { border-color: #374151 !important; }
+
+:is(.admin-shell.dark, html.admin-dark .admin-shell) :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]) {
+  color: #f3f4f6 !important;
+  background-color: #1f2937 !important;
+  border-color: #4b5563 !important;
+  color-scheme: dark;
+}
+
+:is(.admin-shell.dark, html.admin-dark .admin-shell) :is(input, textarea)::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1;
+}
+
+:is(.admin-shell.dark, html.admin-dark .admin-shell) table tbody { color: #d1d5db; }
+:is(.admin-shell.dark, html.admin-dark .admin-shell) table tbody tr { border-color: #1f2937 !important; }
+:is(.admin-shell.dark, html.admin-dark .admin-shell) table tbody tr:hover { background-color: rgba(31, 41, 55, .72); }
+
+:is(.admin-shell.dark, html.admin-dark .admin-shell) :is(input, select, textarea):focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+:is(.admin-shell.dark, html.admin-dark .admin-shell) ::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(.75);
+}
+
+/* Direct selectors intentionally repeat the compatibility contract. Some older
+   WebKit builds resolve :is() specificity differently when utility CSS is hot-reloaded. */
+.admin-shell.dark .bg-white,
+.admin-shell.dark [style*="background-color: rgb(255, 255, 255)"],
+.admin-shell.dark [style*="background-color:#fff"],
+.admin-shell.dark [style*="background-color: #fff"] {
+  background-color: #111827 !important;
+  background-image: none !important;
+}
+
+.admin-shell.dark .bg-gray-50,
+.admin-shell.dark .bg-gray-55,
+.admin-shell.dark .bg-gray-100,
+.admin-shell.dark .bg-slate-50,
+.admin-shell.dark .bg-slate-100 {
+  background-color: #1f2937 !important;
+}
+
+.admin-shell.dark .text-gray-950,
+.admin-shell.dark .text-gray-900,
+.admin-shell.dark .text-gray-850,
+.admin-shell.dark .text-gray-800,
+.admin-shell.dark .text-gray-700 {
+  color: #f3f4f6 !important;
+}
+
+.admin-shell.dark .text-gray-655,
+.admin-shell.dark .text-gray-650,
+.admin-shell.dark .text-gray-600,
+.admin-shell.dark .text-gray-550,
+.admin-shell.dark .text-gray-500 {
+  color: #cbd5e1 !important;
+}
+
+.admin-shell.dark .border-gray-50,
+.admin-shell.dark .border-gray-100,
+.admin-shell.dark .border-gray-150,
+.admin-shell.dark .border-gray-200,
+.admin-shell.dark .border-gray-250,
+.admin-shell.dark .border-gray-300 {
+  border-color: #374151 !important;
+}
+
+.admin-shell.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+.admin-shell.dark select,
+.admin-shell.dark textarea {
+  color: #f3f4f6 !important;
+  background: #1f2937 !important;
+  border-color: #4b5563 !important;
+  color-scheme: dark !important;
+  -webkit-text-fill-color: #f3f4f6;
+}
+
+.admin-shell.dark input::placeholder,
+.admin-shell.dark textarea::placeholder {
+  color: #94a3b8 !important;
+  -webkit-text-fill-color: #94a3b8;
+  opacity: 1 !important;
+}
+
+.admin-shell.dark input:-webkit-autofill,
+.admin-shell.dark input:-webkit-autofill:hover,
+.admin-shell.dark input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f3f4f6 !important;
+  -webkit-box-shadow: 0 0 0 1000px #1f2937 inset !important;
+  transition: background-color 9999s ease-out 0s;
+}
+
+/* WebKit may keep the native white control well even when background-color wins.
+   An inset fill removes that final white surface without affecting control geometry. */
+.admin-shell.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+.admin-shell.dark select,
+.admin-shell.dark textarea {
+  background-color: #1f2937 !important;
+  background-image: none !important;
+  box-shadow: inset 0 0 0 1000px #1f2937 !important;
+}
+
+.admin-shell.dark input:is([type="text"], [type="email"], [type="password"], [type="search"], [type="tel"], [type="url"]) {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+}
+
+.admin-shell.dark input[type="date"],
+.admin-shell.dark input[type="datetime-local"],
+.admin-shell.dark input[type="time"],
+.admin-shell.dark input[type="number"] {
+  background-color: #1f2937 !important;
+  box-shadow: inset 0 0 0 1000px #1f2937 !important;
+}
+
+.admin-shell.dark :is(input, select, textarea):focus {
+  box-shadow: inset 0 0 0 1000px #1f2937, 0 0 0 2px color-mix(in srgb, var(--color-primary) 28%, transparent) !important;
+}
+
+.admin-shell.dark :is(button, a).bg-white,
+.admin-shell.dark :is(button, a).bg-gray-50,
+.admin-shell.dark :is(button, a).bg-gray-100 {
+  color: #e5e7eb !important;
+  background-color: #1f2937 !important;
+  background-image: none !important;
+  border-color: #4b5563 !important;
+}
+
+.admin-shell.dark :is(button, a).bg-white:hover,
+.admin-shell.dark :is(button, a).bg-gray-50:hover,
+.admin-shell.dark :is(button, a).bg-gray-100:hover {
+  background-color: #374151 !important;
+}
+
+.admin-shell.dark :is(button, input, select, textarea):disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------------------
+   Admin dark mode surfaces.
+   The base rules in AdminLayout only recolour white backgrounds and text, so
+   light grey and tinted panels kept a pale background while their text was
+   forced near-white. These give every light surface a dark equivalent.
+   Scoped to html.admin-dark so the storefront's dark mode is untouched.
+--------------------------------------------------------------------------- */
+html.admin-dark :is(.bg-gray-50, .bg-gray-55, .bg-gray-100, .bg-gray-150, .bg-gray-200, .bg-slate-50, .bg-slate-100, .bg-zinc-50, .bg-zinc-100, .bg-gray-50\/50, .bg-gray-50\/60) {
+  background-color: #111827 !important;
+  color: #e5e7eb !important;
+}
+html.admin-dark :is(.hover\:bg-gray-100:hover, .hover\:bg-gray-150:hover, .hover\:bg-gray-200:hover) {
+  background-color: #263041 !important;
+}
+html.admin-dark :is(.border-gray-250, .border-gray-300, .border-slate-200) { border-color: #2b3648 !important; }
+html.admin-dark :is(.divide-gray-100, .divide-gray-200) > * + * { border-color: #1f2937 !important; }
+
+/* Native dropdown lists follow the OS, not the field, so set them explicitly. */
+html.admin-dark select option { background-color: #1f2937; color: #f3f4f6; }
+html.admin-dark :is(input, select, textarea):disabled { opacity: .6; }
+html.admin-dark :is(input[type="checkbox"], input[type="radio"]) { accent-color: #EC268F; }
+html.admin-dark ::-webkit-calendar-picker-indicator { filter: invert(1) opacity(.7); }
+
+/* Buttons that sit on a tinted background keep their meaning but gain contrast. */
+html.admin-dark .bg-white\/60 { background-color: rgba(255,255,255,.06) !important; }
+
+html.admin-dark :is(.bg-amber-50, .bg-amber-100) { background-color: rgba(245,158,11, .15) !important; }
+html.admin-dark :is(.hover\:bg-amber-50:hover, .hover\:bg-amber-100:hover) { background-color: rgba(245,158,11, .25) !important; }
+html.admin-dark :is(.border-amber-100, .border-amber-200, .border-amber-300) { border-color: rgba(245,158,11, .4) !important; }
+html.admin-dark :is(.text-amber-600, .text-amber-700, .text-amber-800, .text-amber-900) { color: #fcd34d !important; }
+html.admin-dark :is(.bg-yellow-50, .bg-yellow-100) { background-color: rgba(234,179,8, .15) !important; }
+html.admin-dark :is(.hover\:bg-yellow-50:hover, .hover\:bg-yellow-100:hover) { background-color: rgba(234,179,8, .25) !important; }
+html.admin-dark :is(.border-yellow-100, .border-yellow-200, .border-yellow-300) { border-color: rgba(234,179,8, .4) !important; }
+html.admin-dark :is(.text-yellow-600, .text-yellow-700, .text-yellow-800, .text-yellow-900) { color: #fde047 !important; }
+html.admin-dark :is(.bg-orange-50, .bg-orange-100) { background-color: rgba(249,115,22, .15) !important; }
+html.admin-dark :is(.hover\:bg-orange-50:hover, .hover\:bg-orange-100:hover) { background-color: rgba(249,115,22, .25) !important; }
+html.admin-dark :is(.border-orange-100, .border-orange-200, .border-orange-300) { border-color: rgba(249,115,22, .4) !important; }
+html.admin-dark :is(.text-orange-600, .text-orange-700, .text-orange-800, .text-orange-900) { color: #fdba74 !important; }
+html.admin-dark :is(.bg-red-50, .bg-red-100) { background-color: rgba(239,68,68, .15) !important; }
+html.admin-dark :is(.hover\:bg-red-50:hover, .hover\:bg-red-100:hover) { background-color: rgba(239,68,68, .25) !important; }
+html.admin-dark :is(.border-red-100, .border-red-200, .border-red-300) { border-color: rgba(239,68,68, .4) !important; }
+html.admin-dark :is(.text-red-600, .text-red-700, .text-red-800, .text-red-900) { color: #fca5a5 !important; }
+html.admin-dark :is(.bg-rose-50, .bg-rose-100) { background-color: rgba(244,63,94, .15) !important; }
+html.admin-dark :is(.hover\:bg-rose-50:hover, .hover\:bg-rose-100:hover) { background-color: rgba(244,63,94, .25) !important; }
+html.admin-dark :is(.border-rose-100, .border-rose-200, .border-rose-300) { border-color: rgba(244,63,94, .4) !important; }
+html.admin-dark :is(.text-rose-600, .text-rose-700, .text-rose-800, .text-rose-900) { color: #fda4af !important; }
+html.admin-dark :is(.bg-pink-50, .bg-pink-100) { background-color: rgba(236,72,153, .15) !important; }
+html.admin-dark :is(.hover\:bg-pink-50:hover, .hover\:bg-pink-100:hover) { background-color: rgba(236,72,153, .25) !important; }
+html.admin-dark :is(.border-pink-100, .border-pink-200, .border-pink-300) { border-color: rgba(236,72,153, .4) !important; }
+html.admin-dark :is(.text-pink-600, .text-pink-700, .text-pink-800, .text-pink-900) { color: #f9a8d4 !important; }
+html.admin-dark :is(.bg-fuchsia-50, .bg-fuchsia-100) { background-color: rgba(217,70,239, .15) !important; }
+html.admin-dark :is(.hover\:bg-fuchsia-50:hover, .hover\:bg-fuchsia-100:hover) { background-color: rgba(217,70,239, .25) !important; }
+html.admin-dark :is(.border-fuchsia-100, .border-fuchsia-200, .border-fuchsia-300) { border-color: rgba(217,70,239, .4) !important; }
+html.admin-dark :is(.text-fuchsia-600, .text-fuchsia-700, .text-fuchsia-800, .text-fuchsia-900) { color: #f0abfc !important; }
+html.admin-dark :is(.bg-purple-50, .bg-purple-100) { background-color: rgba(168,85,247, .15) !important; }
+html.admin-dark :is(.hover\:bg-purple-50:hover, .hover\:bg-purple-100:hover) { background-color: rgba(168,85,247, .25) !important; }
+html.admin-dark :is(.border-purple-100, .border-purple-200, .border-purple-300) { border-color: rgba(168,85,247, .4) !important; }
+html.admin-dark :is(.text-purple-600, .text-purple-700, .text-purple-800, .text-purple-900) { color: #d8b4fe !important; }
+html.admin-dark :is(.bg-violet-50, .bg-violet-100) { background-color: rgba(139,92,246, .15) !important; }
+html.admin-dark :is(.hover\:bg-violet-50:hover, .hover\:bg-violet-100:hover) { background-color: rgba(139,92,246, .25) !important; }
+html.admin-dark :is(.border-violet-100, .border-violet-200, .border-violet-300) { border-color: rgba(139,92,246, .4) !important; }
+html.admin-dark :is(.text-violet-600, .text-violet-700, .text-violet-800, .text-violet-900) { color: #c4b5fd !important; }
+html.admin-dark :is(.bg-indigo-50, .bg-indigo-100) { background-color: rgba(99,102,241, .15) !important; }
+html.admin-dark :is(.hover\:bg-indigo-50:hover, .hover\:bg-indigo-100:hover) { background-color: rgba(99,102,241, .25) !important; }
+html.admin-dark :is(.border-indigo-100, .border-indigo-200, .border-indigo-300) { border-color: rgba(99,102,241, .4) !important; }
+html.admin-dark :is(.text-indigo-600, .text-indigo-700, .text-indigo-800, .text-indigo-900) { color: #a5b4fc !important; }
+html.admin-dark :is(.bg-blue-50, .bg-blue-100) { background-color: rgba(59,130,246, .15) !important; }
+html.admin-dark :is(.hover\:bg-blue-50:hover, .hover\:bg-blue-100:hover) { background-color: rgba(59,130,246, .25) !important; }
+html.admin-dark :is(.border-blue-100, .border-blue-200, .border-blue-300) { border-color: rgba(59,130,246, .4) !important; }
+html.admin-dark :is(.text-blue-600, .text-blue-700, .text-blue-800, .text-blue-900) { color: #93c5fd !important; }
+html.admin-dark :is(.bg-sky-50, .bg-sky-100) { background-color: rgba(14,165,233, .15) !important; }
+html.admin-dark :is(.hover\:bg-sky-50:hover, .hover\:bg-sky-100:hover) { background-color: rgba(14,165,233, .25) !important; }
+html.admin-dark :is(.border-sky-100, .border-sky-200, .border-sky-300) { border-color: rgba(14,165,233, .4) !important; }
+html.admin-dark :is(.text-sky-600, .text-sky-700, .text-sky-800, .text-sky-900) { color: #7dd3fc !important; }
+html.admin-dark :is(.bg-cyan-50, .bg-cyan-100) { background-color: rgba(6,182,212, .15) !important; }
+html.admin-dark :is(.hover\:bg-cyan-50:hover, .hover\:bg-cyan-100:hover) { background-color: rgba(6,182,212, .25) !important; }
+html.admin-dark :is(.border-cyan-100, .border-cyan-200, .border-cyan-300) { border-color: rgba(6,182,212, .4) !important; }
+html.admin-dark :is(.text-cyan-600, .text-cyan-700, .text-cyan-800, .text-cyan-900) { color: #67e8f9 !important; }
+html.admin-dark :is(.bg-teal-50, .bg-teal-100) { background-color: rgba(20,184,166, .15) !important; }
+html.admin-dark :is(.hover\:bg-teal-50:hover, .hover\:bg-teal-100:hover) { background-color: rgba(20,184,166, .25) !important; }
+html.admin-dark :is(.border-teal-100, .border-teal-200, .border-teal-300) { border-color: rgba(20,184,166, .4) !important; }
+html.admin-dark :is(.text-teal-600, .text-teal-700, .text-teal-800, .text-teal-900) { color: #5eead4 !important; }
+html.admin-dark :is(.bg-emerald-50, .bg-emerald-100) { background-color: rgba(16,185,129, .15) !important; }
+html.admin-dark :is(.hover\:bg-emerald-50:hover, .hover\:bg-emerald-100:hover) { background-color: rgba(16,185,129, .25) !important; }
+html.admin-dark :is(.border-emerald-100, .border-emerald-200, .border-emerald-300) { border-color: rgba(16,185,129, .4) !important; }
+html.admin-dark :is(.text-emerald-600, .text-emerald-700, .text-emerald-800, .text-emerald-900) { color: #6ee7b7 !important; }
+html.admin-dark :is(.bg-green-50, .bg-green-100) { background-color: rgba(34,197,94, .15) !important; }
+html.admin-dark :is(.hover\:bg-green-50:hover, .hover\:bg-green-100:hover) { background-color: rgba(34,197,94, .25) !important; }
+html.admin-dark :is(.border-green-100, .border-green-200, .border-green-300) { border-color: rgba(34,197,94, .4) !important; }
+html.admin-dark :is(.text-green-600, .text-green-700, .text-green-800, .text-green-900) { color: #86efac !important; }
+html.admin-dark :is(.bg-lime-50, .bg-lime-100) { background-color: rgba(132,204,22, .15) !important; }
+html.admin-dark :is(.hover\:bg-lime-50:hover, .hover\:bg-lime-100:hover) { background-color: rgba(132,204,22, .25) !important; }
+html.admin-dark :is(.border-lime-100, .border-lime-200, .border-lime-300) { border-color: rgba(132,204,22, .4) !important; }
+html.admin-dark :is(.text-lime-600, .text-lime-700, .text-lime-800, .text-lime-900) { color: #bef264 !important; }
+
+/* Brand and accent colours inside admin dark mode. */
+html.admin-dark :is(.text-primary, .text-\[\#5D3E85\], .text-\[\#4A2B68\]) { color: #cbaaf5 !important; }
+html.admin-dark :is(.text-\[\#EC268F\], .text-\[\#C9166F\], .text-\[\#D01B79\]) { color: #ff8ec6 !important; }
+html.admin-dark :is(.text-\[\#221B2B\], .text-\[\#181120\], .text-\[\#b8860b\]) { color: #e5e7eb !important; }
+/* Pink brand buttons: white on #EC268F is only 4.0:1, so deepen it slightly. */
+html.admin-dark :is(.bg-\[\#EC268F\], .bg-primary):not(:hover) { background-color: #C9166F !important; }
+/* Bright warm buttons need dark text rather than white. */
+html.admin-dark :is(.bg-yellow-300, .bg-yellow-400, .bg-yellow-500, .bg-amber-300, .bg-amber-400, .bg-amber-500, .bg-lime-400) { color: #1f2937 !important; }
+
+/* Off-white panel tints and translucent greys. */
+html.admin-dark :is(.bg-\[\#FAF9F6\], .bg-\[\#FAF7FC\], .bg-gray-100\/90, .bg-gray-50\/80, .bg-gray-50\/70, .bg-gray-50\/60, .bg-gray-50\/50, .bg-gray-50\/20) {
+  background-color: #111827 !important;
+}
+/* Mid-tone icon colours sit on dark panels; lift them to their lighter shade. */
+html.admin-dark :is(.text-emerald-400, .text-emerald-500) { color: #6ee7b7 !important; }
+html.admin-dark :is(.text-green-400, .text-green-500) { color: #86efac !important; }
+html.admin-dark :is(.text-indigo-400, .text-indigo-500) { color: #a5b4fc !important; }
+html.admin-dark :is(.text-violet-400, .text-violet-500) { color: #c4b5fd !important; }
+html.admin-dark :is(.text-blue-400, .text-blue-500) { color: #93c5fd !important; }
+html.admin-dark :is(.text-sky-400, .text-sky-500) { color: #7dd3fc !important; }
+html.admin-dark :is(.text-purple-400, .text-purple-500) { color: #d8b4fe !important; }
+html.admin-dark :is(.text-rose-400, .text-rose-500) { color: #fda4af !important; }
+html.admin-dark :is(.text-red-400, .text-red-500) { color: #fca5a5 !important; }
+html.admin-dark :is(.text-amber-400, .text-amber-500) { color: #fcd34d !important; }
+html.admin-dark :is(.text-orange-400, .text-orange-500) { color: #fdba74 !important; }
+html.admin-dark :is(.text-teal-400, .text-teal-500) { color: #5eead4 !important; }
+html.admin-dark :is(.text-cyan-400, .text-cyan-500) { color: #67e8f9 !important; }
+html.admin-dark :is(.text-pink-400, .text-pink-500) { color: #f9a8d4 !important; }
+html.admin-dark :is(.text-fuchsia-400, .text-fuchsia-500) { color: #f0abfc !important; }
+html.admin-dark :is(.text-yellow-400, .text-yellow-500) { color: #fde047 !important; }
+html.admin-dark :is(.text-lime-400, .text-lime-500) { color: #bef264 !important; }
+
+/* ---------------------------------------------------------------------------
+   Legacy admin button rules (above) hard-code light greys and yellows with
+   !important, so dark mode needs to override those exact cases last.
+--------------------------------------------------------------------------- */
+html.admin-dark .admin-shell button.bg-white,
+html.admin-dark .admin-shell a.bg-white,
+html.admin-dark .admin-shell main button.border-gray-200,
+html.admin-dark .admin-shell main button.border-gray-300,
+html.admin-dark .admin-shell main button[type="button"]:not(.bg-primary):not([class*="bg-amber"]):not([class*="bg-yellow"]):not(.text-red-500):not(.text-gray-400):not(.text-white):not([class*="text-white"]):not([class*="bg-gradient"]):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-[#5D3E85]"]):not([class*="bg-[#EC268F]"]),
+html.admin-dark .admin-shell main button[type="button"]:not(.bg-primary):not([class*="bg-amber"]):not([class*="bg-yellow"]):not(.text-red-500):not(.text-gray-400):not(.btn-gradient-primary):not([class*="bg-emerald"]):not([class*="bg-rose"]):not([class*="bg-[#5D3E85]"]):not([class*="bg-[#EC268F]"]) {
+  background-color: #1f2937 !important;
+  color: #e5e7eb !important;
+}
+html.admin-dark .admin-shell button.bg-white:hover,
+html.admin-dark .admin-shell a.bg-white:hover,
+html.admin-dark .admin-shell main button.border-gray-200:hover,
+html.admin-dark .admin-shell main button.border-gray-300:hover {
+  background-color: #2b3648 !important;
+}
+/* Strong amber/yellow admin buttons carry dark text; their labels must follow
+   (light mode too). Only solid shades — the 50/100 tints stay light-on-dark. */
+.btn-add-to-cart,
+.btn-add-to-cart *,
+:is(button, a)[class*="bg-amber-300"], :is(button, a)[class*="bg-amber-300"] *,
+:is(button, a)[class*="bg-amber-400"], :is(button, a)[class*="bg-amber-400"] *,
+:is(button, a)[class*="bg-amber-500"], :is(button, a)[class*="bg-amber-500"] *,
+:is(button, a)[class*="bg-amber-600"], :is(button, a)[class*="bg-amber-600"] *,
+:is(button, a)[class*="bg-yellow-300"], :is(button, a)[class*="bg-yellow-300"] *,
+:is(button, a)[class*="bg-yellow-400"], :is(button, a)[class*="bg-yellow-400"] *,
+:is(button, a)[class*="bg-yellow-500"], :is(button, a)[class*="bg-yellow-500"] * {
+  color: #0f172a !important;
+}
+html body .admin-shell :is(button, a)[class*="bg-amber-300"], html body .admin-shell :is(button, a)[class*="bg-amber-300"] *,
+html body .admin-shell :is(button, a)[class*="bg-amber-400"], html body .admin-shell :is(button, a)[class*="bg-amber-400"] *,
+html body .admin-shell :is(button, a)[class*="bg-amber-500"], html body .admin-shell :is(button, a)[class*="bg-amber-500"] *,
+html body .admin-shell :is(button, a)[class*="bg-amber-600"], html body .admin-shell :is(button, a)[class*="bg-amber-600"] *,
+html body .admin-shell :is(button, a)[class*="bg-yellow-300"], html body .admin-shell :is(button, a)[class*="bg-yellow-300"] *,
+html body .admin-shell :is(button, a)[class*="bg-yellow-400"], html body .admin-shell :is(button, a)[class*="bg-yellow-400"] *,
+html body .admin-shell :is(button, a)[class*="bg-yellow-500"], html body .admin-shell :is(button, a)[class*="bg-yellow-500"] *,
+html body .admin-shell :is(button, a)[class*="bg-yellow-600"], html body .admin-shell :is(button, a)[class*="bg-yellow-600"] * {
+  color: #0f172a !important;
+}
+
+
+/* ---------------------------------------------------------------------------
+   Shop-by-concern cards: three product tiles fanned open like a butterfly.
+   The fan is the resting state; hovering opens it wider.
+--------------------------------------------------------------------------- */
+@keyframes concern-float {
+  0%, 100% { transform: var(--shot-rest); }
+  50% { transform: var(--shot-rest) translateY(-6px); }
+}
+.concern-shot {
+  --shot-rest: translate(0, 0) rotate(0deg) scale(1);
+  transform: var(--shot-rest);
+  transform-origin: bottom center;
+  animation: concern-float 6s ease-in-out infinite;
+  transition: transform .55s cubic-bezier(.22, 1, .36, 1);
+}
+/* Centre tile in front, wings tucked behind and rotated outwards. */
+.concern-shot--0 { --shot-rest: translate(0, -4%) rotate(0deg) scale(1.02); z-index: 3; animation-delay: 0s; }
+.concern-shot--1 { --shot-rest: translate(-55%, 4%) rotate(-13deg) scale(.82); z-index: 2; animation-delay: .6s; }
+.concern-shot--2 { --shot-rest: translate(55%, 4%) rotate(13deg) scale(.82); z-index: 1; animation-delay: 1.2s; }
+
+.group:hover .concern-shot { animation: none; }
+.group:hover .concern-shot--0 { transform: translate(0, -8%) rotate(0deg) scale(1.05); }
+.group:hover .concern-shot--1 { transform: translate(-56%, -2%) rotate(-16deg) scale(.84); }
+.group:hover .concern-shot--2 { transform: translate(56%, -2%) rotate(16deg) scale(.84); }
+
+@media (max-width: 380px) {
+  .concern-shot--1 { --shot-rest: translate(-54%, 4%) rotate(-12deg) scale(.8); }
+  .concern-shot--2 { --shot-rest: translate(54%, 4%) rotate(12deg) scale(.8); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .concern-shot, .group:hover .concern-shot { animation: none; transition: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Category ribbon above the footer: one slow, endless horizontal loop.
+--------------------------------------------------------------------------- */
+@keyframes category-marquee-scroll {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-50%, 0, 0); }
+}
+.category-marquee__viewport {
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.category-marquee__track {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  width: max-content;
+  padding-inline: .75rem;
+  animation: category-marquee-scroll 70s linear infinite;
+  will-change: transform;
+}
+.category-marquee:hover .category-marquee__track,
+.category-marquee:focus-within .category-marquee__track { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .category-marquee__track { animation: none; flex-wrap: wrap; width: auto; justify-content: center; }
+  .category-marquee__viewport { -webkit-mask-image: none; mask-image: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Hero highlight card: endless slow lap of the image card, centred on its edge.
+--------------------------------------------------------------------------- */
+@keyframes hero-orbit-lap {
+  /* One axis at a time, so the card tracks each edge exactly. */
+  0%,  100% { left: 0%;   top: 0%; }
+  25%       { left: 100%; top: 0%; }
+  50%       { left: 100%; top: 100%; }
+  75%       { left: 0%;   top: 100%; }
+}
+.hero-orbit {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+.hero-orbit__card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  /* Sits astride the border line rather than inside the image. */
+  transform: translate(-50%, -50%);
+  animation: hero-orbit-lap 44s linear infinite;
+  pointer-events: auto;
+  will-change: left, top;
+}
+.hero-orbit:hover .hero-orbit__card { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-orbit__card { animation: none; left: 12%; top: 100%; }
+}
+
+/* ---------------------------------------------------------------------------
+   Home page bands.
+   Sections are centred with a max width, so the tint is painted full-width with
+   a spread shadow (clipped vertically) instead of extra wrapper markup.
+   Alternating tints separate the sections while staying within the palette.
+--------------------------------------------------------------------------- */
+.home-band {
+  position: relative;
+  --band: transparent;
+  background-color: var(--band);
+  box-shadow: 0 0 0 100vmax var(--band);
+  clip-path: inset(0 -100vmax);
+}
+.home-band--tint { --band: #F7F7F8; }
+.luxury-storefront .home-band--tint { --band: #F7F7F8; }
+.storefront-dark .luxury-storefront .home-band--tint,
+html.dark .home-band--tint { --band: #1C1426; }
+
+/* Softens the joins so the bands read as one page rather than stacked blocks. */
+.home-band--tint::before,
+.home-band--tint::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  width: 100vw;
+  height: 72px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.home-band--tint::before { top: 0; background: linear-gradient(to bottom, #FFFFFF, transparent); }
+.home-band--tint::after { bottom: 0; background: linear-gradient(to top, #FFFFFF, transparent); }
+.storefront-dark .luxury-storefront .home-band--tint::before,
+html.dark .home-band--tint::before { background: linear-gradient(to bottom, #17101F, transparent); }
+.storefront-dark .luxury-storefront .home-band--tint::after,
+html.dark .home-band--tint::after { background: linear-gradient(to top, #17101F, transparent); }
+
+/* Shop filter sidebar: list-style alignment, and hover keeps the label dark. */
+.shop-filters :is(button, label) { text-align: left; }
+.shop-filters button:hover:not(.bg-\[\#5D3E85\]):not([class*="bg-[#EC268F]"]) span { color: inherit; }
+
+/* ---------------------------------------------------------------------------
+   Hero image ring: admin-set images fan out evenly onto a perfect circle.
+   Each card lands in turn, then the ring opens slightly on hover.
+--------------------------------------------------------------------------- */
+.hero-ring {
+  /* Fixed units: percentages would resolve against different axes and skew the circle. */
+  /* -1 keeps a card upright; -0.72 leaves a slight fan tilt. */
+  --counter-rotate: -0.72;
+  /* Neighbours sit a chord apart (2r·sin(step/2)); at 60° per card that equals the
+     radius, so matching the card to the radius makes them touch and overlap slightly. */
+  --ring-radius: clamp(92px, 11.5vw, 172px);
+  --ring-size: calc(var(--ring-radius) * 1.14);
+  /* No position here: the element carries Tailwind's `absolute inset-0`. */
+  isolation: isolate;
+}
+.hero-ring__card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--ring-size);
+  aspect-ratio: 1;
+  margin-top: calc(var(--ring-size) / -2);
+  margin-left: calc(var(--ring-size) / -2);
+  border-radius: 20px;
+  overflow: hidden;
+  /* No frame or plate behind the photo — just the image itself. */
+  background: transparent;
+  filter: drop-shadow(0 14px 26px rgba(18, 8, 31, .38));
+  /* Rotate onto the circle, then counter-rotate so the photo stays upright. */
+  transform: rotate(var(--a)) translateY(calc(var(--ring-radius) * -1)) rotate(calc(var(--a) * var(--counter-rotate)));
+  transition: transform .55s cubic-bezier(.22, 1, .36, 1), filter .35s ease;
+  animation: hero-ring-land .85s cubic-bezier(.22, 1, .36, 1) backwards;
+  animation-delay: calc(var(--i) * 110ms);
+}
+@keyframes hero-ring-land {
+  from {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(0) rotate(calc(var(--a) * var(--counter-rotate))) scale(.45) ;
+  }
+  70% { opacity: 1; }
+  to {
+    opacity: 1;
+    transform: rotate(var(--a)) translateY(calc(var(--ring-radius) * -1)) rotate(calc(var(--a) * var(--counter-rotate))) scale(1);
+  }
+}
+/* Hovering the ring opens it out a little… */
+.hero-ring[data-ring-shape="circle"] { --counter-rotate: -1; }
+.hero-ring:hover { --ring-radius: clamp(100px, 12.4vw, 186px); }
+/* …and the hovered card lifts to the front. */
+.hero-ring__card:hover,
+.hero-ring__card:focus-visible {
+  z-index: 5;
+  filter: drop-shadow(0 22px 40px rgba(18, 8, 31, .5));
+  transform: rotate(var(--a)) translateY(calc(var(--ring-radius) * -1)) rotate(calc(var(--a) * var(--counter-rotate))) scale(1.14);
+}
+.hero-ring__card img { transition: transform .55s cubic-bezier(.22, 1, .36, 1); }
+.hero-ring__card:hover img { transform: scale(1.08); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-ring__card { animation: none; transition: none; }
+  .hero-ring:hover { --ring-radius: clamp(92px, 11.5vw, 172px); }
+}
+
+/* ---------------------------------------------------------------------------
+   Single hero photo: bubbles in small, swells past its size and settles.
+   Re-runs on every slide change because the element is keyed by slide.
+--------------------------------------------------------------------------- */
+@keyframes hero-photo-pop {
+  0% { opacity: 0; transform: scale(.42) translateY(18px); filter: blur(9px); }
+  55% { opacity: 1; transform: scale(1.07) translateY(-6px); filter: blur(0); }
+  75% { transform: scale(.985) translateY(2px); }
+  90% { transform: scale(1.012) translateY(-1px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+.hero-photo-pop {
+  transform-origin: 55% 60%;
+  animation: hero-photo-pop 1.15s cubic-bezier(.34, 1.4, .5, 1) backwards;
+}
+/* Keep the hover zoom from fighting the entrance. */
+.hero-photo-pop:hover { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-photo-pop { animation: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   One modal standard across the app (see components/ui/ModalStandard.jsx).
+   Panels keep a gap from the screen edges, scroll inside themselves, and show a
+   chevron while there is more content below.
+--------------------------------------------------------------------------- */
+[data-modal-panel] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 4rem) !important;
+  overflow: hidden;
+}
+@media (max-width: 640px) {
+  [data-modal-panel] { max-height: calc(100dvh - 2rem) !important; }
+}
+/* Roomier panels for long forms so fields aren't cramped into one column. */
+[data-modal-panel][data-modal-wide] {
+  max-width: min(64rem, calc(100vw - 2.5rem)) !important;
+  width: 100%;
+}
+[data-modal-scroll] {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  flex: 1 1 auto;
+  min-height: 0;
+  scrollbar-width: thin;
+}
+/* Room so the chevron never sits on top of the last control. */
+[data-modal-panel][data-modal-has-more] [data-modal-scroll] { padding-bottom: 2.75rem; }
+
+[data-modal-more] {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4.25rem;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: .6rem;
+  cursor: pointer;
+  background: linear-gradient(to top, rgb(255 255 255 / .96), rgb(255 255 255 / 0));
+}
+[data-modal-panel][data-modal-has-more] > [data-modal-more] { display: flex; }
+[data-modal-more] [data-modal-more-dot] {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  color: #fff;
+  background: #5D3E85;
+  box-shadow: 0 6px 16px rgb(34 27 43 / .28);
+  animation: modal-more-bounce 1.6s ease-in-out infinite;
+}
+@keyframes modal-more-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+html.admin-dark [data-modal-more],
+.storefront-dark [data-modal-more] {
+  background: linear-gradient(to top, rgb(9 9 11 / .96), rgb(9 9 11 / 0));
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-modal-more] [data-modal-more-dot] { animation: none; }
+}
+
+/* ---------------------------------------------------------------------------
+   Form fields always show an edge, and stray dark rules are softened.
+   :where() keeps these at zero specificity so any explicit utility still wins.
+--------------------------------------------------------------------------- */
+:where(.admin-shell, [data-modal-panel], .luxury-storefront)
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]), select, textarea) {
+  border: 1px solid #e5e7eb;
+  border-radius: .75rem;
+  background-color: #fff;
+}
+html.admin-dark :where(.admin-shell, [data-modal-panel])
+:where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-color: #3f4a5f;
+  background-color: #1f2937;
+}
+
+/* Heavy rules read as clutter next to the light UI. */
+.admin-shell :is(.border-gray-300, .border-gray-400, .border-gray-500, .border-black),
+[data-modal-panel] :is(.border-gray-300, .border-gray-400, .border-gray-500, .border-black) {
+  border-color: #e8e8ec;
+}
+.admin-shell hr,
+[data-modal-panel] hr,
+.luxury-storefront hr {
+  border: 0;
+  border-top: 1px solid #efeff2;
+}
+html.admin-dark .admin-shell hr,
+html.admin-dark [data-modal-panel] hr { border-top-color: #232a36; }
+/* Divider lines directly above a form's buttons add nothing. */
+[data-modal-panel] form > :is(.border-t, .border-b).border-gray-100 { border-color: transparent; }
+
+/* Final say on form-field edges: every visible field carries one, in every theme. */
+html body :is(.admin-shell, [data-modal-panel], .luxury-storefront)
+:is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="submit"]):not([type="button"]):not([type="image"]), select, textarea) {
+  border-width: 1.5px !important;
+  border-style: solid !important;
+  border-color: #b4bbc9 !important;
+}
+/* Same edge in light and dark; focus switches to the brand colour. */
+html body :is(.admin-shell, [data-modal-panel], .luxury-storefront)
+:is(input, select, textarea):focus {
+  border-color: #5D3E85 !important;
 }

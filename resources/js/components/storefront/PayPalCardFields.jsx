@@ -165,7 +165,7 @@ export default function PayPalCardFields({
   // Bare wrapper on purpose: PayPal already draws the field's border and surface,
   // so adding our own produced a visible box-inside-a-box. We only size it.
   const boxCls = 'pp-field';
-  const labelCls = 'text-[10px] font-bold tracking-wider uppercase text-gray-500 dark:text-[#9B8EA9] mb-1.5 block';
+  const labelCls = 'text-[10px] font-bold tracking-wider  text-gray-500 dark:text-[#9B8EA9] mb-1.5 block';
 
   if (status === 'unsupported') {
     return (

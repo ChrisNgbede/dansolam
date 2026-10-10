@@ -52,7 +52,7 @@ export const usePosCartStore = create((set, get) => {
           price: parseFloat(price),
           quantity: quantity,
           max_stock: maxStock,
-          image_url: variant && variant.image_url ? variant.image_url : (product.images?.[0]?.image_url || '/images/products/placeholder.jpg'),
+          image_url: variant && variant.image_url ? variant.image_url : (product.images?.[0]?.image_url || '/images/placeholder-product.svg'),
         });
       }
 
@@ -100,7 +100,7 @@ export const usePosCartStore = create((set, get) => {
         price: parseFloat(item.price),
         quantity: item.quantity,
         max_stock: item.variant ? item.variant.stock_quantity : (item.product ? item.product.stock_quantity : 999),
-        image_url: item.variant && item.variant.image_url ? item.variant.image_url : (item.product?.images?.[0]?.image_url || '/images/products/placeholder.jpg'),
+        image_url: item.variant && item.variant.image_url ? item.variant.image_url : (item.product?.images?.[0]?.image_url || '/images/placeholder-product.svg'),
       }));
 
       set({

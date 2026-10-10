@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Edit, Trash2, X, Loader2, AlertCircle, CheckCircle, Eye, EyeOff, Image as ImageIcon, Upload, Folder, ArrowLeft } from 'lucide-react';
 import { apiFetch } from '../../hooks/useAuth';
 import ImageUploadField from '../../components/ui/ImageUploadField';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 export default function AdminGallery() {
   const queryClient = useQueryClient();
@@ -67,7 +68,7 @@ export default function AdminGallery() {
   const albumCategories = Object.keys(categoriesMap).map(catName => ({
     name: catName,
     items: categoriesMap[catName],
-    previewUrl: categoriesMap[catName][0]?.image_url || '/images/placeholder.jpg',
+    previewUrl: categoriesMap[catName][0]?.image_url || '/images/placeholder-product.svg',
     totalCount: categoriesMap[catName].length,
     visibleCount: categoriesMap[catName].filter(item => item.is_visible).length,
   }));
@@ -551,7 +552,7 @@ export default function AdminGallery() {
                 </div>
 
                 {categoryType === 'existing' ? (
-                  <select
+                  <SearchableSelect
                     value={selectedCategory}
                     onChange={e => setSelectedCategory(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700"
@@ -563,7 +564,7 @@ export default function AdminGallery() {
                     ) : (
                       <option value="General">General</option>
                     )}
-                  </select>
+                  </SearchableSelect>
                 ) : (
                   <input
                     type="text"
@@ -708,7 +709,7 @@ export default function AdminGallery() {
                 </div>
 
                 {categoryType === 'existing' ? (
-                  <select
+                  <SearchableSelect
                     value={selectedCategory}
                     onChange={e => setSelectedCategory(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700 font-semibold"
@@ -720,7 +721,7 @@ export default function AdminGallery() {
                     ) : (
                       <option value="General">General</option>
                     )}
-                  </select>
+                  </SearchableSelect>
                 ) : (
                   <input
                     type="text"
@@ -843,7 +844,7 @@ export default function AdminGallery() {
               </div>
 
               {bulkCategoryType === 'existing' ? (
-                <select
+                <SearchableSelect
                   value={bulkSelectedCategory}
                   onChange={e => setBulkSelectedCategory(e.target.value)}
                   className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700 font-semibold"
@@ -855,7 +856,7 @@ export default function AdminGallery() {
                   ) : (
                     <option value="General">General</option>
                   )}
-                </select>
+                </SearchableSelect>
               ) : (
                 <input
                   type="text"

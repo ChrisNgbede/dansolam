@@ -5,6 +5,7 @@ import { Plus, Edit, Trash2, X, Loader2, AlertCircle, CheckCircle, Percent, Doll
 import { apiFetch } from '../../hooks/useAuth';
 import { useTableState } from '../../hooks/useTableState';
 import TablePaginationControls from '../../components/ui/TablePaginationControls';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 export default function AdminDiscounts() {
   const currencySymbol = getCurrencySymbol();
@@ -163,20 +164,20 @@ export default function AdminDiscounts() {
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <label className="text-[10px] text-gray-500 font-bold uppercase">Type:</label>
-          <select value={filterType} onChange={e => setFilterType(e.target.value)} className="px-2 py-1 rounded-lg border border-gray-200 text-xs bg-white focus:outline-none focus:border-primary">
+          <SearchableSelect value={filterType} onChange={e => setFilterType(e.target.value)} className="px-2 py-1 rounded-lg border border-gray-200 text-xs bg-white focus:outline-none focus:border-primary">
             <option value="all">All Types</option>
             <option value="percentage">Percentage</option>
             <option value="fixed_amount">Fixed Amount</option>
             <option value="bogo">BOGO</option>
-          </select>
+          </SearchableSelect>
         </div>
         <div className="flex items-center gap-2">
           <label className="text-[10px] text-gray-500 font-bold uppercase">Status:</label>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-2 py-1 rounded-lg border border-gray-200 text-xs bg-white focus:outline-none focus:border-primary">
+          <SearchableSelect value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-2 py-1 rounded-lg border border-gray-200 text-xs bg-white focus:outline-none focus:border-primary">
             <option value="all">All</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
-          </select>
+          </SearchableSelect>
         </div>
         <input
           type="text"
@@ -284,11 +285,11 @@ export default function AdminDiscounts() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-gray-550 font-bold uppercase">Type *</label>
-                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white">
+                  <SearchableSelect value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white">
                     <option value="percentage">Percentage Off</option>
                     <option value="fixed_amount">Fixed Amount Off</option>
                     <option value="bogo">Buy X Get Y Free (BOGO)</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
                 {form.type !== 'bogo' && (
                   <div className="flex flex-col gap-1">
@@ -324,11 +325,11 @@ export default function AdminDiscounts() {
 
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] text-gray-550 font-bold uppercase">Apply To *</label>
-                <select value={form.apply_to} onChange={e => setForm({ ...form, apply_to: e.target.value })} className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white">
+                <SearchableSelect value={form.apply_to} onChange={e => setForm({ ...form, apply_to: e.target.value })} className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white">
                   <option value="all">All Products</option>
                   <option value="products">Specific Products</option>
                   <option value="categories">Specific Categories</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               {form.apply_to === 'products' && (

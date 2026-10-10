@@ -22,6 +22,7 @@ Route::get('/banners', [StorefrontController::class, 'getBanners']);
 Route::get('/instagram-feed', [StorefrontController::class, 'getInstagramFeed']);
 Route::get('/categories', [StorefrontController::class, 'getCategories']);
 Route::get('/collections', [StorefrontController::class, 'getCollections']);
+Route::get('/shop-concerns', [StorefrontController::class, 'getShopConcerns']);
 Route::get('/delivery-zones', [StorefrontController::class, 'getDeliveryZones']);
 Route::get('/shipping-rates', [StorefrontController::class, 'getShippingRates']);
 Route::get('/products', [StorefrontController::class, 'getProducts']);
@@ -38,6 +39,7 @@ Route::get('/paypal/client-config', [PayPalController::class, 'clientConfig']);
 Route::post('/paypal/create-order', [PayPalController::class, 'createOrder']);
 Route::post('/paypal/capture-order', [PayPalController::class, 'captureOrder']);
 Route::post('/paypal/authorize-order', [PayPalController::class, 'authorizeOrder']);
+Route::post('/paypal/webhook', [PayPalController::class, 'webhook']);
 Route::match(['get', 'post'], '/track-order', [StorefrontController::class, 'trackOrder']);
 Route::match(['get', 'post'], '/orders/track', [StorefrontController::class, 'trackOrder']);
 Route::post('/products/{id}/reviews', [StorefrontController::class, 'addReview']);
@@ -307,6 +309,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Admin PayPal Refund & Capture management
     Route::post('/admin/paypal/refund', [PayPalController::class, 'refundOrder']);
+    Route::post('/admin/paypal/capture-authorization', [PayPalController::class, 'captureAuthorization']);
+    Route::post('/admin/paypal/void-authorization', [PayPalController::class, 'voidAuthorization']);
     Route::get('/admin/paypal/capture-details/{capture_id}', [PayPalController::class, 'getCaptureDetails']);
 
     // Reports

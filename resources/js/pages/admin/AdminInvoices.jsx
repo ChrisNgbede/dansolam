@@ -7,6 +7,7 @@ import { apiFetch } from '../../hooks/useAuth';
 import { useTableState } from '../../hooks/useTableState';
 import TablePaginationControls from '../../components/ui/TablePaginationControls';
 import { COUNTRIES, getStates } from '../../utils/geoData';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 export default function AdminInvoices() {
   const currencySymbol = getCurrencySymbol();
@@ -21,7 +22,7 @@ export default function AdminInvoices() {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryCity, setDeliveryCity] = useState('');
   const [deliveryState, setDeliveryState] = useState('');
-  const [deliveryCountry, setDeliveryCountry] = useState('Nigeria');
+  const [deliveryCountry, setDeliveryCountry] = useState('United Kingdom');
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
 
   // Costs overrides
@@ -54,6 +55,13 @@ export default function AdminInvoices() {
     enabled: !showCreateForm
   });
   const orders = ordersRes?.data || [];
+
+  // Fetch settings for dynamic store contact details
+  const { data: settingsRes } = useQuery({
+    queryKey: ['admin-settings-invoices'],
+    queryFn: () => apiFetch('/api/admin/settings').then(res => res.json())
+  });
+  const settings = settingsRes?.data?.settings || {};
 
   // Table state hook for listing orders/invoices
   const {
@@ -278,7 +286,7 @@ export default function AdminInvoices() {
     setDeliveryAddress('');
     setDeliveryCity('');
     setDeliveryState('');
-    setDeliveryCountry('Nigeria');
+    setDeliveryCountry('United Kingdom');
     setPaymentMethod('bank_transfer');
     setDeliveryFee('0');
     setDiscountAmount('0');
@@ -512,18 +520,18 @@ export default function AdminInvoices() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] text-gray-550 font-bold uppercase">Delivery Method</label>
-                <select
+                <SearchableSelect
                   value={deliveryMethod}
                   onChange={e => setDeliveryMethod(e.target.value)}
                   className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700 font-semibold"
                 >
                   <option value="pickup">Store Pickup</option>
                   <option value="delivery">Home Delivery</option>
-                </select>
+                </SearchableSelect>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[9px] text-gray-550 font-bold uppercase">Payment Mode</label>
-                <select
+                <SearchableSelect
                   value={paymentMethod}
                   onChange={e => setPaymentMethod(e.target.value)}
                   className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700 font-semibold"
@@ -534,7 +542,7 @@ export default function AdminInvoices() {
                   <option value="stripe">Stripe Credit Card</option>
                   <option value="paypal">PayPal Express</option>
                   <option value="flutterwave">Flutterwave Gateway</option>
-                </select>
+                </SearchableSelect>
               </div>
             </div>
 
@@ -561,7 +569,7 @@ export default function AdminInvoices() {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[9px] text-gray-555 font-bold uppercase">Country</label>
-                  <select
+                  <SearchableSelect
                     value={deliveryCountry}
                     onChange={e => { setDeliveryCountry(e.target.value); setDeliveryState(''); }}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 cursor-pointer h-[34px]"
@@ -569,11 +577,11 @@ export default function AdminInvoices() {
                     {COUNTRIES.map(c => (
                       <option key={c.code} value={c.name}>{c.name}</option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[9px] text-gray-555 font-bold uppercase">State</label>
-                  <select
+                  <SearchableSelect
                     value={deliveryState}
                     onChange={e => setDeliveryState(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 cursor-pointer h-[34px]"
@@ -582,7 +590,7 @@ export default function AdminInvoices() {
                     {getStates(deliveryCountry).map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
             )}
@@ -608,7 +616,7 @@ export default function AdminInvoices() {
                     <div className="sm:col-span-2 flex flex-col gap-1.5">
                       <label className="text-[8px] text-gray-400 font-bold uppercase">Product Title / Custom Name</label>
                       <div className="flex flex-col gap-1">
-                        <select
+                        <SearchableSelect
                           onChange={(e) => handleProductSelect(idx, e.target.value)}
                           className="px-2 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-[10px] bg-white text-gray-700 font-semibold"
                           defaultValue=""
@@ -617,7 +625,7 @@ export default function AdminInvoices() {
                           {products.map(p => (
                             <option key={p.id} value={p.id}>{p.name}</option>
                           ))}
-                        </select>
+                        </SearchableSelect>
                         <input
                           type="text"
                           value={item.name}
@@ -799,9 +807,9 @@ export default function AdminInvoices() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 border border-gray-150 p-4 rounded-xl">
                 <div>
                   <span className="text-[10px] text-gray-400 font-bold uppercase block text-left">Billed From</span>
-                  <span className="font-bold text-gray-900 text-sm mt-1 block text-left">Dansolam</span>
-                  <span className="text-gray-500 block mt-0.5 text-left">Plot 1234, SHOP Boulevard</span>
-                  <span className="text-gray-500 block mt-0.5 text-left">WhatsApp: +234 80 0000 0000</span>
+                  <span className="font-bold text-gray-900 text-sm mt-1 block text-left">{settings.ecommerce_name || 'Dansolam'}</span>
+                  <span className="text-gray-500 block mt-0.5 text-left">{settings.store_address}</span>
+                  <span className="text-gray-500 block mt-0.5 text-left">WhatsApp: {settings.whatsapp_number || '+234 800 000 0000'}</span>
                 </div>
                 <div className="sm:text-right flex flex-col sm:items-end">
                   <span className="text-[10px] text-gray-400 font-bold uppercase block">Invoice Information</span>

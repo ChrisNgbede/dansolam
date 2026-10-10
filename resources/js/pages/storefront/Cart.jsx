@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Minus, Trash2, ArrowRight, ShoppingBag, Percent, Truck, HelpCircle, ShieldCheck } from 'lucide-react';
-import { useCartStore } from '../../store/cartStore';
+import { useCardQuickView } from '../../components/storefront/QuickViewProvider';
+import { useCartStore, isUkCountry } from '../../store/cartStore';
 import SEO from '../../components/seo/SEO';
 import CheckoutStepper from '../../components/storefront/CheckoutStepper';
 import { getCurrencySymbol } from '../../utils/currency';
@@ -15,16 +17,18 @@ export default function Cart() {
   // Zustand State hooks
   const items = useCartStore(state => state.items);
   const coupon = useCartStore(state => state.coupon);
-  const deliveryMethod = useCartStore(state => state.deliveryMethod);
-  const deliveryZone = useCartStore(state => state.deliveryZone);
-  const shippingOption = useCartStore(state => state.shippingOption);
+  const shippingRates = useCartStore(state => state.shippingRates);
+  const shippingMethodId = useCartStore(state => state.shippingMethodId);
+  const deliveryCountry = useCartStore(state => state.deliveryCountry);
 
   const updateQuantity = useCartStore(state => state.updateQuantity);
   const removeItem = useCartStore(state => state.removeItem);
   const setCoupon = useCartStore(state => state.setCoupon);
-  const setDeliveryZone = useCartStore(state => state.setDeliveryZone);
-  const setDeliveryMethod = useCartStore(state => state.setDeliveryMethod);
-  const setShippingOption = useCartStore(state => state.setShippingOption);
+  const setShippingRates = useCartStore(state => state.setShippingRates);
+  const setShippingMethodId = useCartStore(state => state.setShippingMethodId);
+  const setDeliveryCountry = useCartStore(state => state.setDeliveryCountry);
+  const getEligibleShipping = useCartStore(state => state.getEligibleShipping);
+  const getSelectedShipping = useCartStore(state => state.getSelectedShipping);
   const addItem = useCartStore(state => state.addItem);
   const clearCart = useCartStore(state => state.clearCart);
 
@@ -39,11 +43,33 @@ export default function Cart() {
   const [couponSuccess, setCouponSuccess] = useState('');
   const [showClearConfirmation, setShowClearConfirmation] = useState(false);
 
-  // Fetch Delivery Zones for calculations
-  const { data: zonesRes } = useQuery({
-    queryKey: ['delivery-zones-cart'],
-    queryFn: () => fetch('/api/delivery-zones').then(res => res.json())
+  // Lock body scroll when clear cart confirmation is open
+  useEffect(() => {
+    if (showClearConfirmation) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => { if (e.key === 'Escape') setShowClearConfirmation(false); };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = '';
+    }
+  }, [showClearConfirmation]);
+
+  // Shipping methods (same rules checkout and the server use)
+  const { data: shippingRatesRes } = useQuery({
+    queryKey: ['public-shipping-rates'],
+    queryFn: () => fetch('/api/shipping-rates').then(res => res.json())
   });
+  useEffect(() => {
+    if (shippingRatesRes?.data) setShippingRates(shippingRatesRes.data);
+  }, [shippingRatesRes, setShippingRates]);
+  // The cart estimates for the UK until checkout knows the real country.
+  useEffect(() => {
+    if (!deliveryCountry) setDeliveryCountry('United Kingdom');
+  }, [deliveryCountry, setDeliveryCountry]);
 
   // Fetch Ecommerce Settings for configurations
   const { data: settingsRes } = useQuery({
@@ -51,7 +77,6 @@ export default function Cart() {
     queryFn: () => fetch('/api/settings').then(res => res.json())
   });
 
-  const zones = zonesRes?.data || [];
   const settings = settingsRes?.data?.settings || {};
   const allowOverselling = settings.allow_overselling === 'true' || settings.allow_overselling === true || settings.allow_overselling === '1' || settings.allow_overselling === 1;
   const hasUnavailableItems = !allowOverselling && items.some(item => item.max_stock <= 0 || item.quantity > item.max_stock);
@@ -69,10 +94,10 @@ export default function Cart() {
     .filter(p => !cartProductIds.includes(p.id))
     .slice(0, 3);
 
-  // Default select first zone if none active
-  if (zones.length > 0 && !deliveryZone) {
-    setDeliveryZone(zones[0]);
-  }
+  const isUkEstimate = isUkCountry(deliveryCountry || 'United Kingdom');
+  const eligibleShipping = getEligibleShipping();
+  const selectedShipping = getSelectedShipping();
+  void shippingRates; void shippingMethodId;
 
   const handleApplyCoupon = async (e) => {
     e.preventDefault();
@@ -123,7 +148,7 @@ export default function Cart() {
         style={{ background: 'radial-gradient(circle, rgba(236,38,143,0.20) 0%, rgba(93,62,133,0.16) 42%, transparent 70%)' }}
       />
 
-        <SEO title="Your Bag is Empty" description="Your shopping cart is currently empty. Explore our latest luxury drop and designer collections." />
+        <SEO title="Your Bag is Empty" description="Your shopping cart is currently empty. Explore our organic skincare and body care products." />
 
         <div className="max-w-2xl mx-auto relative z-10">
           <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl p-8 md:p-12 border border-gray-150 dark:border-gray-750 shadow-xl shadow-gray-200/50 dark:shadow-none flex flex-col items-center text-center gap-6 relative overflow-hidden">
@@ -150,7 +175,7 @@ export default function Cart() {
               Your Bag is Empty
             </h1>
             <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              Explore our premium skincare formulas, luxury facial treatments, and organic body essentials curated to enhance your natural glow.
+              Explore our 100% organic body creams, oils, scrubs, soaps and skincare.
             </p>
           </div>
 
@@ -199,10 +224,10 @@ export default function Cart() {
           {/* Trust Guarantees Footer Row */}
           <div className="flex flex-wrap items-center justify-center gap-6 text-[10px] text-gray-400 pt-2 font-medium">
             <span className="flex items-center gap-1.5">
-              <Truck className="w-3.5 h-3.5 text-[#5D3E85]" /> Free Express Delivery
+              <Truck className="w-3.5 h-3.5 text-[#5D3E85]" /> Nationwide Delivery
             </span>
             <span className="flex items-center gap-1.5">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> 100% Authentic Guarantee
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> 100% Organic
             </span>
           </div>
 
@@ -236,7 +261,7 @@ export default function Cart() {
             <h1 className="font-extrabold text-xl md:text-2xl text-[#221B2B] dark:text-[#F3EFF6]">
               Shopping Cart ({items.length} items)
             </h1>
-            <button type="button" onClick={() => setShowClearConfirmation(true)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-red-200 dark:border-red-800 bg-white dark:bg-[#1E1528] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer btn-spring">
+            <button type="button" onClick={() => setShowClearConfirmation(true)} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full border border-red-200 dark:border-red-800 bg-white dark:bg-[#1E1528] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 text-[10px] font-bold  tracking-wider transition-colors cursor-pointer btn-spring">
               <Trash2 className="w-3.5 h-3.5" /> Clear Cart
             </button>
           </div>
@@ -321,7 +346,7 @@ export default function Cart() {
                     </button>
                   </div>
 
-                  <span className={`text-[9px] font-bold uppercase mt-1 tracking-wider leading-none ${item.max_stock > 0 || allowOverselling ? 'text-[#5D3E85] dark:text-[#EC268F]' : 'text-rose-500'}`}>
+                  <span className={`text-[9px] font-bold  mt-1 tracking-wider leading-none ${item.max_stock > 0 || allowOverselling ? 'text-[#5D3E85] dark:text-[#EC268F]' : 'text-rose-500'}`}>
                     {item.max_stock > 0
                       ? `Only ${item.max_stock} units left`
                       : allowOverselling
@@ -389,80 +414,52 @@ export default function Cart() {
                 </div>
               )}
 
-              {/* Delivery Methods toggle */}
+              {/* Shipping estimate: same rules as checkout */}
               <div className="border-t border-[#5D3E85]/10 my-2 pt-3 flex flex-col gap-2.5">
-                <span className="font-bold text-[#221B2B] dark:text-[#F3EFF6] text-[10px]  tracking-wider block">Delivery Method</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setDeliveryMethod('delivery')}
-                    className={`py-2 rounded-full border text-center font-bold text-[10px] tracking-wider uppercase transition-all cursor-pointer btn-spring ${deliveryMethod === 'delivery' ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85] dark:bg-[#EC268F] text-white shadow-xs' : 'border-gray-200 dark:border-white/15 text-gray-500 dark:text-[#C9BED4] bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10'
-                      }`}
-                  >
-                    Home Delivery
-                  </button>
-                  <button
-                    onClick={() => setDeliveryMethod('pickup')}
-                    className={`py-2 rounded-full border text-center font-bold text-[10px] tracking-wider uppercase transition-all cursor-pointer btn-spring ${deliveryMethod === 'pickup' ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85] dark:bg-[#EC268F] text-white shadow-xs' : 'border-gray-200 dark:border-white/15 text-gray-500 dark:text-[#C9BED4] bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10'
-                      }`}
-                  >
-                    Store Pickup
-                  </button>
+                <span className="font-bold text-[#221B2B] dark:text-[#F3EFF6] text-xs block">Shipping to</span>
+                <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Shipping destination">
+                  {[
+                    { label: 'United Kingdom', value: 'United Kingdom', active: isUkEstimate },
+                    { label: 'International', value: 'International', active: !isUkEstimate },
+                  ].map((dest) => (
+                    <button
+                      key={dest.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={dest.active}
+                      onClick={() => { setDeliveryCountry(dest.value); setShippingMethodId(null); }}
+                      className={`py-2 rounded-full border text-center font-bold text-xs transition-all cursor-pointer btn-spring ${dest.active ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85] dark:bg-[#EC268F] text-white shadow-xs' : 'border-gray-200 dark:border-white/15 text-gray-600 dark:text-[#C9BED4] bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10'}`}
+                    >
+                      {dest.label}
+                    </button>
+                  ))}
                 </div>
+
+                {eligibleShipping.length > 0 ? (
+                  <div className="flex flex-col gap-1.5" role="radiogroup" aria-label="Shipping method">
+                    {eligibleShipping.map((method) => {
+                      const checked = selectedShipping?.id === method.id;
+                      const price = parseFloat(method.rate || 0);
+                      return (
+                        <label key={method.id} className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border cursor-pointer text-xs ${checked ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85]/5 dark:bg-white/5' : 'border-gray-200 dark:border-white/15'}`}>
+                          <span className="flex items-center gap-2 min-w-0">
+                            <input type="radio" name="cart_shipping" checked={checked} onChange={() => setShippingMethodId(method.id)} className="accent-[#5D3E85] shrink-0" />
+                            <span className="truncate text-[#221B2B] dark:text-[#F3EFF6] font-semibold" title={method.description || method.name}>{method.name}</span>
+                          </span>
+                          <span className="shrink-0 font-bold">{price === 0 ? 'Free' : `${currencySymbol}${price.toFixed(2)}`}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <span className="text-xs text-gray-500 dark:text-[#9B8EA9]">Shipping is confirmed at checkout.</span>
+                )}
               </div>
-
-              {/* Home Delivery Options */}
-              {deliveryMethod === 'delivery' && (
-                <div className="flex flex-col gap-2 mt-1 pt-2 border-t border-[#5D3E85]/10">
-                  <span className="font-bold text-[#221B2B] dark:text-[#F3EFF6] text-[10px]  tracking-wider block">Shipping Type</span>
-                  <select
-                    value={shippingOption}
-                    onChange={(e) => setShippingOption(e.target.value)}
-                    className="px-3 py-2 border border-gray-200 dark:border-white/15 rounded-full focus:outline-none focus:border-[#5D3E85] bg-white dark:bg-[#231B30] text-xs text-[#221B2B] dark:text-[#F3EFF6] font-medium cursor-pointer"
-                  >
-                    <option value="standard">Standard Domestic Delivery</option>
-                    <option value="same_day">Same Day Express (+{currencySymbol}{parseFloat(settings.shipping_same_day_surcharge || 5000).toLocaleString()})</option>
-                    <option value="international">International Shipping ({currencySymbol}{parseFloat(settings.shipping_international_base || 25000).toLocaleString()})</option>
-                  </select>
-                </div>
-              )}
-
-              {/* Delivery Zone select */}
-              {deliveryMethod === 'delivery' && shippingOption !== 'international' && zones.length > 0 && (
-                <div className="flex flex-col gap-2 mt-1.5">
-                  <label className="font-bold text-[#221B2B] dark:text-[#F3EFF6] text-[10px] uppercase tracking-wider block">Select Delivery Area</label>
-                  <select
-                    value={deliveryZone?.id || ''}
-                    onChange={(e) => {
-                      const z = zones.find(x => x.id === parseInt(e.target.value));
-                      if (z) setDeliveryZone(z);
-                    }}
-                    className="px-3.5 py-2.5 border border-gray-200 dark:border-white/15 rounded-full focus:outline-none focus:border-[#5D3E85] bg-white dark:bg-[#231B30] text-xs text-[#221B2B] dark:text-[#F3EFF6] font-medium cursor-pointer"
-                  >
-                    {zones.map((z) => (
-                      <option key={z.id} value={z.id}>
-                        {z.name} (+{currencySymbol}{parseFloat(z.shipping_fee).toLocaleString()})
-                      </option>
-                    ))}
-                  </select>
-                  {deliveryZone && (
-                    <span className="text-[10px] text-gray-400 dark:text-[#9B8EA9] font-medium block mt-0.5">
-                      Estimated Duration: {shippingOption === 'same_day' ? 'Today (Same Day)' : deliveryZone.estimated_days}
-                    </span>
-                  )}
-                </div>
-              )}
-
-              {/* Free shipping ribbon notice */}
-              {parseFloat(settings.shipping_free_threshold) > 0 && getSubtotal() < parseFloat(settings.shipping_free_threshold) && (
-                <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-amber-800 dark:text-amber-300 p-2.5 rounded-xl text-[10px] font-semibold flex items-center gap-1.5 mt-1 leading-snug">
-                  💡 Add {currencySymbol}{(parseFloat(settings.shipping_free_threshold) - getSubtotal()).toLocaleString()} more to get FREE shipping!
-                </div>
-              )}
 
               <div className="flex justify-between border-t border-[#5D3E85]/10 pt-3 items-center">
                 <span>Delivery Fee</span>
                 <span className="font-semibold text-[#221B2B] dark:text-[#F3EFF6]">
-                  {getDeliveryFee(settings) > 0 ? `${currencySymbol}${getDeliveryFee(settings).toLocaleString()}` : 'Free'}
+                  {selectedShipping ? (getDeliveryFee() > 0 ? `${currencySymbol}${getDeliveryFee().toFixed(2)}` : 'Free') : '—'}
                 </span>
               </div>
 
@@ -474,14 +471,14 @@ export default function Cart() {
 
             {/* Coupon Input */}
             <form onSubmit={handleApplyCoupon} className="border-t border-[#5D3E85]/10 pt-4 flex flex-col gap-2">
-              <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider block">Apply Promo Coupon</label>
+              <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider block">Apply Promo Coupon</label>
               <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 w-full max-w-full items-stretch">
                 <input
                   type="text"
                   placeholder="Enter coupon code"
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  className="min-w-0 w-full px-3 py-2 border border-gray-200 dark:border-white/15 rounded-full focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5 uppercase font-semibold text-[#221B2B] dark:text-[#F3EFF6]"
+                  className="min-w-0 w-full px-3 py-2 border border-gray-200 dark:border-white/15 rounded-full focus:outline-none focus:border-[#5D3E85] text-xs bg-white dark:bg-white/5  font-semibold text-[#221B2B] dark:text-[#F3EFF6]"
                 />
                 <button
                   type="submit"
@@ -518,9 +515,17 @@ export default function Cart() {
         </div>
       </div>
 
-      {showClearConfirmation && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="clear-cart-title">
-          <div className="w-full max-w-sm rounded-3xl bg-white dark:bg-[#1E1528] border border-gray-100 dark:border-white/10 shadow-2xl p-6 text-left animate-fade-in text-[#221B2B] dark:text-[#F3EFF6]">
+      {showClearConfirmation && createPortal(
+        <div
+          className="fixed inset-0 bg-black/75 backdrop-blur-md z-[99999] flex items-center justify-center p-4 animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="clear-cart-title"
+        >
+          {/* Backdrop click to close */}
+          <div className="fixed inset-0" onClick={() => setShowClearConfirmation(false)} />
+
+          <div onClick={e => e.stopPropagation()} className="relative z-10 w-full max-w-sm rounded-3xl bg-white dark:bg-[#1E1528] border border-gray-100 dark:border-white/10 shadow-2xl p-6 text-left animate-fade-in text-[#221B2B] dark:text-[#F3EFF6]">
             <div className="w-11 h-11 rounded-full bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 flex items-center justify-center mb-4"><Trash2 className="w-5 h-5" /></div>
             <h2 id="clear-cart-title" className="font-extrabold text-xl">Clear your cart?</h2>
             <p className="text-xs text-gray-500 dark:text-[#9B8EA9] leading-relaxed mt-2">This will remove all {totalItems} item{totalItems === 1 ? '' : 's'} and any applied coupon from your cart.</p>
@@ -529,7 +534,8 @@ export default function Cart() {
               <button type="button" onClick={() => { clearCart(); setShowClearConfirmation(false); systemToast.success('Cart cleared successfully.'); }} className="flex-1 px-4 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold cursor-pointer">Clear Cart</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       </div>
     </div>
@@ -538,6 +544,7 @@ export default function Cart() {
 
 // Reusable compact product card specifically styled for the Cart sidebar cross-selling sections
 function CartProductCard({ product, currencySymbol, addItem, allowOverselling }) {
+  const cardQuickView = useCardQuickView(product);
   const navigate = useNavigate();
   const [isAdded, setIsAdded] = useState(false);
 
@@ -554,8 +561,8 @@ function CartProductCard({ product, currencySymbol, addItem, allowOverselling })
 
   return (
     <div
-      onClick={() => navigate(`/product/${product.slug}`)}
-      className="group flex flex-col bg-white dark:bg-[#1E1528] rounded-2xl overflow-hidden hover:shadow-md border border-[#EADBEE] dark:border-white/10 transition-all duration-300 cursor-pointer relative"
+      {...cardQuickView}
+      className="group flex flex-col bg-white dark:bg-[#1E1528] rounded-2xl overflow-hidden hover:shadow-md border border-[#EADBEE] dark:border-white/10 transition-all duration-300 hover:-translate-y-1 cursor-pointer relative"
     >
       {/* Image Block */}
       <div className="h-40 bg-[#FAF9F6] dark:bg-[#100A16] relative overflow-hidden flex items-center justify-center">
@@ -598,7 +605,7 @@ function CartProductCard({ product, currencySymbol, addItem, allowOverselling })
 
         <button
           onClick={handleAddToCart}
-          className={`w-full py-1.5 rounded-full text-[9px] font-extrabold uppercase tracking-wider transition-all cursor-pointer btn-spring ${isAdded
+          className={`w-full py-1.5 rounded-full text-[9px] font-extrabold  tracking-wider transition-all cursor-pointer btn-spring ${isAdded
               ? 'bg-emerald-600 text-white hover:bg-emerald-700'
               : 'bg-[#5D3E85] hover:bg-[#EC268F] text-white'
             }`}

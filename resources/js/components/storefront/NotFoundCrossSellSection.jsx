@@ -1,9 +1,16 @@
 import React from 'react';
+import { useCardQuickView } from './QuickViewProvider';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { MessageCircle, ArrowRight, Sparkles, ShoppingBag, Plus, Star, Heart, Check } from 'lucide-react';
+import { MessageCircle, ArrowRight, Plus } from 'lucide-react';
 import { getCurrencySymbol } from '../../utils/currency';
 import { useCartStore } from '../../store/cartStore';
+
+/** Cross-sell tile: clicking the card opens Quick View. */
+function CrossSellCard({ product, className, children }) {
+  const cardQuickView = useCardQuickView(product);
+  return <div {...cardQuickView} className={className}>{children}</div>;
+}
 
 export default function NotFoundCrossSellSection() {
   const currencySymbol = getCurrencySymbol();
@@ -22,17 +29,10 @@ export default function NotFoundCrossSellSection() {
   });
 
   const settings = settingsData?.data?.settings || {};
-  const whatsappNumber = settings.whatsapp_number || '2348000000000';
-
-  const defaultProducts = [
-    { id: 'cs1', name: 'Luminous Brightening Serum', price: 45000, was: 56000, category_name: 'SERUMS', badge: 'BESTSELLER', image_url: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=600', slug: 'luminous-brightening-serum' },
-    { id: 'cs2', name: 'Shea Restorative Body Cream', price: 38000, was: 48000, category_name: 'BODY', badge: '5-DAY GLOW', image_url: 'https://images.unsplash.com/photo-1608248597263-00079e96047a?q=80&w=600', slug: 'shea-restorative-body-cream' },
-    { id: 'cs3', name: 'Daily Mineral Sunscreen SPF50', price: 32000, was: 40000, category_name: 'SUN CARE', badge: 'NEW', image_url: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?q=80&w=600', slug: 'daily-mineral-sunscreen-spf50' },
-    { id: 'cs4', name: 'Damask Rose Hydration Mist', price: 28000, was: 35000, category_name: 'MASKS', badge: 'POPULAR', image_url: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=600', slug: 'damask-rose-hydration-mist' }
-  ];
+  const whatsappNumber = settings.whatsapp_number || '2348033105473';
 
   const apiProducts = productsRes?.data?.data || [];
-  const crossSellList = apiProducts.length > 0 ? apiProducts.slice(0, 4) : defaultProducts;
+  const crossSellList = apiProducts.slice(0, 4);
 
   const handleQuickAdd = (e, product) => {
     e.preventDefault();
@@ -60,7 +60,7 @@ export default function NotFoundCrossSellSection() {
   );
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-[#FBFAF8] via-[#F3EBF7] to-[#EFE5F5] dark:from-[#1E1528] dark:via-[#261738] dark:to-[#2B183E] pt-16 pb-20 px-4 sm:px-6 md:px-12 text-left">
+    <section className="relative overflow-hidden bg-gradient-to-b from-white via-[#F3EBF7] to-[#EFE5F5] dark:from-[#1E1528] dark:via-[#261738] dark:to-[#2B183E] pt-16 pb-20 px-4 sm:px-6 md:px-12 text-left">
       {/* Background Soft Ambient Light Blooms */}
       <div className="absolute top-1/3 -left-32 w-80 h-80 bg-[#5D3E85]/20 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 -right-32 w-96 h-96 bg-[#EC268F]/15 rounded-full blur-3xl pointer-events-none" />
@@ -84,7 +84,7 @@ export default function NotFoundCrossSellSection() {
             </h3>
 
             <p className="text-xs sm:text-sm text-[#C9BED4] font-medium leading-relaxed max-w-xl">
-              Our beauty specialists are on standby to evaluate your skin goals, craft custom botanical routines, or locate specific organic formulas for you.
+              Chat with our team and we'll help you find the right product for your skin.
             </p>
           </div>
 
@@ -97,7 +97,7 @@ export default function NotFoundCrossSellSection() {
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-7 py-3.5 bg-[#25D366] hover:bg-[#20ba59] text-white text-xs font-extrabold tracking-wider rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 btn-spring cursor-pointer"
             >
               <MessageCircle className="w-4 h-4 fill-white" />
-              <span>CHAT US</span>
+              <span>Chat Us</span>
             </a>
 
             <Link
@@ -111,6 +111,7 @@ export default function NotFoundCrossSellSection() {
         </div>
 
         {/* 2. CROSS-SELLING SECTION (RECOMMENDED BESTSELLERS) */}
+        {crossSellList.length > 0 && (
         <div className="flex flex-col gap-8">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="flex flex-col gap-2">
@@ -118,7 +119,7 @@ export default function NotFoundCrossSellSection() {
                 Recommended For You
               </span>
               <h4 className="text-2xl sm:text-3xl font-extrabold text-[#221B2B] dark:text-[#F3EFF6] tracking-tight">
-                Popular SHOP Formulations
+                Popular Products
               </h4>
             </div>
 
@@ -137,16 +138,17 @@ export default function NotFoundCrossSellSection() {
               const rawImg = product.images?.[0]?.image_url || product.image_url || product.featured_image || product.image || (product.images && product.images[0]?.url);
               const imgUrl = (rawImg && typeof rawImg === 'string' && rawImg.trim().length > 3)
                 ? (rawImg.startsWith('http') || rawImg.startsWith('/') ? rawImg.trim() : `/${rawImg.trim()}`)
-                : 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=600';
-              const badgeText = product.badge || (product.is_featured ? 'FEATURED' : 'BESTSELLER');
+                : '/images/placeholder-product.svg';
+              const badgeText = product.badge || (product.is_featured ? 'FEATURED' : null);
               const categoryName = product.category?.name || product.category_name || 'SKINCARE';
               const price = product.price || 0;
               const originalPrice = product.compare_at_price || product.was || null;
 
               return (
-                <div
+                <CrossSellCard
                   key={product.id || product.slug}
-                  className="bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/10 rounded-[24px] sm:rounded-[28px] overflow-hidden flex flex-col group hover:shadow-2xl transition-all duration-300 relative text-left"
+                  product={product}
+                  className="bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/10 rounded-[24px] sm:rounded-[28px] overflow-hidden flex flex-col group hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 relative text-left"
                 >
                   {/* Image Container */}
                   <Link
@@ -157,10 +159,12 @@ export default function NotFoundCrossSellSection() {
                       src={imgUrl}
                       alt={product.name}
                       loading="lazy"
+                      width="400"
+                      height="400"
                       decoding="async"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
-                        e.currentTarget.src = 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=600';
+                        e.currentTarget.src = '/images/placeholder-product.svg';
                       }}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
@@ -189,8 +193,7 @@ export default function NotFoundCrossSellSection() {
                       {/* Maximum 2-liner short description below product name */}
                       <p className="text-[10px] sm:text-[11px] text-gray-500 dark:text-[#C9BED4] line-clamp-2 leading-relaxed font-medium mt-0.5">
                         {product.short_description
-                          || (product.description ? product.description.replace(/<[^>]*>?/gm, '').trim() : '')
-                          || 'Cold-pressed botanical oils and natural extracts for glowing skin.'}
+                          || (product.description ? product.description.replace(/<[^>]*>?/gm, '').trim() : '')}
                       </p>
                     </div>
 
@@ -218,11 +221,12 @@ export default function NotFoundCrossSellSection() {
                       </button>
                     </div>
                   </div>
-                </div>
+                </CrossSellCard>
               );
             })}
           </div>
         </div>
+        )}
 
       </div>
     </section>

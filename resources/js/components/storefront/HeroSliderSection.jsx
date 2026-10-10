@@ -2,33 +2,28 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 
-export default function HeroSliderSection({ banners = [], settings = {}, currencySymbol = '₦' }) {
+export default function HeroSliderSection({ banners = [], settings = {}, isLoading = false }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const touchStartX = useRef(null);
 
-  // Fallback signature slide if none exist in DB
-  const defaultSlide = {
-    id: 'default-hero',
-    eyebrow: 'Luxury Bathing & Herbal Polish Soaps',
-    title: 'Pure botanical bath indulgence for',
-    accent_title: 'silken radiant skin.',
-    subtitle: 'Handcrafted organic whitening soaps, foaming botanical cleansers, and herbal bath polishes that gently wash away impurities and reveal deep, radiant luminosity.',
-    image_url: '/images/hero/bathing_soaps.jpg',
-    link_url: '/shop',
-    primary_cta_label: 'Shop Bathing & Soaps',
-    secondary_cta_label: 'Explore Glow Rituals',
-    secondary_cta_url: '/pages/tips',
-    top_kicker: '100% Herbal',
-    top_text: 'Cold-Pressed Extracts',
-    bottom_kicker: 'Whitening Polish Soap',
-    bottom_text: 'Signature Bath Bar',
-    layout_mode: 'default',
-  };
+  const slides = Array.isArray(banners) ? banners : [];
+  const activeSlide = slides[currentIndex] || slides[0] || {};
+  // Hero image ring: gallery entries set in Admin → Hero, each with its own link.
+  const ringImages = (activeSlide?.gallery || []).filter((item) => item?.image_url);
 
-  const slides = Array.isArray(banners) && banners.length > 0 ? banners : [defaultSlide];
-  const activeSlide = slides[currentIndex] || slides[0] || defaultSlide;
+  // A few images fan open like a hand of cards; more images close the fan into a
+  // full circle (60° of sweep per card, capped at 360°).
+  const ringSweep = Math.min(360, ringImages.length * 60);
+  const isFullCircle = ringSweep >= 360;
+  const ringAngle = (index) => (isFullCircle
+    ? (360 / ringImages.length) * index
+    : (index - (ringImages.length - 1) / 2) * (ringSweep / Math.max(1, ringImages.length - 1)));
+
   const isFullBleed = activeSlide.layout_mode === 'full';
+  const isFirstSlide = currentIndex === 0;
+  const storeName = settings.ecommerce_name || 'Dansolam';
+  const storeTagline = settings.brand_tagline || settings.tagline || '100% organic body creams, oils, scrubs and soaps.';
 
   // Autoplay rotation every 7 seconds when more than 1 slide exists
   useEffect(() => {
@@ -72,6 +67,39 @@ export default function HeroSliderSection({ banners = [], settings = {}, currenc
     touchStartX.current = null;
   };
 
+  // Same height as the banner layout so nothing below jumps when banners arrive (CLS).
+  const placeholderHeight = 'min-h-[580px] sm:min-h-[660px]';
+
+  if (isLoading && slides.length === 0) {
+    return (
+      <section aria-hidden="true" className={`relative w-full overflow-hidden bg-gradient-to-br from-[#5D3E85] via-[#4A2B68] to-[#2A1740] ${placeholderHeight}`} />
+    );
+  }
+
+  if (slides.length === 0) {
+    return (
+      <section className="relative w-full overflow-hidden bg-gradient-to-br from-[#5D3E85] via-[#4A2B68] to-[#2A1740] text-white">
+        <div className={`relative z-10 max-w-7xl mx-auto px-6 sm:px-12 pt-32 sm:pt-40 pb-20 sm:pb-28 ${placeholderHeight} flex flex-col justify-center gap-6`}>
+          <h1 className="font-serif font-bold text-[38px] sm:text-[48px] lg:text-[60px] leading-[1.1] max-w-3xl">
+            {storeName}
+          </h1>
+          <p className="text-base sm:text-lg text-white/85 max-w-[44ch] leading-relaxed">
+            {storeTagline}
+          </p>
+          <div className="pt-1">
+            <Link
+              to="/shop"
+              className="inline-flex items-center gap-2.5 px-8 py-4 rounded-full bg-[#C9166F] hover:bg-[#EC268F] text-white font-bold text-sm shadow-xl transition-all btn-spring border border-white/20"
+            >
+              <span>Shop now</span>
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       onMouseEnter={() => setIsPaused(true)}
@@ -101,11 +129,16 @@ export default function HeroSliderSection({ banners = [], settings = {}, currenc
             key={`bg-${activeSlide.id}-${currentIndex}`}
             src={activeSlide.image_url}
             alt={activeSlide.title || 'Hero Campaign'}
+            width="1600"
+            height="900"
+            loading={isFirstSlide ? 'eager' : 'lazy'}
+            fetchPriority={isFirstSlide && isFullBleed ? 'high' : 'auto'}
+            decoding="async"
             className="w-full h-full object-cover object-center transition-transform duration-1000 ease-out"
           />
         )}
         
-        {/* Systematic Multi-Stage Dark Faded Gradient Overlays for soft luxury readability & contrast */}
+        {/* Gradient overlays for text readability */}
         {/* 1. Diagonal & Vertical Left-to-Bottom gradient: soft darkness stretching downwards to cover the full text area while keeping imagery bright */}
         <div className="absolute inset-0 bg-gradient-to-tr from-black/75 via-black/45 to-transparent dark:from-[#0B0610]/85 dark:via-[#0B0610]/55 dark:to-transparent" />
         
@@ -134,9 +167,9 @@ export default function HeroSliderSection({ banners = [], settings = {}, currenc
             isFullBleed ? 'max-w-2xl text-white' : ''
           }`}
         >
-          {activeSlide.eyebrow && (
+          {activeSlide.eyebrow && activeSlide.show_eyebrow !== false && (
             <span
-              className={`self-start px-4 py-1.5 rounded-full text-[11px] font-bold tracking-[0.18em] uppercase ${
+              className={`self-start px-4 py-1.5 rounded-full text-[13px] font-bold ${
                 isFullBleed
                   ? 'border border-[#E5C158]/70 text-[#E5C158] bg-[#E5C158]/20 backdrop-blur-md shadow-sm'
                   : 'border border-[#5D3E85]/40 dark:border-[#E5C158]/40 text-[#5D3E85] dark:text-[#E5C158] bg-[#5D3E85]/5 dark:bg-[#E5C158]/10'
@@ -147,7 +180,7 @@ export default function HeroSliderSection({ banners = [], settings = {}, currenc
           )}
 
           <h1
-            className={`font-extrabold text-[44px] sm:text-6xl lg:text-[74px] leading-[1.06] tracking-[-0.02em] ${
+            className={`font-extrabold text-[38px] sm:text-[48px] lg:text-[60px] leading-[1.1] tracking-[-0.02em] ${
               isFullBleed ? 'text-white [text-shadow:_0_2px_12px_rgba(0,0,0,0.65)]' : 'text-[#221B2B] dark:text-[#F3EFF6]'
             }`}
           >
@@ -155,7 +188,7 @@ export default function HeroSliderSection({ banners = [], settings = {}, currenc
             {activeSlide.accent_title && (
               <>
                 <br />
-                <span className={`font-serif italic font-normal ${isFullBleed ? 'text-[#E5C158] [text-shadow:_0_2px_12px_rgba(0,0,0,0.65)]' : 'text-[#221B2B] dark:text-[#F3EFF6]'}`}>
+                <span className={`font-serif font-normal ${isFullBleed ? 'text-[#E5C158] [text-shadow:_0_2px_12px_rgba(0,0,0,0.65)]' : 'text-[#221B2B] dark:text-[#F3EFF6]'}`}>
                   {activeSlide.accent_title}
                 </span>
               </>
@@ -196,7 +229,8 @@ export default function HeroSliderSection({ banners = [], settings = {}, currenc
             )}
           </div>
 
-          {/* Stats row */}
+          {/* Stats row (only when provided by the banner) */}
+          {activeSlide.top_kicker && activeSlide.show_highlights !== false && (
           <div
             className={`flex items-center gap-8 pt-6.5 border-t ${
               isFullBleed ? 'border-white/25' : 'border-black/8 dark:border-white/12'
@@ -204,29 +238,14 @@ export default function HeroSliderSection({ banners = [], settings = {}, currenc
           >
             <div className="flex flex-col gap-1">
               <span className={`text-[26px] font-extrabold tracking-tight leading-none ${isFullBleed ? 'text-white [text-shadow:_0_1px_6px_rgba(0,0,0,0.5)]' : 'text-[#221B2B] dark:text-[#F3EFF6]'}`}>
-                {activeSlide.top_kicker || '4.9'}
+                {activeSlide.top_kicker}
               </span>
               <span className={`text-xs ${isFullBleed ? 'text-white/85 font-medium' : 'text-[#5C5566] dark:text-[#9C90A9]'}`}>
-                {activeSlide.top_text || '2,400 reviews'}
-              </span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className={`text-[26px] font-extrabold tracking-tight leading-none ${isFullBleed ? 'text-white [text-shadow:_0_1px_6px_rgba(0,0,0,0.5)]' : 'text-[#221B2B] dark:text-[#F3EFF6]'}`}>
-                48
-              </span>
-              <span className={`text-xs ${isFullBleed ? 'text-white/85 font-medium' : 'text-[#5C5566] dark:text-[#9C90A9]'}`}>
-                products in stock
-              </span>
-            </div>
-            <div className="flex flex-col gap-1">
-              <span className={`text-[26px] font-extrabold tracking-tight leading-none ${isFullBleed ? 'text-white [text-shadow:_0_1px_6px_rgba(0,0,0,0.5)]' : 'text-[#221B2B] dark:text-[#F3EFF6]'}`}>
-                24h
-              </span>
-              <span className={`text-xs ${isFullBleed ? 'text-white/85 font-medium' : 'text-[#5C5566] dark:text-[#9C90A9]'}`}>
-                Fast dispatch
+                {activeSlide.top_text}
               </span>
             </div>
           </div>
+          )}
         </div>
 
         {/* Right Column Hero Portrait & Floating Card (Default Split Layout Mode) */}
@@ -239,34 +258,65 @@ export default function HeroSliderSection({ banners = [], settings = {}, currenc
           }`}
         >
           {/* Hero image container without any borders or shadows as requested */}
-          <div className="h-[480px] sm:h-[580px] lg:h-[620px] rounded-[36px] sm:rounded-[44px] overflow-hidden bg-transparent">
+          <div className={`relative h-[480px] sm:h-[580px] lg:h-[620px] rounded-[36px] sm:rounded-[44px] ${ringImages.length > 1 ? 'overflow-visible' : 'overflow-hidden bg-white dark:bg-[#1E1528]'}`}>
+            {ringImages.length > 1 ? (
+              // Admin-set gallery: cards fan out evenly into a ring.
+              <div
+                key={`ring-${activeSlide.id}-${currentIndex}`}
+                className="hero-ring absolute inset-0 grid place-items-center"
+                style={{ '--ring-count': ringImages.length }}
+                data-ring-shape={isFullCircle ? 'circle' : 'fan'}
+              >
+                {ringImages.map((item, i) => (
+                  <Link
+                    key={`${item.image_url}-${i}`}
+                    to={item.link_url || activeSlide.ctaLink || '/shop'}
+                    aria-label={item.label || `Hero image ${i + 1}`}
+                    className="hero-ring__card"
+                    style={{ '--i': i, '--a': `${ringAngle(i)}deg` }}
+                  >
+                    <img
+                      src={item.image_url}
+                      alt={item.label || ''}
+                      loading={isFirstSlide && i < 3 ? 'eager' : 'lazy'}
+                      decoding="async"
+                      width="260"
+                      height="260"
+                      className="w-full h-full object-cover"
+                    />
+                  </Link>
+                ))}
+              </div>
+            ) : activeSlide.image_url && (
             <img
               key={`fg-${activeSlide.id}-${currentIndex}`}
-              src={activeSlide.image_url || 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?q=80&w=1200'}
+              src={activeSlide.image_url}
               alt={activeSlide.title || 'Hero Portrait'}
-              className="w-full h-full object-cover object-center transition-all duration-700 ease-out hover:scale-105"
+              width="800"
+              height="1000"
+              loading={isFirstSlide ? 'eager' : 'lazy'}
+              fetchPriority={isFirstSlide && !isFullBleed ? 'high' : 'auto'}
+              decoding="async"
+              className="hero-photo-pop w-full h-full object-cover object-center transition-all duration-700 ease-out hover:scale-105"
             />
+            )}
           </div>
 
-          {/* Floating Highlight / Bestseller Card (Clean & Borderless Glassmorphism) */}
-          <div className="absolute -left-3 sm:-left-6 bottom-6 sm:bottom-8 w-60 sm:w-68 bg-white/95 dark:bg-[#17101F]/90 backdrop-blur-xl rounded-[20px] p-3.5 sm:p-4 flex items-center gap-3.5 z-20">
-            <img
-              src="https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=300"
-              alt={activeSlide.bottom_kicker || 'PRISM Glow Serum'}
-              className="w-12 h-12 rounded-[14px] object-cover shrink-0"
-            />
-            <div className="flex flex-col gap-0.5 min-w-0 text-left">
-              <span className="text-[9px] font-extrabold tracking-[0.18em]  text-[#5D3E85] dark:text-[#E5C158]">
-                {activeSlide.bottom_text || 'Bestseller'}
-              </span>
-              <span className="text-xs sm:text-sm font-bold text-[#221B2B] dark:text-[#F3EFF6] truncate leading-tight">
-                {activeSlide.bottom_kicker || 'PRISM Glow Serum'}
-              </span>
-              <span className="text-xs sm:text-[13px] font-extrabold text-[#221B2B] dark:text-[#F3EFF6]">
-                {currencySymbol}56,000
-              </span>
+          {/* Floating highlight card: travels slowly around the image card's edge */}
+          {activeSlide.bottom_kicker && activeSlide.show_highlights !== false && (
+            <div className="hero-orbit" aria-hidden="false">
+              <div className="hero-orbit__card w-40 sm:w-44 bg-white/95 dark:bg-[#17101F]/90 backdrop-blur-xl rounded-[18px] px-3.5 py-2.5 shadow-lg flex flex-col gap-0.5 text-left">
+                {activeSlide.bottom_text && (
+                  <span className="text-[11px] font-extrabold text-[#5D3E85] dark:text-[#E5C158] truncate">
+                    {activeSlide.bottom_text}
+                  </span>
+                )}
+                <span className="text-[13px] font-bold text-[#221B2B] dark:text-[#F3EFF6] truncate leading-tight">
+                  {activeSlide.bottom_kicker}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

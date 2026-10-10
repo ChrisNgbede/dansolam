@@ -6,6 +6,7 @@ import { Plus, Trash2, Edit, Save, X, Ticket, Search } from 'lucide-react';
 import { apiFetch } from '../../hooks/useAuth';
 import { useTableState } from '../../hooks/useTableState';
 import TablePaginationControls from '../../components/ui/TablePaginationControls';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 export default function AdminCoupons() {
   const currencySymbol = getCurrencySymbol();
@@ -206,7 +207,7 @@ export default function AdminCoupons() {
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] text-gray-500 font-semibold uppercase">Discount Type</label>
-              <select
+              <SearchableSelect
                 value={type}
                 onChange={e => setType(e.target.value)}
                 className="px-3 py-2 border border-gray-200 rounded-lg text-xs bg-white text-gray-700 focus:outline-none"
@@ -214,7 +215,7 @@ export default function AdminCoupons() {
                 <option value="percentage">Percentage (%)</option>
                 <option value="fixed_amount">Fixed Amount ({currencySymbol})</option>
                 <option value="free_delivery">Free Delivery</option>
-              </select>
+              </SearchableSelect>
             </div>
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] text-gray-500 font-semibold uppercase">Value</label>
@@ -336,7 +337,7 @@ export default function AdminCoupons() {
                             />
                           </td>
                           <td className="px-6 py-4">
-                            <select
+                            <SearchableSelect
                               value={editType}
                               onChange={e => setEditType(e.target.value)}
                               className="px-2 py-1 border rounded w-28 text-xs text-gray-755"
@@ -344,7 +345,7 @@ export default function AdminCoupons() {
                               <option value="percentage">Percentage (%)</option>
                               <option value="fixed_amount">Fixed Amount ({currencySymbol})</option>
                               <option value="free_delivery">Free Delivery</option>
-                            </select>
+                            </SearchableSelect>
                           </td>
                           <td className="px-6 py-4">
                             <input

@@ -4,6 +4,7 @@ import { Plus, Search, ReceiptText, WalletCards, Clock3, Trash2, Pencil, X, Laye
 import { apiFetch } from '../../hooks/useAuth';
 import { toast } from '../../components/ui/ToastProvider';
 import { getCurrencySymbol } from '../../utils/currency';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 const categories = ['Inventory transport', 'Rent', 'Utilities', 'Payroll', 'Marketing', 'Repairs', 'Office supplies', 'Professional services', 'Taxes', 'Other'];
 const paymentMethods = ['cash', 'card', 'transfer', 'cheque', 'other'];
@@ -60,7 +61,7 @@ export default function AdminExpenses() {
   const updateBatchRow = (index, key, value) => setBatchRows(rows => rows.map((row, rowIndex) => rowIndex === index ? { ...row, [key]: value } : row));
 
   const FieldLabel = ({ children }) => <span className="mb-1.5 block text-[9px] font-extrabold uppercase tracking-wider text-gray-450">{children}</span>;
-  const Select = ({ value, onChange, children }) => <select className={inputClass} value={value} onChange={onChange}>{children}</select>;
+  const Select = ({ value, onChange, children }) => <SearchableSelect className={inputClass} value={value} onChange={onChange}>{children}</SearchableSelect>;
 
   return (
     <div className="flex flex-col gap-5 pb-8">

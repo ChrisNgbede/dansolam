@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router-dom';
 import { MutationCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AppRoutes from './routes';
 import { ToastProvider, toast } from './components/ui/ToastProvider';
+import AppErrorBoundary from './components/ui/AppErrorBoundary';
+import { restoreSharedSession } from './utils/sessionShare';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,16 +18,21 @@ const queryClient = new QueryClient({
 
 const rootElement = document.getElementById('root');
 if (rootElement) {
-  const root = createRoot(rootElement);
-  root.render(
-    <React.StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
-          <ToastProvider>
-            <AppRoutes />
-          </ToastProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </React.StrictMode>
-  );
+  // Pick up a session-only login from another open tab before any route guard runs.
+  restoreSharedSession().then(() => {
+    const root = createRoot(rootElement);
+    root.render(
+      <React.StrictMode>
+        <QueryClientProvider client={queryClient}>
+          <BrowserRouter>
+            <AppErrorBoundary>
+              <ToastProvider>
+                <AppRoutes />
+              </ToastProvider>
+            </AppErrorBoundary>
+          </BrowserRouter>
+        </QueryClientProvider>
+      </React.StrictMode>
+    );
+  });
 }

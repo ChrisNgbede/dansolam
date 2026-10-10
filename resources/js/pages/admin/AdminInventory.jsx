@@ -5,6 +5,7 @@ import { ClipboardList, Plus, AlertCircle, RefreshCw, Check, Search } from 'luci
 import { apiFetch } from '../../hooks/useAuth';
 import { useTableState } from '../../hooks/useTableState';
 import TablePaginationControls from '../../components/ui/TablePaginationControls';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 export default function AdminInventory() {
   const queryClient = useQueryClient();
@@ -143,7 +144,7 @@ export default function AdminInventory() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] text-gray-500 font-semibold uppercase">Select Product</label>
-              <select
+              <SearchableSelect
                 value={selectedProductId}
                 onChange={e => { setSelectedProductId(e.target.value); setSelectedVariantId(''); }}
                 className="px-3 py-2 border border-gray-200 rounded-lg text-xs bg-white text-gray-700"
@@ -153,12 +154,12 @@ export default function AdminInventory() {
                 {products.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
             
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] text-gray-500 font-semibold uppercase">Select Size/Color Variant</label>
-              <select
+              <SearchableSelect
                 value={selectedVariantId}
                 onChange={e => setSelectedVariantId(e.target.value)}
                 className="px-3 py-2 border border-gray-200 rounded-lg text-xs bg-white text-gray-700"
@@ -169,7 +170,7 @@ export default function AdminInventory() {
                 {activeVariants.map(v => (
                   <option key={v.id} value={v.id}>Size: {v.size} | Color: {v.color} (Current stock: {v.stock_quantity})</option>
                 ))}
-              </select>
+              </SearchableSelect>
             </div>
           </div>
 
@@ -188,7 +189,7 @@ export default function AdminInventory() {
             
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] text-gray-500 font-semibold uppercase">Reason</label>
-              <select
+              <SearchableSelect
                 value={adjustReason}
                 onChange={e => setAdjustReason(e.target.value)}
                 className="px-3 py-2 border border-gray-200 rounded-lg text-xs bg-white text-gray-700 focus:outline-none"
@@ -198,7 +199,7 @@ export default function AdminInventory() {
                 <option value="damaged">Damaged ecommerce item</option>
                 <option value="returned">Customer returned item restock</option>
                 <option value="correction">Inventory correction/Count fix</option>
-              </select>
+              </SearchableSelect>
             </div>
           </div>
 

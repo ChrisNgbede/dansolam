@@ -7,6 +7,7 @@ import { useTableState } from '../../hooks/useTableState';
 import TablePaginationControls from '../../components/ui/TablePaginationControls';
 import { COUNTRIES, getStates } from '../../utils/geoData';
 import { getCurrencySymbol } from '../../utils/currency';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 const currencySymbol = getCurrencySymbol();
 
@@ -34,7 +35,7 @@ export default function AdminCustomers() {
   const [addressLine1, setAddressLine1] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
-  const [country, setCountry] = useState('Nigeria');
+  const [country, setCountry] = useState('United Kingdom');
 
   // UI state messages
   const [successMsg, setSuccessMsg] = useState('');
@@ -164,7 +165,7 @@ export default function AdminCustomers() {
     setAddressLine1('');
     setCity('');
     setState('');
-    setCountry('Nigeria');
+    setCountry('United Kingdom');
     setErrorMsg('');
     setSuccessMsg('');
   };
@@ -195,7 +196,7 @@ export default function AdminCustomers() {
       setAddressLine1(defaultAddr.address_line_1 || '');
       setCity(defaultAddr.city || '');
       setState(defaultAddr.state || '');
-      setCountry(defaultAddr.country || 'Nigeria');
+      setCountry(defaultAddr.country || 'United Kingdom');
     }
 
     setShowEditModal(true);
@@ -337,7 +338,7 @@ export default function AdminCustomers() {
                     <td className="px-6 py-4 text-gray-650">{c.phone || '—'}</td>
                     <td className="px-6 py-4 text-gray-600 font-semibold">{c.orders_count || 0} orders</td>
                     <td className="px-6 py-4 font-bold text-gray-900">
-                      ₦{parseFloat(c.total_spent || 0).toLocaleString()}
+                      {currencySymbol}{parseFloat(c.total_spent || 0).toLocaleString()}
                     </td>
                     <td className="px-6 py-4">
                       {c.measurements && Object.values(c.measurements).some(v => v !== '') ? (
@@ -720,7 +721,7 @@ export default function AdminCustomers() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] text-gray-400 font-bold uppercase">Country</label>
-                  <select
+                  <SearchableSelect
                     value={country}
                     onChange={e => { setCountry(e.target.value); setState(''); }}
                     className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 cursor-pointer"
@@ -728,11 +729,11 @@ export default function AdminCustomers() {
                     {COUNTRIES.map(c => (
                       <option key={c.code} value={c.name}>{c.name}</option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] text-gray-400 font-bold uppercase">State</label>
-                  <select
+                  <SearchableSelect
                     value={state}
                     onChange={e => setState(e.target.value)}
                     className="px-2.5 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 cursor-pointer"
@@ -741,7 +742,7 @@ export default function AdminCustomers() {
                     {getStates(country).map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
@@ -916,7 +917,7 @@ export default function AdminCustomers() {
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] text-gray-400 font-bold uppercase">Country</label>
-                  <select
+                  <SearchableSelect
                     value={country}
                     onChange={e => { setCountry(e.target.value); setState(''); }}
                     className="px-2 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 cursor-pointer"
@@ -924,11 +925,11 @@ export default function AdminCustomers() {
                     {COUNTRIES.map(c => (
                       <option key={c.code} value={c.name}>{c.name}</option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] text-gray-400 font-bold uppercase">State</label>
-                  <select
+                  <SearchableSelect
                     value={state}
                     onChange={e => setState(e.target.value)}
                     className="px-2 py-1 rounded border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 cursor-pointer"
@@ -937,7 +938,7 @@ export default function AdminCustomers() {
                     {getStates(country).map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 

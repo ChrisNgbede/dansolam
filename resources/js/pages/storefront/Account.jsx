@@ -266,19 +266,21 @@ export default function Account() {
   // =========================================================================
   if (!customer) {
     return (
-      <div className="bg-[#FBFAF8] dark:bg-[#17101F] min-h-screen pt-28 sm:pt-36 pb-20 px-4 sm:px-6 md:px-12 font-sans transition-colors duration-300">
-        <SEO title="Sign In / Register | Dansolam Beauty Home" description="Log in or create a customer profile to view your orders, wishlist, and treatment settings." />
+      <div className="bg-white dark:bg-[#17101F] min-h-screen pt-28 sm:pt-36 pb-20 px-4 sm:px-6 md:px-12 font-sans transition-colors duration-300">
+        <SEO title="Sign In / Register | Dansolam Beauty Home" description="Log in or create a customer profile to view your orders, wishlist, and account settings." />
         <div className="max-w-5xl mx-auto">
 
           <div className="bg-white dark:bg-[#1E1528] rounded-[36px] overflow-hidden shadow-2xl flex flex-col md:flex-row min-h-[580px] border border-[#EADBEE] dark:border-white/10 text-left">
             {/* Left Column: Image/Banner (hidden on mobile) */}
-            <div className="hidden md:flex md:w-1/2 relative bg-[#17101F] items-end p-10 text-left">
+            <div className="hidden md:flex md:w-1/2 relative bg-gradient-to-br from-[#5D3E85] via-[#4A2B68] to-[#2A1740] items-end p-10 text-left">
               <div className="absolute inset-0 bg-gradient-to-t from-[#17101F] via-[#5D3E85]/40 to-transparent z-10" />
-              <img loading="eager" decoding="async" fetchPriority="high"
-                src={settings.auth_image_url || settingsData?.data?.fallback_auth_image_url || "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=800"}
+              {(settings.auth_image_url || settingsData?.data?.fallback_auth_image_url) && (
+              <img loading="eager" decoding="async" fetchPriority="high" width="600" height="800"
+                src={settings.auth_image_url || settingsData?.data?.fallback_auth_image_url}
                 alt="Dansolam Beauty Home Campaign"
                 className="absolute inset-0 w-full h-full object-cover"
               />
+              )}
               <div className="relative z-20 text-white flex flex-col gap-3">
                 <span className="text-[10px]  tracking-widest text-[#EC268F] font-extrabold bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 self-start">
                   SHOP Member
@@ -287,7 +289,7 @@ export default function Account() {
                   {settings.auth_title || "Unlock Your Radiant Inner Glow"}
                 </h2>
                 <p className="text-xs text-white/80 font-medium max-w-xs leading-relaxed">
-                  {settings.auth_subtitle || "Join Dansolam Beauty Home and experience luxury spa, skincare, and fashion."}
+                  {settings.auth_subtitle || "Join Dansolam Beauty Home for 100% organic skincare and body care."}
                 </p>
               </div>
             </div>
@@ -296,7 +298,7 @@ export default function Account() {
             <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white dark:bg-[#1E1528] text-[#221B2B] dark:text-[#F3EFF6]">
               <div className="flex flex-col items-center text-center mb-4">
                 {settings.logo_url ? (
-                  <img loading="eager" decoding="async" fetchPriority="high" src={settings.logo_url} alt={settings.ecommerce_name || "Logo"} className="h-10 object-contain mb-4 mx-auto" />
+                  <img loading="eager" decoding="async" width="160" height="40" src={settings.logo_url} alt={settings.ecommerce_name || "Logo"} className="h-10 object-contain mb-4 mx-auto" />
                 ) : (
                   <div className="flex flex-col leading-none text-center mb-4">
                     <span className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6] text-xl tracking-tight">Dansolam</span>
@@ -314,7 +316,7 @@ export default function Account() {
                   </div>
 
                   <div className="flex flex-col gap-1.5 mt-2">
-                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Email Address</label>
+                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Email Address</label>
                     <input
                       type="email"
                       required
@@ -327,7 +329,7 @@ export default function Account() {
 
                   <div className="flex flex-col gap-1.5 relative">
                     <div className="flex justify-between items-center">
-                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Password</label>
+                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Password</label>
                       <Link to="/forgot-password" className="text-[10px] text-[#EC268F] hover:underline font-extrabold">
                         Forgot Password?
                       </Link>
@@ -390,7 +392,7 @@ export default function Account() {
                   </div>
 
                   <div className="flex flex-col gap-1.5 mt-1">
-                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Full Name</label>
+                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Full Name</label>
                     <input
                       type="text"
                       required
@@ -403,7 +405,7 @@ export default function Account() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Email Address</label>
+                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Email Address</label>
                       <input
                         type="email"
                         required
@@ -415,7 +417,7 @@ export default function Account() {
                     </div>
 
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Phone Number</label>
+                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Phone Number</label>
                       <input
                         type="tel"
                         value={regPhone}
@@ -428,7 +430,7 @@ export default function Account() {
 
                   <div className="grid grid-cols-2 gap-3.5">
                     <div className="flex flex-col gap-1.5 relative">
-                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Password</label>
+                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Password</label>
                       <div className="relative">
                         <input
                           type={showRegPassword ? 'text' : 'password'}
@@ -448,7 +450,7 @@ export default function Account() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-1.5 relative">
-                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">Confirm Password</label>
+                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">Confirm Password</label>
                       <div className="relative">
                         <input
                           type={showRegPasswordConf ? 'text' : 'password'}
@@ -498,7 +500,7 @@ export default function Account() {
   // LOGGED-IN CUSTOMER PORTAL
   // =========================================================================
   return (
-    <div className="bg-[#FBFAF8] dark:bg-[#17101F] min-h-screen pt-28 sm:pt-36 pb-20 px-4 sm:px-6 md:px-12 font-sans transition-colors duration-300">
+    <div className="bg-white dark:bg-[#17101F] min-h-screen pt-28 sm:pt-36 pb-20 px-4 sm:px-6 md:px-12 font-sans transition-colors duration-300">
       <SEO title="Customer Portal | Dansolam Beauty Home" description="Manage your customer account, size profiles, saved addresses and order inquiries." />
       <div className="max-w-7xl mx-auto flex flex-col gap-8 text-left">
 
@@ -633,7 +635,7 @@ export default function Account() {
 
             {/* In-App Notifications Feed from Customer Orders & Invoices */}
             <div className="flex flex-col gap-3">
-              <h4 className="font-extrabold text-xs uppercase tracking-wider text-gray-400 dark:text-[#9B8EA9] px-1">Recent Activity & Order Alerts</h4>
+              <h4 className="font-extrabold text-xs  tracking-wider text-gray-400 dark:text-[#9B8EA9] px-1">Recent Activity & Order Alerts</h4>
               {orders.length > 0 ? (
                 orders.map((ord) => (
                   <div
@@ -692,10 +694,10 @@ export default function Account() {
             {/* Add Address Form overlay */}
             {showAddressForm && (
               <form onSubmit={handleAddressSubmit} className="bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-2xl p-5 shadow-sm flex flex-col gap-4">
-                <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase border-b border-gray-100 dark:border-white/10 pb-2">Add New Shipping Address</h4>
+                <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6]  border-b border-gray-100 dark:border-white/10 pb-2">Add New Shipping Address</h4>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase">Address Line 1</label>
+                  <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Address Line 1</label>
                   <input
                     type="text"
                     required
@@ -708,7 +710,7 @@ export default function Account() {
 
                 <div className="grid grid-cols-3 gap-3">
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase">City</label>
+                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">City</label>
                     <input
                       type="text"
                       required
@@ -719,7 +721,7 @@ export default function Account() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase">State</label>
+                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">State</label>
                     <input
                       type="text"
                       required
@@ -729,7 +731,7 @@ export default function Account() {
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase">Country</label>
+                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Country</label>
                     <input
                       type="text"
                       required
@@ -826,12 +828,12 @@ export default function Account() {
           <form onSubmit={handleMeasurementsSubmit} className="bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-2xl p-6 shadow-sm flex flex-col gap-5 max-w-xl animate-fade-in text-left">
             <div>
               <h3 className="font-extrabold text-base text-[#221B2B] dark:text-[#F3EFF6]">My Skin Profile & Routine Preferences</h3>
-              <p className="text-xs text-gray-500 dark:text-[#9B8EA9] mt-1">Save your skin type and concerns here. Our concierge refers to these to recommend personalized skincare formulations and treatment routines.</p>
+              <p className="text-xs text-gray-500 dark:text-[#9B8EA9] mt-1">Save your skin type and concerns here. We use these to suggest suitable products for your skin.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase">Skin Type</label>
+                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Skin Type</label>
                 <select
                   value={skinType}
                   onChange={e => setSkinType(e.target.value)}
@@ -845,7 +847,7 @@ export default function Account() {
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase">Primary Skin Goal</label>
+                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Primary Skin Goal</label>
                 <select
                   value={skinGoal}
                   onChange={e => setSkinGoal(e.target.value)}
@@ -862,7 +864,7 @@ export default function Account() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase">Primary Concern</label>
+                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Primary Concern</label>
                 <select
                   value={skinConcern}
                   onChange={e => setSkinConcern(e.target.value)}
@@ -876,7 +878,7 @@ export default function Account() {
                 </select>
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase">Preferred Texture</label>
+                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Preferred Texture</label>
                 <select
                   value={preferredFormulation}
                   onChange={e => setPreferredFormulation(e.target.value)}
@@ -891,7 +893,7 @@ export default function Account() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase">Skin Sensitivities or Notes (Optional)</label>
+              <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Skin Sensitivities or Notes (Optional)</label>
               <textarea
                 rows="2"
                 placeholder="e.g. Sensitive to strong fragrances, looking for daily brightening routine..."

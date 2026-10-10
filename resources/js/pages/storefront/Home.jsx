@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ArrowRight, Star, Heart, ShoppingBag, Eye, Check, ShieldCheck, Truck, RefreshCw, MessageCircle, X, ChevronLeft, ChevronRight, Sparkles
+  ArrowRight, Star, Heart, Eye, Check, Truck, MessageCircle, ChevronLeft, ChevronRight, Sparkles, Leaf
 } from 'lucide-react';
 import { useCartStore } from '../../store/cartStore';
 import { useWishlistStore } from '../../store/wishlistStore';
@@ -12,15 +12,24 @@ import SEO from '../../components/seo/SEO';
 import FlashSaleSpotlightSection from '../../components/storefront/FlashSaleSpotlightSection';
 import HeroSliderSection from '../../components/storefront/HeroSliderSection';
 import FacelessAvatar from '../../components/ui/FacelessAvatar';
+import { responsiveImageProps } from '../../utils/responsiveImage';
+import SocialProductTile from '../../components/storefront/SocialProductTile';
+import { useCardQuickView, useQuickView } from '../../components/storefront/QuickViewProvider';
+
+const CARD_SIZES = '(min-width: 1280px) 300px, (min-width: 640px) 33vw, 50vw';
 
 export function ProductCard({ product, onQuickView }) {
+  // Clicking anywhere on the card (not a button or link) opens Quick View.
+  const { openQuickView } = useQuickView();
+  const openQuick = onQuickView || openQuickView;
+  const cardQuickView = useCardQuickView(product, { onOpen: openQuick });
   const currencySymbol = getCurrencySymbol();
   const addItemToCart = useCartStore(state => state.addItem);
   const toggleWishlist = useWishlistStore(state => state.toggleItem);
   const wishlistItems = useWishlistStore(state => state.items);
   const [isAdded, setIsAdded] = React.useState(false);
 
-  const DEFAULT_CARD_FALLBACK = 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=600';
+  const DEFAULT_CARD_FALLBACK = '/images/placeholder-product.svg';
   const rawPrice = product?.sale_price || product?.price || 0;
   const numPrice = typeof rawPrice === 'number' ? rawPrice : parseFloat(rawPrice);
   const originalPrice = product?.sale_price ? (typeof product?.price === 'number' ? product?.price : parseFloat(product?.price)) : null;
@@ -56,20 +65,37 @@ export function ProductCard({ product, onQuickView }) {
   };
 
   return (
-    <div className="bg-white dark:bg-[#1F1729] rounded-[24px] border border-[#EADBEE] dark:border-white/8 shadow-xs hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group relative overflow-hidden text-left">
+    <div
+      {...cardQuickView}
+      className="bg-white dark:bg-[#1F1729] rounded-[24px] border border-[#EADBEE] dark:border-white/8 shadow-xs hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group relative overflow-hidden text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#EC268F] focus-visible:ring-offset-2"
+    >
       {/* Product Image Section */}
       <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-[#100A16] group/img w-full">
         <Link to={`/product/${product?.slug || product?.id}`} className="block w-full h-full relative overflow-hidden">
           <img
-            src={image}
+            {...responsiveImageProps(image, CARD_SIZES)}
             alt={product?.name || 'Product'}
-            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = DEFAULT_CARD_FALLBACK; }}
+            loading="lazy"
+            decoding="async"
+            width={600}
+            height={600}
+            onError={(e) => {
+              const img = e.currentTarget;
+              // Retry without the small variant first, then fall back to the placeholder.
+              if (img.hasAttribute('srcset')) { img.removeAttribute('srcset'); return; }
+              img.onerror = null;
+              img.src = DEFAULT_CARD_FALLBACK;
+            }}
             className="w-full h-full object-cover group-hover/img:scale-105 transition-transform duration-500 ease-out"
           />
           {secondaryImage && (
             <img
-              src={secondaryImage}
+              {...responsiveImageProps(secondaryImage, CARD_SIZES)}
               alt=""
+              loading="lazy"
+              decoding="async"
+              width={600}
+              height={600}
               className="w-full h-full object-cover absolute inset-0 opacity-0 group-hover/img:opacity-100 transition-opacity duration-500"
             />
           )}
@@ -77,9 +103,11 @@ export function ProductCard({ product, onQuickView }) {
 
         {/* Badges Container */}
         <div className="absolute top-3.5 left-3.5 flex flex-col gap-1 pointer-events-none z-10">
-          <span className="px-2.5 py-1 bg-[#17101F]/90 text-[#E5C158] text-[10px] font-bold tracking-[0.12em]  rounded-full shadow-xs backdrop-blur-md border border-white/10">
-            {product?.badge || 'Popular'}
-          </span>
+          {product?.badge && (
+            <span className="px-2.5 py-1 bg-[#17101F]/90 text-[#E5C158] text-[10px] font-bold tracking-[0.12em]  rounded-full shadow-xs backdrop-blur-md border border-white/10">
+              {product.badge}
+            </span>
+          )}
           {originalPrice && (
             <span className="px-2.5 py-0.5 bg-[#C9166F] text-white text-[9px] font-extrabold  tracking-wider rounded-full shadow-xs">
               Sale -{Math.round(((originalPrice - numPrice) / originalPrice) * 100)}%
@@ -107,10 +135,10 @@ export function ProductCard({ product, onQuickView }) {
         </button>
 
         {/* Quick View Button on Hover */}
-        {onQuickView && (
+        {(
           <button
             type="button"
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onQuickView(product); }}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); openQuick(product); }}
             className="absolute bottom-3 left-3 px-3.5 py-1.5 rounded-full bg-white/90 dark:bg-[#17101F]/90 backdrop-blur-md text-[#181120] dark:text-white text-[10px] font-bold shadow-md opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center gap-1 cursor-pointer"
           >
             <Eye className="w-3 h-3" />
@@ -123,7 +151,7 @@ export function ProductCard({ product, onQuickView }) {
       <div className="p-5 flex flex-col gap-3 flex-1 justify-between">
         <div className="flex flex-col gap-1.5">
           <span className="text-[10px] font-bold tracking-[0.18em]  text-[#5C5566] dark:text-[#9C90A9] truncate">
-            {product?.category?.name || product?.category || product?.cat || 'SHOP Care'}
+            {product?.category?.name || product?.category || product?.cat || 'Dansolam'}
           </span>
 
           <Link to={`/product/${product?.slug || product?.id}`} className="block">
@@ -136,7 +164,7 @@ export function ProductCard({ product, onQuickView }) {
           <p className="text-[11px] sm:text-xs text-[#5C5566] dark:text-[#C9BED4] line-clamp-2 leading-relaxed font-medium mt-0.5">
             {product?.short_description
               || (product?.description ? product.description.replace(/<[^>]*>?/gm, '').trim() : '')
-              || (product?.blurb || 'Gentle organic formulation enriched with cold-pressed herbal botanicals.')}
+              || product?.blurb || ''}
           </p>
         </div>
 
@@ -170,15 +198,53 @@ export function ProductCard({ product, onQuickView }) {
   );
 }
 
+const SECTION_CLASS = 'px-4 sm:px-8 lg:px-12 py-16 sm:py-20 max-w-7xl mx-auto w-full text-left';
+const EYEBROW_CLASS = 'inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white dark:bg-[#1E1528] text-[#5D3E85] dark:text-[#E5C158] text-[10px] sm:text-[11px] font-extrabold tracking-widest border border-[#EADBEE] dark:border-white/10 shadow-xs self-start';
+const H2_CLASS = 'text-3xl sm:text-[42px] font-extrabold text-[#221B2B] dark:text-[#F3EFF6] tracking-[-0.035em] leading-[1.1]';
+const OUTLINE_BTN_CLASS = 'inline-flex items-center gap-2 px-6 py-3 rounded-full border border-black/15 dark:border-white/20 text-[#221B2B] dark:text-[#F3EFF6] hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-sm transition-all w-fit btn-spring';
+const PRODUCT_PLACEHOLDER = '/images/placeholder-product.svg';
+
+const stripHtml = (html) => (html ? String(html).replace(/<[^>]*>?/gm, '').trim() : '');
+
+function SectionHeader({ eyebrow, title, subtitle, children }) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-9">
+      <div className="flex flex-col gap-2.5">
+        {eyebrow && <span className={EYEBROW_CLASS}>{eyebrow}</span>}
+        <h2 className={H2_CLASS}>{title}</h2>
+        {subtitle && <p className="text-sm text-[#5C5566] dark:text-[#C9BED4] leading-relaxed max-w-xl">{subtitle}</p>}
+      </div>
+      {children && <div className="flex items-center gap-3">{children}</div>}
+    </div>
+  );
+}
+
+function ArticleCover({ src, alt, className = '' }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return <div className={`w-full h-full bg-gradient-to-br from-[#5D3E85] to-[#EC268F] ${className}`} aria-hidden="true" />;
+  }
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      width={800}
+      height={600}
+      onError={() => setFailed(true)}
+      className={`w-full h-full object-cover ${className}`}
+    />
+  );
+}
+
 export default function Home() {
-  const pageRef = useRef(null);
   const currencySymbol = getCurrencySymbol();
   const [quickViewProduct, setQuickViewProduct] = useState(null);
   const [activeTipIndex, setActiveTipIndex] = useState(0);
   const [isTipsHovered, setIsTipsHovered] = useState(false);
   const [openFaq, setOpenFaq] = useState(0);
 
-  // Fetch Dynamic Products from Backend
   const { data: productsRes } = useQuery({
     queryKey: ['products-home'],
     queryFn: () => fetch('/api/products?limit=8').then(res => res.json())
@@ -189,7 +255,7 @@ export default function Home() {
     queryFn: () => fetch('/api/settings').then(res => res.json())
   });
 
-  const { data: bannersRes } = useQuery({
+  const { data: bannersRes, isLoading: isBannersLoading } = useQuery({
     queryKey: ['banners'],
     queryFn: () => fetch('/api/banners').then(res => res.json())
   });
@@ -204,19 +270,16 @@ export default function Home() {
     queryFn: () => fetch('/api/faqs?limit=5').then(res => res.json())
   });
 
-  // Fetch Featured Dynamic Products (up to 20 products configured by Admin)
-  const { data: featuredProductsRes } = useQuery({
+  const { data: featuredProductsRes, isLoading: featuredLoading } = useQuery({
     queryKey: ['featured-products-home'],
     queryFn: () => fetch('/api/products?is_featured=true&limit=20').then(res => res.json())
   });
 
-  // Fetch Flash Sale Products
-  const { data: flashSaleRes } = useQuery({
+  const { data: flashSaleRes, isPending: isFlashSalePending } = useQuery({
     queryKey: ['products-flash-sale-home'],
     queryFn: () => fetch('/api/products?is_flash_sale=true&limit=6').then(res => res.json())
   });
 
-  // Fetch Reviews for Testimonials Marquee
   const { data: reviewsRes } = useQuery({
     queryKey: ['reviews-home'],
     queryFn: () => fetch('/api/reviews?limit=20').then(res => res.json())
@@ -228,666 +291,404 @@ export default function Home() {
   const rawFeatured = featuredProductsRes?.data?.data || [];
   const flashSaleProducts = flashSaleRes?.data?.data || [];
   const apiReviews = reviewsRes?.data?.data || [];
-  const articles = blogRes?.data?.data || [];
   const faqs = faqsRes?.data || [];
 
-  const defaultCatalogue = [
-    { id: 'p1', name: 'Luminous Brightening Serum', price: 45000, was: 56000, cat: 'SERUMS', badge: 'NEW', image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=600', slug: 'luminous-brightening-serum' },
-    { id: 'p2', name: 'Shea Restorative Body Cream', price: 38000, was: 48000, cat: 'BODY', badge: 'BESTSELLER', image: 'https://images.unsplash.com/photo-1608248597263-00079e96047a?q=80&w=600', slug: 'shea-restorative-body-cream' },
-    { id: 'p3', name: 'Daily Mineral Sunscreen SPF50', price: 32000, was: 40000, cat: 'SUN CARE', badge: 'LOW STOCK', image: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?q=80&w=600', slug: 'daily-mineral-sunscreen-spf50' },
-    { id: 'p4', name: 'Damask Rose Hydration Mist', price: 28000, was: 35000, cat: 'MASKS', badge: 'NEW', image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=600', slug: 'damask-rose-hydration-mist' }
-  ];
+  const featuredList = (rawFeatured.length > 0 ? rawFeatured : apiProducts).slice(0, 20);
 
-  const featuredList = (rawFeatured.length > 0 ? rawFeatured : (apiProducts.length > 0 ? apiProducts : defaultCatalogue)).slice(0, 20);
-
-  // Auto-swipe featured catalogue carousel
+  // Featured catalogue carousel
   const catalogueScrollRef = useRef(null);
   const [isCatalogueHovered, setIsCatalogueHovered] = useState(false);
 
   useEffect(() => {
     if (isCatalogueHovered || featuredList.length <= 4) return;
     const interval = setInterval(() => {
-      if (catalogueScrollRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = catalogueScrollRef.current;
-        if (scrollLeft + clientWidth >= scrollWidth - 15) {
-          catalogueScrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-        } else {
-          catalogueScrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
-        }
+      const el = catalogueScrollRef.current;
+      if (!el) return;
+      if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 15) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: 300, behavior: 'smooth' });
       }
     }, 3800);
     return () => clearInterval(interval);
   }, [isCatalogueHovered, featuredList.length]);
 
-  const scrollCatalogueLeft = () => {
-    if (catalogueScrollRef.current) {
-      catalogueScrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
-    }
-  };
+  const scrollCatalogue = (dir) => catalogueScrollRef.current?.scrollBy({ left: dir * 300, behavior: 'smooth' });
 
-  const scrollCatalogueRight = () => {
-    if (catalogueScrollRef.current) {
-      catalogueScrollRef.current.scrollBy({ left: 300, behavior: 'smooth' });
-    }
-  };
-
-  // Auto-swipe reviews marquee
+  // Reviews carousel
   const reviewsScrollRef = useRef(null);
   const [isReviewsHovered, setIsReviewsHovered] = useState(false);
+  const scrollReviews = (dir) => reviewsScrollRef.current?.scrollBy({ left: dir * 360, behavior: 'smooth' });
 
-  const scrollReviewsLeft = () => {
-    if (reviewsScrollRef.current) {
-      reviewsScrollRef.current.scrollBy({ left: -360, behavior: 'smooth' });
-    }
-  };
-
-  const scrollReviewsRight = () => {
-    if (reviewsScrollRef.current) {
-      reviewsScrollRef.current.scrollBy({ left: 360, behavior: 'smooth' });
-    }
-  };
-
-  const defaultTips = [
-    {
-      id: 'tip-1',
-      title: 'The 5-Day Glow Routine for Hyperpigmentation',
-      category: { name: 'Routine Guides' },
-      read_time: '3 min read',
-      cover_image_url: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=800',
-      slug: 'the-5-day-glow-routine-for-hyperpigmentation',
-      excerpt: 'Wash with Whitening Polish Soap, mist rose hydration toner, and apply brightening serum for rapid cellular clarity.'
-    },
-    {
-      id: 'tip-2',
-      title: 'Why Hydroquinone-Free Skincare is the Safest Choice',
-      category: { name: 'Editorial' },
-      read_time: '4 min read',
-      cover_image_url: 'https://images.unsplash.com/photo-1512290900672-1f5be4df1d3a?q=80&w=800',
-      slug: 'why-hydroquinone-free-skincare-is-the-safest-choice',
-      excerpt: 'How pure cold-pressed plant extracts and natural vitamin C repair melanin without skin thinning or rebound pigmentation.'
-    },
-    {
-      id: 'tip-3',
-      title: 'Preserving Botanical Potency: Product Storage & Care',
-      category: { name: 'Sanctuary Tips' },
-      read_time: '2 min read',
-      cover_image_url: 'https://images.unsplash.com/photo-1556228720-195a672e8a03?q=80&w=800',
-      slug: 'preserving-botanical-potency-product-storage-care',
-      excerpt: 'Optimal temperature and airtight storage techniques to keep cold-pressed oils and organic creams active for 12+ months.'
-    },
-    {
-      id: 'tip-4',
-      title: 'The Art of Facial Steaming & Hydro-Glow Exfoliation',
-      category: { name: 'Sanctuary Tips' },
-      read_time: '5 min read',
-      cover_image_url: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=800',
-      slug: 'the-art-of-facial-steaming-hydro-glow-exfoliation',
-      excerpt: 'Step-by-step esthetician steaming protocol to open pores, lift deep-seated debris, and maximize serum absorption.'
-    },
-    {
-      id: 'tip-5',
-      title: 'Sun Protection for Melanin-Rich Skin: Why Mineral SPF Matters',
-      category: { name: 'Routine Guides' },
-      read_time: '3 min read',
-      cover_image_url: 'https://images.unsplash.com/photo-1608248597263-00079e96047a?q=80&w=800',
-      slug: 'sun-protection-for-melanin-rich-skin-why-mineral-spf-matters',
-      excerpt: 'Shielding skin against UVA/UVB damage to prevent hyperpigmentation recurrence without white cast or pore clogging.'
-    }
-  ];
-
-  const tipsList = useMemo(() => {
+  // Articles (blog) — real data only
+  const articles = useMemo(() => {
     const raw = Array.isArray(blogRes?.data) ? blogRes.data : (blogRes?.data?.data || []);
-    if (raw.length > 0) {
-      return raw.slice(0, 10).map((item, idx) => {
-        let cleanExcerpt = item.meta_description || '';
-        if (!cleanExcerpt && item.content) {
-          const text = item.content.replace(/<[^>]*>?/gm, '').trim();
-          cleanExcerpt = text.slice(0, 130) + (text.length > 130 ? '...' : '');
-        }
-        const wordCount = item.content ? item.content.replace(/<[^>]*>?/gm, '').trim().split(/\s+/).length : 200;
-        const readTime = `${Math.max(1, Math.round(wordCount / 200))} min read`;
-
-        return {
-          id: item.id || `tip-${idx}`,
-          title: item.title,
-          slug: item.slug,
-          category: item.category || { name: 'Routine Guides' },
-          read_time: readTime,
-          cover_image_url: item.cover_image_url || item.image_path || defaultTips[idx % defaultTips.length].cover_image_url,
-          excerpt: cleanExcerpt || defaultTips[idx % defaultTips.length].excerpt
-        };
-      });
-    }
-    return defaultTips.slice(0, 10);
+    return raw.slice(0, 10).map((item, idx) => {
+      const text = stripHtml(item.content);
+      const excerpt = item.excerpt || item.meta_description || (text ? text.slice(0, 130) + (text.length > 130 ? '...' : '') : '');
+      const wordCount = text ? text.split(/\s+/).length : 0;
+      return {
+        id: item.id || `article-${idx}`,
+        title: item.title,
+        slug: item.slug,
+        categoryName: item.category?.name || item.tags?.[0]?.name || null,
+        read_time: wordCount > 0 ? `${Math.max(1, Math.round(wordCount / 200))} min read` : null,
+        cover: item.cover_image_url || item.image_url || item.image_path || null,
+        excerpt,
+        published_at: item.published_at,
+      };
+    });
   }, [blogRes]);
 
-  // Auto-scroll through tips every 4.5s (pausing on hover)
   useEffect(() => {
-    if (tipsList.length <= 1 || isTipsHovered) return;
+    if (articles.length <= 1 || isTipsHovered) return;
     const interval = setInterval(() => {
-      setActiveTipIndex((prev) => (prev + 1) % tipsList.length);
+      setActiveTipIndex((prev) => (prev + 1) % articles.length);
     }, 4500);
     return () => clearInterval(interval);
-  }, [tipsList.length, isTipsHovered]);
+  }, [articles.length, isTipsHovered]);
 
-  // Window of max 4 tips visible at a time
   const visibleWindowStart = useMemo(() => {
-    if (tipsList.length <= 4) return 0;
-    const maxStart = tipsList.length - 4;
-    return Math.min(Math.max(0, activeTipIndex - 1), maxStart);
-  }, [activeTipIndex, tipsList.length]);
+    if (articles.length <= 4) return 0;
+    return Math.min(Math.max(0, activeTipIndex - 1), articles.length - 4);
+  }, [activeTipIndex, articles.length]);
 
-  const visibleTips = tipsList.slice(visibleWindowStart, visibleWindowStart + 4);
-  const activeTip = tipsList[activeTipIndex] || tipsList[0] || defaultTips[0];
-  const activeTipImage = activeTip?.cover_image_url || activeTip?.image_path || 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=800';
+  const visibleTips = articles.slice(visibleWindowStart, visibleWindowStart + 4);
+  const activeTip = articles[activeTipIndex] || articles[0];
 
-  const testimonials = [
-    {
-      name: 'Mila R.',
-      handle: 'Verified VIP Buyer · SHOP Member',
-      rating: 5,
-      avatar: null,
-      text: 'The facial treatment at Dansolam left my skin glowing for weeks. The salon atmosphere is unparalleled.'
-    },
-    {
-      name: 'Elena C.',
-      handle: 'Verified VIP Buyer · Glow Routine',
-      rating: 5,
-      avatar: null,
-      text: 'High quality products and a consultation that genuinely changed my daily routine.'
-    },
-    {
-      name: 'Sophie L.',
-      handle: 'Verified VIP Buyer · Spot Remedy',
-      rating: 5,
-      avatar: null,
-      text: 'Expert care from start to finish. The glow serum was worth every naira.'
-    },
-    {
-      name: 'Amara K.',
-      handle: 'Verified VIP Buyer · Herbal Polish',
-      rating: 5,
-      avatar: null,
-      text: 'Visible difference in 5 days! The brightening soap cleared my dark spots effortlessly.'
-    },
-    {
-      name: 'Zainab T.',
-      handle: 'Verified VIP Buyer · Organic Care',
-      rating: 5,
-      avatar: null,
-      text: 'Gentle on skin, zero harsh bleaching chemicals. I recommend Dansolam to all my friends.'
-    }
-  ];
-
-  const allReviewsList = apiReviews.length > 0
-    ? apiReviews.map((r, idx) => ({
+  // Reviews — real data only
+  const reviewsList = apiReviews
+    .filter(r => r && (r.comment || r.image_url))
+    .map((r, idx) => ({
       id: r.id || idx,
-      name: r.customer_name || 'Verified Client',
-      handle: r.product?.name ? `Verified Buyer · ${r.product.name}` : 'Verified Client · SHOP Member',
+      name: r.customer_name || 'Verified Customer',
+      productName: r.product?.name || 'Dansolam',
       rating: r.rating || 5,
       avatar: r.avatar_url || null,
-      text: r.comment || 'Exceptional skincare formulas and results.',
-    }))
-    : testimonials;
+      text: r.comment || '',
+      image: r.image_url || null,
+    }));
 
   useEffect(() => {
-    if (isReviewsHovered || allReviewsList.length <= 2) return;
+    if (isReviewsHovered || reviewsList.length <= 2) return;
     const interval = setInterval(() => {
-      if (reviewsScrollRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = reviewsScrollRef.current;
-        if (scrollLeft + clientWidth >= scrollWidth - 15) {
-          reviewsScrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-        } else {
-          reviewsScrollRef.current.scrollBy({ left: 360, behavior: 'smooth' });
-        }
+      const el = reviewsScrollRef.current;
+      if (!el) return;
+      if (el.scrollLeft + el.clientWidth >= el.scrollWidth - 15) {
+        el.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        el.scrollBy({ left: 360, behavior: 'smooth' });
       }
     }, 3200);
     return () => clearInterval(interval);
-  }, [isReviewsHovered, allReviewsList.length]);
+  }, [isReviewsHovered, reviewsList.length]);
 
-  const defaultConcerns = [
-    {
-      name: 'Brightening & Glow',
-      count: '12 products',
-      blurb: 'Target dullness, restore luminosity, and fade uneven pigmentation naturally.',
-      image: '/images/concerns/brightening_glow.jpg',
-      link: '/shop?category=brightening'
-    },
-    {
-      name: 'Sunburn & Dark Spots',
-      count: '9 products',
-      blurb: 'Botanical oils and restorative creams formulated to clear hyperpigmentation.',
-      image: '/images/concerns/sunburn_spots.jpg',
-      link: '/shop?category=spots'
-    },
-    {
-      name: 'Dryness & Hydration',
-      count: '8 products',
-      blurb: 'Intense cold-pressed plant butters and almond oils for 24-hour hydration.',
-      image: '/images/concerns/dryness_hydration.jpg',
-      link: '/shop?category=hydration'
-    },
-    {
-      name: 'Sensitive & Kids',
-      count: '6 products',
-      blurb: 'Gentle, zero-harsh chemical soaps designed for fragile skin and whole families.',
-      image: '/images/concerns/sensitive_kids.jpg',
-      link: '/shop?category=sensitive'
-    }
-  ];
+  // Shop by concern — admin-managed cards with live product counts
+  const { data: concernRes } = useQuery({
+    queryKey: ['shop-concerns'],
+    queryFn: () => fetch('/api/shop-concerns').then(res => res.json()),
+    staleTime: 5 * 60_000,
+  });
+  const concernSection = concernRes?.data;
 
-  // Dynamic Shop by Concern settings
-  const dynamicConcernEyebrow = settings.shop_by_concern_eyebrow || 'Shop by concern';
-  const dynamicConcernTitle = settings.shop_by_concern_title || 'Start where your skin is';
-  const dynamicConcernShow = settings.shop_by_concern_show !== 'false' && settings.shop_by_concern_show !== false;
+  // Social strip: live Instagram posts when connected (Admin → Settings → Instagram token),
+  // otherwise a random selection of distinct products that open in Quick View.
+  const { data: instagramRes } = useQuery({
+    queryKey: ['instagram-feed'],
+    queryFn: () => fetch('/api/instagram-feed').then(res => res.json()),
+    staleTime: 10 * 60_000,
+  });
+  const instagramPosts = instagramRes?.source === 'instagram' ? (instagramRes.data || []).slice(0, 6) : [];
+  const instagramUrl = instagramRes?.profile_url || settings.instagram_url || '';
+  const instagramHandle = (instagramUrl.match(/instagram\.com\/([^/?#]+)/i)?.[1]) || 'dansolambeautyhome';
 
-  let dynamicConcerns = [];
-  try {
-    if (typeof settings.shop_by_concern_items === 'string') {
-      dynamicConcerns = JSON.parse(settings.shop_by_concern_items);
-    } else if (Array.isArray(settings.shop_by_concern_items)) {
-      dynamicConcerns = settings.shop_by_concern_items;
-    }
-  } catch (e) {
-    dynamicConcerns = [];
-  }
-
-  if (!dynamicConcerns || dynamicConcerns.length === 0) {
-    dynamicConcerns = defaultConcerns;
-  }
-
-  // Dynamically resolve real product images for the "From the studio" section
-  const studioProductPhotos = useMemo(() => {
-    const productPool = [...apiProducts, ...rawFeatured, ...flashSaleProducts];
-    const imageList = [];
-
-    productPool.forEach(p => {
-      if (p.images && Array.isArray(p.images) && p.images.length > 0) {
-        p.images.forEach(img => {
-          const url = typeof img === 'string' ? img : img.image_url;
-          if (url && !imageList.some(item => item.url === url)) {
-            imageList.push({
-              url,
-              name: p.name,
-              slug: p.slug
-            });
-          }
-        });
-      } else if (p.thumbnail || p.image || p.image_url) {
-        const url = p.thumbnail || p.image || p.image_url;
-        if (url && !imageList.some(item => item.url === url)) {
-          imageList.push({
-            url,
-            name: p.name,
-            slug: p.slug
-          });
-        }
-      }
+  const productPool = useMemo(() => {
+    const byId = new Map();
+    [...apiProducts, ...rawFeatured, ...flashSaleProducts].forEach((p) => {
+      const image = p?.images?.[0]?.image_url || p?.image_url || p?.image;
+      if (p?.id && image && !byId.has(p.id)) byId.set(p.id, { product: p, image });
     });
-
-    const defaultBackdrops = [
-      { url: '/storage/products/21.png', name: 'Glowing Moisturizing Cream', slug: 'glowing-moisturizing-500g-fast-selling' },
-      { url: '/storage/products/14.png', name: 'Whitening Polish Soap', slug: 'whitening-polish-soap-750ml' },
-      { url: '/storage/products/24.png', name: 'Essential Oil', slug: 'essential-oil-250g' },
-      { url: '/storage/products/22.png', name: 'Discoloration Oil', slug: 'discoloration-oil-250g' },
-      { url: '/storage/products/7.png', name: 'Children Cream', slug: 'children-cream-500g' },
-      { url: '/storage/products/15.png', name: 'Body & Face Scrub', slug: 'body-and-face-scrub-500g' },
-    ];
-
-    return (imageList.length >= 6 ? imageList : [...imageList, ...defaultBackdrops]).slice(0, 6);
+    return [...byId.values()];
   }, [apiProducts, rawFeatured, flashSaleProducts]);
 
-  const defaultFaqs = [
-    {
-      q: 'How fast do Dansolam organic products show results?',
-      a: 'Most clients notice visible smoothing, hydration, and an improved skin glow within 5 to 7 days of consistent daily use.'
-    },
-    {
-      q: 'Are Dansolam products hydroquinone and chemical-free?',
-      a: 'Yes, 100%. All our soaps, creams, and oils are formulated with pure botanical extracts, almond oil, and herbal oils with zero steroids or harsh bleaching agents.'
-    },
-    {
-      q: 'How long does delivery take?',
-      a: 'Local and express orders dispatch within 24 hours. Nationwide delivery takes 2 to 4 working days via trusted couriers with live tracking.'
-    },
-    {
-      q: 'Can I use Dansolam products on sensitive skin or for children?',
-      a: 'Yes, we have specialized mild herbal formulations created specifically for delicate, sensitive skin and whole families.'
-    },
-    {
-      q: 'How do I consult with a Dansolam beauty specialist for recommendations?',
-      a: 'You can reach out directly to our customer care agent on WhatsApp anytime Monday through Saturday for personalized routine guidance.'
+  // Shuffle once per visit, and only re-pick when the set of products changes.
+  const poolKey = productPool.map((item) => item.product.id).join(',');
+  const randomProducts = useMemo(() => {
+    const list = [...productPool];
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [list[i], list[j]] = [list[j], list[i]];
     }
-  ];
+    return list.slice(0, 6);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [poolKey]);
 
-  const displayFaqs = faqs.length > 0 ? faqs.map(f => ({ q: f.question, a: f.answer })) : defaultFaqs;
+  // Alternating page bands, counted over the sections that actually render.
+  let bandIndex = 0;
+  const band = () => `home-band${bandIndex++ % 2 ? ' home-band--tint' : ''}`;
+
+  const displayFaqs = faqs.map(f => ({ q: f.question, a: f.answer })).filter(f => f.q);
+  const whatsappNumber = (settings.whatsapp_number || '').replace(/[^0-9]/g, '');
 
   return (
-    <div ref={pageRef} className="min-h-screen bg-[#FBFAF8] dark:bg-[#17101F] text-[#221B2B] dark:text-[#F3EFF6] font-sans antialiased selection:bg-[#EC268F] selection:text-white relative overflow-hidden text-left transition-colors duration-300">
+    <div className="min-h-screen bg-white dark:bg-[#17101F] text-[#221B2B] dark:text-[#F3EFF6] font-sans antialiased selection:bg-[#EC268F] selection:text-white relative overflow-hidden text-left transition-colors duration-300">
       <SEO
-        title="Dansolam Beauty Home | Luxury Skincare & Organic Beauty SHOP"
-        description="Small-batch organic soaps, brightening creams and discoloration oils. Handcrafted in small batches, shipped worldwide."
+        title="Dansolam | 100% Organic Skincare"
+        description="Organic body creams, oils, scrubs, soaps and kids cream by Dansolam."
       />
 
-      {/* 1. HERO SECTION (Dynamic Multi-Slide Hero with CMS Management & Fluid Morphing Transitions) */}
       <HeroSliderSection
         banners={banners}
         settings={settings}
+        isLoading={isBannersLoading}
         currencySymbol={currencySymbol}
       />
 
-      {/* FLASH SALE / EDITORIAL SPOTLIGHT SECTION (Swiping banners with countdown timers) */}
       <FlashSaleSpotlightSection
         settings={settings}
         flashSaleProducts={flashSaleProducts}
       />
 
-      {/* 2. THE CATALOGUE SECTION (Auto-swiping featured products up to 20 items with hover carets) */}
-      <section className="px-4 sm:px-8 lg:px-12 py-16 sm:py-24 max-w-7xl mx-auto w-full">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-9">
-          <div className="flex flex-col gap-2.5 text-left">
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white dark:bg-[#1E1528] text-[#5D3E85] dark:text-[#E5C158] text-[10px] sm:text-[11px] font-extrabold tracking-widest  border border-[#EADBEE] dark:border-white/10 shadow-xs self-start">
-              <Sparkles className="w-3.5 h-3.5 text-[#EC268F]" />
-              <span>Best Sellers & Featured Products</span>
-            </span>
-            <h2 className="text-3xl sm:text-[42px] font-extrabold text-[#221B2B] dark:text-[#F3EFF6] tracking-[-0.035em] leading-[1.1]">
-              Our Top Picks
-            </h2>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              to="/shop"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-black/15 dark:border-white/20 text-[#221B2B] dark:text-[#F3EFF6] hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-sm transition-all w-fit btn-spring"
-            >
+      {/* Everything below waits for the flash-sale block above it, so it never gets pushed down (CLS). */}
+      {!isFlashSalePending && (
+      <>
+      {/* FEATURED PRODUCTS */}
+      {(featuredLoading || featuredList.length > 0) && (
+        <section className={`${SECTION_CLASS} ${band()}`}>
+          <SectionHeader
+            eyebrow={<><Sparkles className="w-3.5 h-3.5 text-[#EC268F]" /><span>Best Sellers & Featured</span></>}
+            title="Our Top Picks"
+          >
+            <Link to="/shop" className={OUTLINE_BTN_CLASS}>
               <span>View all in shop</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
-          </div>
-        </div>
+          </SectionHeader>
 
-        {/* Carousel Container with Hover-Revealed Navigation Carets */}
-        <div
-          onMouseEnter={() => setIsCatalogueHovered(true)}
-          onMouseLeave={() => setIsCatalogueHovered(false)}
-          className="relative group/catalogue w-full"
-        >
-          {/* Left Navigation Caret (Smoothly reveals on section hover) */}
-          <button
-            type="button"
-            onClick={scrollCatalogueLeft}
-            className="absolute -left-2 sm:-left-5 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-white/95 dark:bg-[#1F1729]/95 text-[#221B2B] dark:text-white shadow-2xl border border-[#EADBEE] dark:border-white/15 flex items-center justify-center cursor-pointer transition-all duration-300 opacity-0 -translate-x-3 group-hover/catalogue:opacity-100 group-hover/catalogue:translate-x-0 hover:bg-[#5D3E85] hover:text-white hover:scale-110 active:scale-95"
-            aria-label="Previous products"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-
-          {/* Right Navigation Caret (Smoothly reveals on section hover) */}
-          <button
-            type="button"
-            onClick={scrollCatalogueRight}
-            className="absolute -right-2 sm:-right-5 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-white/95 dark:bg-[#1F1729]/95 text-[#221B2B] dark:text-white shadow-2xl border border-[#EADBEE] dark:border-white/15 flex items-center justify-center cursor-pointer transition-all duration-300 opacity-0 translate-x-3 group-hover/catalogue:opacity-100 group-hover/catalogue:translate-x-0 hover:bg-[#5D3E85] hover:text-white hover:scale-110 active:scale-95"
-            aria-label="Next products"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-
-          {/* Swiping Carousel Track (up to 20 products) */}
-          <div
-            ref={catalogueScrollRef}
-            className="flex gap-5 sm:gap-6 overflow-x-auto scroll-smooth pb-4 pt-1 px-1 snap-x snap-mandatory"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
-            {featuredList.map((p) => (
-              <div
-                key={p.id}
-                className="w-[260px] sm:w-[280px] lg:w-[290px] shrink-0 snap-start"
-              >
-                <ProductCard
-                  product={p}
-                  onQuickView={setQuickViewProduct}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 3. BEAUTY & GLOW TIPS (AUTO-SCROLLING TIPS & PROTOCOLS) */}
-      <section
-        className="px-6 sm:px-12 py-16 max-w-7xl mx-auto"
-        onMouseEnter={() => setIsTipsHovered(true)}
-        onMouseLeave={() => setIsTipsHovered(false)}
-      >
-        <div className="bg-[#FAF7FC] dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/8 rounded-[32px] p-8 sm:p-14 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center relative overflow-hidden">
-          {/* Ambient Decorative Glow */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-[#EC268F]/5 dark:bg-[#EC268F]/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/3" />
-
-          {/* Left Column: Heading, 4 Visible Tips, Controls, View All CTA */}
-          <div className="lg:col-span-6 flex flex-col gap-6 relative z-10 text-left">
-            <div className="flex items-center justify-between gap-4">
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white dark:bg-[#1E1528] text-[#5D3E85] dark:text-[#E5C158] text-[10px] sm:text-[11px] font-extrabold tracking-widest uppercase border border-[#EADBEE] dark:border-white/10 shadow-xs self-start">
-                <Sparkles className="w-3 h-3 text-[#EC268F]" />
-                <span>Beauty & Glow Tips</span>
-              </span>
-
-              {/* Counter Badge & Navigation Buttons if > 4 tips */}
-              {tipsList.length > 4 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-[#5C5566] dark:text-[#9C90A9]">
-                    {activeTipIndex + 1} of {tipsList.length}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTipIndex((prev) => (prev === 0 ? tipsList.length - 1 : prev - 1))}
-                      className="w-7 h-7 rounded-full bg-white dark:bg-white/10 border border-[#EADBEE] dark:border-white/10 flex items-center justify-center text-xs text-[#221B2B] dark:text-[#F3EFF6] hover:bg-[#5D3E85] hover:text-white dark:hover:bg-[#EC268F] transition-all cursor-pointer shadow-xs active:scale-95"
-                      title="Previous Tip"
-                      aria-label="Previous Tip"
-                    >
-                      <ChevronLeft className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTipIndex((prev) => (prev + 1) % tipsList.length)}
-                      className="w-7 h-7 rounded-full bg-white dark:bg-white/10 border border-[#EADBEE] dark:border-white/10 flex items-center justify-center text-xs text-[#221B2B] dark:text-[#F3EFF6] hover:bg-[#5D3E85] hover:text-white dark:hover:bg-[#EC268F] transition-all cursor-pointer shadow-xs active:scale-95"
-                      title="Next Tip"
-                      aria-label="Next Tip"
-                    >
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
+          {featuredLoading && featuredList.length === 0 ? (
+            <div className="flex gap-5 sm:gap-6 overflow-hidden pb-4 pt-1 px-1">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="w-[260px] sm:w-[280px] lg:w-[290px] shrink-0 rounded-[24px] border border-[#EADBEE] dark:border-white/8 bg-white dark:bg-[#1F1729] overflow-hidden animate-pulse">
+                  <div className="aspect-square bg-gray-100 dark:bg-white/5" />
+                  <div className="p-5 flex flex-col gap-2">
+                    <div className="h-3 w-1/3 rounded bg-gray-100 dark:bg-white/5" />
+                    <div className="h-4 w-2/3 rounded bg-gray-100 dark:bg-white/5" />
+                    <div className="h-4 w-1/4 rounded bg-gray-100 dark:bg-white/5 mt-3" />
                   </div>
                 </div>
-              )}
+              ))}
             </div>
+          ) : (
+            <div
+              onMouseEnter={() => setIsCatalogueHovered(true)}
+              onMouseLeave={() => setIsCatalogueHovered(false)}
+              className="relative group/catalogue w-full"
+            >
+              <button
+                type="button"
+                onClick={() => scrollCatalogue(-1)}
+                className="absolute -left-2 sm:-left-5 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-white/95 dark:bg-[#1F1729]/95 text-[#221B2B] dark:text-white shadow-2xl border border-[#EADBEE] dark:border-white/15 flex items-center justify-center cursor-pointer transition-all duration-300 opacity-0 -translate-x-3 group-hover/catalogue:opacity-100 group-hover/catalogue:translate-x-0 hover:bg-[#5D3E85] hover:text-white hover:scale-110 active:scale-95"
+                aria-label="Previous products"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollCatalogue(1)}
+                className="absolute -right-2 sm:-right-5 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-white/95 dark:bg-[#1F1729]/95 text-[#221B2B] dark:text-white shadow-2xl border border-[#EADBEE] dark:border-white/15 flex items-center justify-center cursor-pointer transition-all duration-300 opacity-0 translate-x-3 group-hover/catalogue:opacity-100 group-hover/catalogue:translate-x-0 hover:bg-[#5D3E85] hover:text-white hover:scale-110 active:scale-95"
+                aria-label="Next products"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
 
-            <h2 className="text-3xl sm:text-[42px] font-extrabold text-[#221B2B] dark:text-[#F3EFF6] tracking-[-0.035em] leading-[1.1]">
-              Expert skincare tips,<br />
-              proven daily rituals.
-            </h2>
-            <p className="text-sm sm:text-base text-[#5C5566] dark:text-[#C9BED4] leading-[1.7]">
-              Step-by-step skincare rituals, botanical application techniques, and product routines crafted by our aesthetic experts.
-            </p>
+              <div
+                ref={catalogueScrollRef}
+                className="flex gap-5 sm:gap-6 overflow-x-auto scroll-smooth pb-4 pt-2 px-1 snap-x snap-mandatory"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              >
+                {featuredList.map((p) => (
+                  <div key={p.id} className="w-[260px] sm:w-[280px] lg:w-[290px] shrink-0 snap-start">
+                    <ProductCard product={p} onQuickView={setQuickViewProduct} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
 
-            {/* 4 Visible Tips on Screen at a Time */}
-            <div className="flex flex-col gap-2.5">
-              {visibleTips.map((tip, idx) => {
-                const globalIndex = visibleWindowStart + idx;
-                const isActive = activeTipIndex === globalIndex;
-                const categoryName = tip.category?.name || tip.tags?.[0]?.name || 'Beauty Protocol';
+      {/* SKINCARE TIPS (spotlight of blog articles) */}
+      {articles.length > 0 && activeTip && (
+        <section
+          className={`${SECTION_CLASS} ${band()}`}
+          onMouseEnter={() => setIsTipsHovered(true)}
+          onMouseLeave={() => setIsTipsHovered(false)}
+        >
+          <div className="bg-[#FAF7FC] dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/8 rounded-[32px] p-8 sm:p-14 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-[#EC268F]/5 dark:bg-[#EC268F]/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/3" />
 
-                return (
-                  <div
-                    key={tip.id || tip.slug || globalIndex}
-                    onClick={() => setActiveTipIndex(globalIndex)}
-                    className={`flex items-center justify-between p-4 sm:p-4.5 rounded-2xl cursor-pointer transition-all duration-300 group ${
-                      isActive
+            <div className="lg:col-span-6 flex flex-col gap-6 relative z-10 text-left">
+              <div className="flex items-center justify-between gap-4">
+                <span className={EYEBROW_CLASS}>
+                  <Sparkles className="w-3 h-3 text-[#EC268F]" />
+                  <span>Skincare Tips</span>
+                </span>
+
+                {articles.length > 4 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-[#5C5566] dark:text-[#9C90A9]">
+                      {activeTipIndex + 1} of {articles.length}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setActiveTipIndex((prev) => (prev === 0 ? articles.length - 1 : prev - 1))}
+                        className="w-7 h-7 rounded-full bg-white dark:bg-white/10 border border-[#EADBEE] dark:border-white/10 flex items-center justify-center text-xs text-[#221B2B] dark:text-[#F3EFF6] hover:bg-[#5D3E85] hover:text-white dark:hover:bg-[#EC268F] transition-all cursor-pointer shadow-xs active:scale-95"
+                        aria-label="Previous tip"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTipIndex((prev) => (prev + 1) % articles.length)}
+                        className="w-7 h-7 rounded-full bg-white dark:bg-white/10 border border-[#EADBEE] dark:border-white/10 flex items-center justify-center text-xs text-[#221B2B] dark:text-[#F3EFF6] hover:bg-[#5D3E85] hover:text-white dark:hover:bg-[#EC268F] transition-all cursor-pointer shadow-xs active:scale-95"
+                        aria-label="Next tip"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <h2 className={H2_CLASS}>Care tips for healthy, glowing skin</h2>
+
+              <div className="flex flex-col gap-2.5">
+                {visibleTips.map((tip, idx) => {
+                  const globalIndex = visibleWindowStart + idx;
+                  const isActive = activeTipIndex === globalIndex;
+                  return (
+                    <div
+                      key={tip.id}
+                      onClick={() => setActiveTipIndex(globalIndex)}
+                      className={`flex items-center justify-between p-4 sm:p-4.5 rounded-2xl cursor-pointer transition-all duration-300 group ${isActive
                         ? 'bg-[#C9166F] text-white shadow-xl scale-[1.01]'
                         : 'bg-white dark:bg-white/4 border border-[#EADBEE] dark:border-white/10 text-[#221B2B] dark:text-[#F3EFF6] hover:border-[#C9166F]/50 hover:bg-white/80'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3.5 min-w-0 pr-2">
-                      <span
-                        className={`w-7 h-7 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0 transition-colors ${
-                          isActive
-                            ? 'bg-white/20 text-white border border-white/30'
-                            : 'bg-[#5D3E85]/10 dark:bg-white/10 text-[#5D3E85] dark:text-[#EC268F]'
                         }`}
-                      >
-                        {String(globalIndex + 1).padStart(2, '0')}
-                      </span>
-                      <div className="flex flex-col gap-0.5 min-w-0">
-                        <span className="text-[14px] sm:text-[15px] font-bold leading-snug truncate">
-                          {tip.title}
+                    >
+                      <div className="flex items-center gap-3.5 min-w-0 pr-2">
+                        <span className={`w-7 h-7 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0 transition-colors ${isActive
+                          ? 'bg-white/20 text-white border border-white/30'
+                          : 'bg-[#5D3E85]/10 dark:bg-white/10 text-[#5D3E85] dark:text-[#EC268F]'
+                          }`}>
+                          {String(globalIndex + 1).padStart(2, '0')}
                         </span>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`text-[10px] font-extrabold uppercase tracking-wider ${
-                              isActive ? 'text-white/85' : 'text-[#5D3E85] dark:text-[#E5C158]'
-                            }`}
-                          >
-                            {categoryName}
-                          </span>
-                          {tip.read_time && (
-                            <>
-                              <span className={`text-[10px] ${isActive ? 'text-white/60' : 'text-gray-300'}`}>•</span>
-                              <span className={`text-[10px] ${isActive ? 'text-white/80' : 'text-[#5C5566] dark:text-[#9C90A9]'}`}>
-                                {tip.read_time}
-                              </span>
-                            </>
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <span className="text-[14px] sm:text-[15px] font-bold leading-snug truncate">{tip.title}</span>
+                          {(tip.categoryName || tip.read_time) && (
+                            <div className="flex items-center gap-2">
+                              {tip.categoryName && (
+                                <span className={`text-[10px] font-extrabold  tracking-wider ${isActive ? 'text-white/85' : 'text-[#5D3E85] dark:text-[#E5C158]'}`}>
+                                  {tip.categoryName}
+                                </span>
+                              )}
+                              {tip.categoryName && tip.read_time && (
+                                <span className={`text-[10px] ${isActive ? 'text-white/60' : 'text-gray-300'}`}>•</span>
+                              )}
+                              {tip.read_time && (
+                                <span className={`text-[10px] ${isActive ? 'text-white/80' : 'text-[#5C5566] dark:text-[#9C90A9]'}`}>{tip.read_time}</span>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>
-                    </div>
-
-                    <div className="shrink-0 flex items-center gap-2">
-                      <span
-                        className={`text-xs font-bold px-3 py-1 rounded-full transition-all flex items-center gap-1 ${
-                          isActive
-                            ? 'bg-white text-[#C9166F] shadow-sm'
-                            : 'bg-gray-100 dark:bg-white/10 text-[#221B2B] dark:text-[#F3EFF6] group-hover:bg-[#C9166F] group-hover:text-white'
-                        }`}
-                      >
+                      <span className={`shrink-0 text-xs font-bold px-3 py-1 rounded-full transition-all flex items-center gap-1 ${isActive
+                        ? 'bg-white text-[#C9166F] shadow-sm'
+                        : 'bg-gray-100 dark:bg-white/10 text-[#221B2B] dark:text-[#F3EFF6] group-hover:bg-[#C9166F] group-hover:text-white'
+                        }`}>
                         <span>Read</span>
                         <ArrowRight className="w-3 h-3" />
                       </span>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
 
-            {/* View All Tips CTA & Progress Dots */}
-            <div className="pt-2 flex items-center justify-between gap-4 flex-wrap">
-              <Link
-                to="/pages/tips"
-                className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold shadow-md hover:shadow-lg transition-all btn-spring group"
-              >
-                <span>View All Tips & Protocols</span>
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-              </Link>
-
-              {/* Slide dots indicator */}
-              {tipsList.length > 1 && (
-                <div className="flex items-center gap-1.5">
-                  {tipsList.map((_, dotIdx) => (
-                    <button
-                      key={dotIdx}
-                      type="button"
-                      onClick={() => setActiveTipIndex(dotIdx)}
-                      aria-label={`Go to tip ${dotIdx + 1}`}
-                      className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
-                        dotIdx === activeTipIndex
+              <div className="pt-2 flex items-center justify-between gap-4 flex-wrap">
+                <Link
+                  to="/blog"
+                  className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-full bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold shadow-md hover:shadow-lg transition-all btn-spring group"
+                >
+                  <span>View all tips</span>
+                  <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+                {articles.length > 1 && (
+                  <div className="flex items-center gap-1.5">
+                    {articles.map((_, dotIdx) => (
+                      <button
+                        key={dotIdx}
+                        type="button"
+                        onClick={() => setActiveTipIndex(dotIdx)}
+                        aria-label={`Go to tip ${dotIdx + 1}`}
+                        className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${dotIdx === activeTipIndex
                           ? 'w-6 bg-[#C9166F]'
                           : 'w-2 bg-[#5D3E85]/20 dark:bg-white/20 hover:bg-[#5D3E85]/40'
-                      }`}
-                    />
-                  ))}
+                          }`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="lg:col-span-6 h-[440px] sm:h-[540px] rounded-[28px] overflow-hidden bg-gray-100 dark:bg-white/5 border border-[#EADBEE] dark:border-white/10 relative group/visual shadow-lg">
+              <ArticleCover
+                key={`tip-img-${activeTip.id}`}
+                src={activeTip.cover}
+                alt={activeTip.title}
+                className="transition-all duration-700 ease-out group-hover/visual:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+
+              {activeTip.categoryName && (
+                <div className="absolute top-4 left-4 z-10">
+                  <span className="px-3.5 py-1 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white text-[10px] font-extrabold  tracking-wider shadow-sm">
+                    {activeTip.categoryName}
+                  </span>
                 </div>
               )}
-            </div>
-          </div>
 
-          {/* Right Column: Active Tip Featured Image & Live Preview Card */}
-          <div className="lg:col-span-6 h-[440px] sm:h-[540px] rounded-[28px] overflow-hidden bg-gray-100 dark:bg-white/5 border border-[#EADBEE] dark:border-white/10 relative group/visual shadow-lg">
-            <img
-              key={`tip-img-${activeTip.id || activeTip.slug || activeTipIndex}`}
-              src={activeTipImage}
-              alt={activeTip.title}
-              onError={(e) => {
-                e.currentTarget.onerror = null;
-                e.currentTarget.src = 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?q=80&w=800';
-              }}
-              className="w-full h-full object-cover transition-all duration-700 ease-out group-hover/visual:scale-105"
-            />
-            {/* Subtle Gradient Overlays */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-
-            {/* Top Badge: Active Tip Category */}
-            <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-              <span className="px-3.5 py-1 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white text-[10px] font-extrabold uppercase tracking-wider shadow-sm">
-                {activeTip.category?.name || 'Sanctuary Routine'}
-              </span>
-            </div>
-
-            {/* Bottom Floating Info Card */}
-            <div className="absolute bottom-4 left-4 right-4 z-10 bg-white/95 dark:bg-[#1E1528]/95 backdrop-blur-xl rounded-2xl p-5 border border-white/20 dark:border-white/10 shadow-xl flex flex-col gap-2.5 text-left">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-bold text-[#5D3E85] dark:text-[#EC268F] uppercase tracking-wider">
-                  Featured Glow Tip #{activeTipIndex + 1}
-                </span>
-                <span className="text-[10px] font-bold text-gray-500 dark:text-[#9C90A9]">
-                  {activeTip.read_time || '3 min read'}
-                </span>
-              </div>
-              <h3 className="font-extrabold text-base sm:text-lg text-[#221B2B] dark:text-[#F3EFF6] leading-snug line-clamp-2">
-                {activeTip.title}
-              </h3>
-              {activeTip.excerpt && (
-                <p className="text-xs text-gray-600 dark:text-[#C9BED4] line-clamp-2 leading-relaxed">
-                  {activeTip.excerpt}
-                </p>
-              )}
-              <div className="flex items-center justify-between pt-1">
+              <div className="absolute bottom-4 left-4 right-4 z-10 bg-white/95 dark:bg-[#1E1528]/95 backdrop-blur-xl rounded-2xl p-5 border border-white/20 dark:border-white/10 shadow-xl flex flex-col gap-2.5 text-left">
+                {activeTip.read_time && (
+                  <span className="text-[10px] font-bold text-gray-500 dark:text-[#9C90A9]">{activeTip.read_time}</span>
+                )}
+                <h3 className="font-extrabold text-base sm:text-lg text-[#221B2B] dark:text-[#F3EFF6] leading-snug line-clamp-2">
+                  {activeTip.title}
+                </h3>
+                {activeTip.excerpt && (
+                  <p className="text-xs text-gray-600 dark:text-[#C9BED4] line-clamp-2 leading-relaxed">{activeTip.excerpt}</p>
+                )}
                 <Link
-                  to={activeTip.slug ? `/blog/${activeTip.slug}` : '/pages/tips'}
-                  className="text-xs font-bold text-[#C9166F] hover:text-[#EC268F] inline-flex items-center gap-1.5 group/link"
+                  to={activeTip.slug ? `/blog/${activeTip.slug}` : '/blog'}
+                  className="text-xs font-bold text-[#C9166F] hover:text-[#EC268F] inline-flex items-center gap-1.5 group/link pt-1"
                 >
-                  <span>Read Full Article & Routine</span>
+                  <span>Read article</span>
                   <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-1" />
                 </Link>
-                <Link
-                  to="/pages/tips"
-                  className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 hover:underline"
-                >
-                  All Tips →
-                </Link>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* 4. WHAT CLIENTS SAY SECTION (Marquee Auto-Scrolling + Carets + All Reviews CTA) */}
-      <section
-        className="px-6 sm:px-12 py-16 sm:py-24 max-w-7xl mx-auto relative group/reviews"
-        onMouseEnter={() => setIsReviewsHovered(true)}
-        onMouseLeave={() => setIsReviewsHovered(false)}
-      >
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-9">
-          <div>
-            <span className="inline-flex items-center px-3.5 py-1 rounded-full bg-white dark:bg-[#1E1528] text-[#5D3E85] dark:text-[#E5C158] text-[10px] sm:text-[11px] font-extrabold tracking-widest  border border-[#EADBEE] dark:border-white/10 shadow-xs self-start mb-2">
-              Client Testimonials
-            </span>
-            <h2 className="text-3xl sm:text-[42px] font-extrabold text-[#221B2B] dark:text-[#F3EFF6] tracking-[-0.035em] leading-[1.1]">
-              What clients say
-            </h2>
-            <span className="text-xs sm:text-sm text-[#5C5566] dark:text-[#9C90A9] mt-1 block">
-              4.9 average · 2,400+ genuine reviews
-            </span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* View All Reviews Button */}
+      {/* CUSTOMER REVIEWS */}
+      {reviewsList.length > 0 && (
+        <section
+          className={`${SECTION_CLASS} ${band()} relative group/reviews`}
+          onMouseEnter={() => setIsReviewsHovered(true)}
+          onMouseLeave={() => setIsReviewsHovered(false)}
+        >
+          <SectionHeader eyebrow="Customer Reviews" title="What customers say">
             <Link
               to="/reviews"
               className="px-5 py-2.5 rounded-full border border-[#5D3E85]/25 dark:border-white/20 text-[#5D3E85] dark:text-[#EC268F] hover:bg-[#5D3E85] hover:text-white dark:hover:bg-[#EC268F] dark:hover:text-white text-xs font-bold transition-all shadow-xs flex items-center gap-2 btn-spring"
@@ -895,117 +696,180 @@ export default function Home() {
               <span>All Reviews</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
+            {reviewsList.length > 1 && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => scrollReviews(-1)}
+                  className="w-10 h-10 rounded-full bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/12 flex items-center justify-center text-[#221B2B] dark:text-[#F3EFF6] hover:bg-[#5D3E85] hover:text-white dark:hover:bg-[#EC268F] transition-all shadow-xs cursor-pointer active:scale-95"
+                  aria-label="Previous reviews"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollReviews(1)}
+                  className="w-10 h-10 rounded-full bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/12 flex items-center justify-center text-[#221B2B] dark:text-[#F3EFF6] hover:bg-[#5D3E85] hover:text-white dark:hover:bg-[#EC268F] transition-all shadow-xs cursor-pointer active:scale-95"
+                  aria-label="Next reviews"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </SectionHeader>
 
-            {/* Navigation Carets */}
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={scrollReviewsLeft}
-                className="w-10 h-10 rounded-full bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/12 flex items-center justify-center text-[#221B2B] dark:text-[#F3EFF6] hover:bg-[#5D3E85] hover:text-white dark:hover:bg-[#EC268F] transition-all shadow-xs cursor-pointer active:scale-95"
-                title="Scroll Previous"
-                aria-label="Previous Reviews"
+          <div
+            ref={reviewsScrollRef}
+            className="flex gap-6 overflow-x-auto scrollbar-none scroll-smooth pb-4 pt-2 px-1 snap-x snap-mandatory"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
+            {reviewsList.map((r) => (
+              <div
+                key={r.id}
+                className="min-w-[300px] sm:min-w-[360px] md:min-w-[390px] max-w-[420px] shrink-0 bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/10 rounded-[24px] p-7 md:p-8 flex flex-col justify-between gap-5 shadow-xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 snap-start select-none"
               >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={scrollReviewsRight}
-                className="w-10 h-10 rounded-full bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/12 flex items-center justify-center text-[#221B2B] dark:text-[#F3EFF6] hover:bg-[#5D3E85] hover:text-white dark:hover:bg-[#EC268F] transition-all shadow-xs cursor-pointer active:scale-95"
-                title="Scroll Next"
-                aria-label="Next Reviews"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Marquee Horizontal Scrolling Track */}
-        <div
-          ref={reviewsScrollRef}
-          className="flex gap-6 overflow-x-auto scrollbar-none scroll-smooth pb-4 pt-2 snap-x snap-mandatory"
-          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-        >
-          {allReviewsList.map((r, idx) => (
-            <div
-              key={r.id || idx}
-              className="min-w-[300px] sm:min-w-[360px] md:min-w-[390px] max-w-[420px] shrink-0 bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/10 rounded-[24px] p-7 md:p-8 flex flex-col justify-between gap-5 shadow-xs hover:shadow-xl transition-all duration-300 snap-start select-none"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1 text-[#E5C158]">
-                  {Array.from({ length: Math.min(5, Math.max(1, r.rating || 5)) }).map((_, i) => (
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, Math.max(1, r.rating)) }).map((_, i) => (
                     <Star key={i} className="w-4 h-4 fill-[#E5C158] text-[#E5C158]" />
                   ))}
                 </div>
-                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <Check className="w-3 h-3" /> Verified Order
-                </span>
-              </div>
 
-              <p className="text-sm sm:text-base leading-[1.7] text-[#5C5566] dark:text-[#E4DDEA] font-medium line-clamp-4">
-                "{r.text}"
-              </p>
+                {r.text && (
+                  <p className="text-sm sm:text-base leading-[1.7] text-[#5C5566] dark:text-[#E4DDEA] font-medium line-clamp-4">
+"{r.text}"
+                  </p>
+                )}
 
-              <div className="flex items-center gap-3.5 pt-5 border-t border-[#EADBEE] dark:border-white/10 mt-auto">
-                <FacelessAvatar
-                  src={r.avatar}
-                  name={r.name}
-                  className="w-10 h-10"
-                />
-                <div className="flex flex-col min-w-0">
-                  <span className="text-sm font-bold text-[#221B2B] dark:text-[#F3EFF6] truncate">{r.name}</span>
-                  <span className="text-xs text-[#5C5566] dark:text-[#9C90A9] truncate">{r.handle}</span>
+                {r.image && (
+                  <a href={r.image} target="_blank" rel="noopener noreferrer" className="block w-20 h-20 rounded-xl overflow-hidden border border-[#EADBEE] dark:border-white/10 bg-gray-100 dark:bg-white/5">
+                    <img
+                      src={r.image}
+                      alt={`Review from ${r.name}`}
+                      loading="lazy"
+                      decoding="async"
+                      width={80}
+                      height={80}
+                      className="w-full h-full object-cover"
+                    />
+                  </a>
+                )}
+
+                <div className="flex items-center gap-3.5 pt-5 border-t border-[#EADBEE] dark:border-white/10 mt-auto">
+                  <FacelessAvatar src={r.avatar} name={r.name} className="w-10 h-10" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-bold text-[#221B2B] dark:text-[#F3EFF6] truncate">{r.name}</span>
+                    <span className="text-xs text-[#5C5566] dark:text-[#9C90A9] truncate">{r.productName}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 5. SHOP BY CONCERN SECTION (Managed in Admin Collections Studio) */}
-      {dynamicConcernShow && (
-        <section className="px-6 sm:px-12 py-16 sm:py-24 max-w-7xl mx-auto text-left">
-          <div className="flex flex-col gap-2.5 mb-9">
-            <span className="inline-flex items-center px-3.5 py-1 rounded-full bg-white dark:bg-[#1E1528] text-[#5D3E85] dark:text-[#E5C158] text-[10px] sm:text-[11px] font-extrabold tracking-widest  border border-[#EADBEE] dark:border-white/10 shadow-xs self-start">
-              {dynamicConcernEyebrow}
-            </span>
-            <h2 className="text-3xl sm:text-[42px] font-extrabold text-[#221B2B] dark:text-[#F3EFF6] tracking-tight">
-              {dynamicConcernTitle}
-            </h2>
+            ))}
           </div>
+        </section>
+      )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {dynamicConcerns.map((c, idx) => (
-              <Link
-                key={c.id || idx}
-                to={c.link || '/shop'}
-                className="bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/8 rounded-[24px] overflow-hidden flex flex-col group hover:shadow-2xl transition-all"
-              >
-                <div className="aspect-square overflow-hidden bg-gray-100 dark:bg-white/5">
-                  <img
-                    src={c.image || 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=500'}
-                    alt={c.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
-                <div className="p-6 flex flex-col gap-2.5 flex-1 justify-between text-left">
-                  <div className="flex flex-col gap-1.5">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <h4 className="text-base font-bold text-[#221B2B] dark:text-[#F3EFF6] group-hover:text-[#C9166F] dark:group-hover:text-[#EC268F] transition-colors leading-snug">
-                        {c.name}
-                      </h4>
-                      {c.count && (
-                        <span className="text-xs text-[#5C5566] dark:text-[#9C90A9] font-medium shrink-0">
-                          {c.count}
-                        </span>
-                      )}
-                    </div>
-                    {c.blurb && (
-                      <p className="text-xs sm:text-[13px] text-[#5C5566] dark:text-[#C9BED4] leading-relaxed line-clamp-3">
-                        {c.blurb}
-                      </p>
+      {/* SHOP BY CONCERN — cards, filters and live counts managed in Admin → Collections → Shop by concern */}
+      {concernSection?.show && concernSection.items?.length > 0 && (
+        <section className={`${SECTION_CLASS} ${band()}`}>
+          <SectionHeader eyebrow={concernSection.eyebrow} title={concernSection.title}>
+            <Link to="/shop" className={OUTLINE_BTN_CLASS}>
+              <span>Browse everything</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </SectionHeader>
+
+          <div className="reveal-group grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 items-stretch">
+            {concernSection.items.map((c) => {
+              const shots = (c.preview_images || []).slice(0, 3);
+              return (
+                <Link
+                  key={c.slug}
+                  to={c.link}
+                  aria-label={`${c.name}: shop ${c.count} ${c.count === 1 ? 'product' : 'products'}`}
+                  className="group flex flex-col h-full rounded-[28px] overflow-hidden bg-[#2A1740] shadow-sm hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#EC268F] focus-visible:ring-offset-2 focus-visible:ring-offset-[#FBFAF8] dark:focus-visible:ring-offset-[#17101F]"
+                >
+                  {/* Image area: up to three product shots, same tint/padding/shadow on every card */}
+                  <div className="relative aspect-[5/4] bg-[#F8EEF6] overflow-hidden">
+                    <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-white/0 via-transparent to-[#5D3E85]/15" />
+                    {c.image ? (
+                      <img
+                        {...responsiveImageProps(c.image, '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw')}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        width={480}
+                        height={384}
+                        className="absolute inset-0 w-full h-full object-contain p-[5%] rounded-[22px] mix-blend-multiply drop-shadow-[0_10px_16px_rgba(42,23,64,0.18)] transition-transform duration-500 ease-out group-hover:scale-[1.06]"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 grid place-items-center">
+                        {shots.map((src, i) => (
+                          <div
+                            key={src}
+                            className={`concern-shot concern-shot--${i} absolute w-[42%] aspect-square rounded-2xl overflow-hidden bg-white ring-1 ring-black/5 shadow-[0_14px_28px_rgba(42,23,64,0.22)]`}
+                          >
+                            <img
+                              {...responsiveImageProps(src, '200px')}
+                              alt=""
+                              loading="lazy"
+                              decoding="async"
+                              width={260}
+                              height={260}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
+
+                  {/* Text on solid plum for reliable contrast */}
+                  <div className="flex flex-col gap-2 p-5 sm:p-6 flex-1">
+                    <h3 className="font-serif font-bold text-xl leading-tight text-white">{c.name}</h3>
+                    {c.blurb && <p className="text-[14px] leading-relaxed text-white/85">{c.blurb}</p>}
+                    <span className="mt-auto pt-2 inline-flex items-center gap-1.5 text-[14px] font-bold text-[#F9B8DA] group-hover:text-white transition-colors">
+                      Shop {c.count} {c.count === 1 ? 'product' : 'products'}
+                      <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* BLOG & ARTICLES */}
+      {articles.length > 0 && (
+        <section className={`${SECTION_CLASS} ${band()}`}>
+          <SectionHeader eyebrow="Blog & Articles" title="From the journal">
+            <Link to="/blog" className={OUTLINE_BTN_CLASS}>
+              <span>All articles</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </SectionHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {articles.slice(0, 3).map((a) => (
+              <Link
+                key={a.id}
+                to={a.slug ? `/blog/${a.slug}` : '/blog'}
+                className="bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/8 rounded-[24px] overflow-hidden flex flex-col group hover:shadow-2xl hover:-translate-y-1 transition-all duration-300"
+              >
+                <div className="aspect-[3/2] overflow-hidden bg-gray-100 dark:bg-white/5">
+                  <ArticleCover src={a.cover} alt={a.title} className="group-hover:scale-105 transition-transform duration-500" />
+                </div>
+                <div className="p-6 flex flex-col gap-2.5">
+                  {(a.categoryName || a.read_time) && (
+                    <span className="text-[10px] font-bold tracking-wider text-[#5D3E85] dark:text-[#EC268F]">
+                      {[a.categoryName, a.read_time].filter(Boolean).join(' · ')}
+                    </span>
+                  )}
+                  <h3 className="text-base font-bold text-[#221B2B] dark:text-[#F3EFF6] group-hover:text-[#C9166F] dark:group-hover:text-[#EC268F] transition-colors leading-snug">
+                    {a.title}
+                  </h3>
+                  {a.excerpt && (
+                    <p className="text-xs sm:text-[13px] text-[#5C5566] dark:text-[#C9BED4] leading-relaxed line-clamp-3">{a.excerpt}</p>
+                  )}
                 </div>
               </Link>
             ))}
@@ -1013,191 +877,143 @@ export default function Home() {
         </section>
       )}
 
-      {/* 6. BLOG & ARTICLES (ROUTINES, EXPLAINED) SECTION */}
-      <section className="px-6 sm:px-12 py-16 sm:py-24 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-9">
-          <div className="flex flex-col gap-2.5">
-            <span className="inline-flex items-center px-3.5 py-1 rounded-full bg-white dark:bg-[#1E1528] text-[#5D3E85] dark:text-[#E5C158] text-[10px] sm:text-[11px] font-extrabold tracking-widest  border border-[#EADBEE] dark:border-white/10 shadow-xs self-start">
-              Blog & Articles
-            </span>
-            <h2 className="text-3xl sm:text-[42px] font-extrabold text-[#221B2B] dark:text-[#F3EFF6] tracking-tight">
-              Routines, explained
-            </h2>
-          </div>
-          <Link
-            to="/blog"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-black/15 dark:border-white/20 text-[#221B2B] dark:text-[#F3EFF6] hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-sm transition-all w-fit btn-spring"
-          >
-            <span>All articles</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {(articles.length > 0 ? articles : [
-            { id: 1, title: 'The 5-Day Glow Routine for Hyperpigmentation', excerpt: 'How to combine whitening polish soaps with cold-pressed almond oil for rapid results.', image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?q=80&w=600', published_at: 'Routine Guide' },
-            { id: 2, title: 'Why Hydroquinone-Free Skincare is the Safest Choice', excerpt: 'The science of organic herbal extracts, botanical brightening, and long-term skin health.', image: 'https://images.unsplash.com/photo-1512290900672-1f5be4df1d3a?q=80&w=600', published_at: 'Editorial' },
-            { id: 3, title: 'Preserving Botanical Potency: Product Storage & Care', excerpt: 'Essential tips on keeping your natural creams and scrubs fresh and active in warm weather.', image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=600', published_at: 'SHOP Tips' }
-          ]).map((a) => (
-            <Link
-              key={a.id}
-              to={a.slug ? `/blog/${a.slug}` : '/blog'}
-              className="bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/8 rounded-[24px] overflow-hidden flex flex-col group hover:shadow-2xl transition-all"
-            >
-              <div className="aspect-[3/2] overflow-hidden bg-gray-100 dark:bg-white/5">
-                <img
-                  src={a.image_url || a.image}
-                  alt={a.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-              <div className="p-6 flex flex-col gap-2.5">
-                <span className="text-[10px] font-bold tracking-wider  text-[#5D3E85] dark:text-[#EC268F]">
-                  {a.published_at || 'Routine Guide'}
-                </span>
-                <h4 className="text-base font-bold text-[#221B2B] dark:text-[#F3EFF6] group-hover:text-[#C9166F] dark:group-hover:text-[#EC268F] transition-colors leading-snug">
-                  {a.title}
-                </h4>
-                <p className="text-xs sm:text-[13px] text-[#5C5566] dark:text-[#C9BED4] leading-relaxed">
-                  {a.excerpt}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* 7. FROM THE STUDIO (@dansolambeautyhome) SECTION */}
-      <section className="px-6 sm:px-12 py-16 max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-          <div className="flex flex-col gap-2">
-            <span className="inline-flex items-center px-3.5 py-1 rounded-full bg-white dark:bg-[#1E1528] text-[#5D3E85] dark:text-[#E5C158] text-[10px] sm:text-[11px] font-extrabold tracking-widest  border border-[#EADBEE] dark:border-white/10 shadow-xs self-start">
-              @dansolambeautyhome
-            </span>
-            <h2 className="text-3xl sm:text-[42px] font-extrabold text-[#221B2B] dark:text-[#F3EFF6] tracking-tight">
-              From the studio
-            </h2>
-          </div>
-          <a
-            href={settings.instagram_url || 'https://instagram.com/dansolambeautyhome'}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-full border border-black/15 dark:border-white/20 text-[#221B2B] dark:text-[#F3EFF6] hover:bg-black/5 dark:hover:bg-white/10 font-semibold text-sm transition-all w-fit btn-spring"
-          >
-            <span>Follow on Instagram</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </a>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-          {studioProductPhotos.map((item, i) => (
-            <Link
-              key={i}
-              to={item.slug ? `/product/${item.slug}` : '/shop'}
-              className="aspect-square rounded-2xl overflow-hidden bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/8 group relative shadow-2xs hover:shadow-xl transition-all duration-300 block"
-            >
-              <img
-                src={item.url}
-                alt={item.name || 'Dansolam Product'}
-                loading="lazy"
-                decoding="async"
-                className="w-full h-full object-contain p-2 group-hover:scale-108 transition-transform duration-500"
-                onError={(e) => {
-                  e.currentTarget.onerror = null;
-                  e.currentTarget.src = '/storage/products/21.png';
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#5D3E85]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 text-left">
-                <span className="text-[10px] font-bold text-white leading-tight line-clamp-2 drop-shadow-xs">
-                  {item.name}
-                </span>
-                <span className="text-[8px] text-pink-200 font-extrabold  tracking-wider mt-0.5">
-                  View Product &rarr;
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* 8. COMMON QUESTIONS (FAQ ACCORDION) SECTION */}
-      <section className="px-6 sm:px-12 py-16 sm:py-24 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
-          <div className="lg:col-span-5 flex flex-col gap-4">
-            <span className="inline-flex items-center px-3.5 py-1 rounded-full bg-white dark:bg-[#1E1528] text-[#5D3E85] dark:text-[#E5C158] text-[10px] sm:text-[11px] font-extrabold tracking-widest  border border-[#EADBEE] dark:border-white/10 shadow-xs self-start">
-              Before you order
-            </span>
-            <h2 className="text-3xl sm:text-[42px] font-extrabold text-[#221B2B] dark:text-[#F3EFF6] tracking-tight">
-              Common questions
-            </h2>
-            <p className="text-sm text-[#5C5566] dark:text-[#C9BED4] leading-relaxed">
-              Anything not covered here, our agent answers on WhatsApp within the hour, Monday to Saturday.
-            </p>
-            <a
-              href={`https://wa.me/${(settings.whatsapp_number || '2348000000000').replace(/[^0-9]/g, '')}?text=Hello%20Dansolam,%20I%20have%20a%20question%20before%20placing%20an%20order.`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all w-fit mt-2 btn-spring"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>CHAT US</span>
-            </a>
-          </div>
-
-          <div className="lg:col-span-7 flex flex-col gap-3">
-            {displayFaqs.map((f, idx) => (
-              <div
-                key={idx}
-                className="bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/8 rounded-2xl p-6 flex flex-col gap-2.5 transition-all shadow-2xs"
-              >
-                <button
-                  type="button"
-                  onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
-                  className="flex items-center justify-between gap-4 text-left cursor-pointer w-full"
+      {/* SOCIAL STRIP — Instagram posts when connected, otherwise random products */}
+      {(instagramPosts.length > 0 || randomProducts.length > 0) && (
+        <section className={`${SECTION_CLASS} ${band()}`}>
+          <SectionHeader
+            eyebrow={
+              instagramUrl ? (
+                <a
+                  href={instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-[#C9166F] underline-offset-4 hover:underline focus-visible:outline-none focus-visible:underline"
                 >
-                  <span className="text-[15px] font-bold text-[#221B2B] dark:text-[#F3EFF6]">{f.q}</span>
-                  <span className="text-[#5D3E85] dark:text-[#E5C158] font-bold text-lg">{openFaq === idx ? '−' : '+'}</span>
-                </button>
-                {openFaq === idx && (
-                  <p className="text-sm leading-relaxed text-[#5C5566] dark:text-[#C9BED4] pt-2 border-t border-[#EADBEE] dark:border-white/10 animate-fade-in font-medium">
-                    {f.a}
+                  @{instagramHandle}
+                </a>
+              ) : `@${instagramHandle}`
+            }
+            title="Viewed on Instagram"
+          >
+            <Link to="/shop" className={OUTLINE_BTN_CLASS}>
+              <span>View all products</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </SectionHeader>
+
+          <div className="reveal-group grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6 gap-4 sm:gap-5 items-stretch">
+            {instagramPosts.length > 0
+              ? instagramPosts.map((post) => (
+                <a
+                  key={post.id}
+                  href={post.permalink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="aspect-square rounded-2xl overflow-hidden bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/8 group relative shadow-2xs hover:shadow-2xl hover:-translate-y-1 hover:border-[#5D3E85]/50 dark:hover:border-[#EC268F]/50 transition-all duration-300 block w-full text-left cursor-pointer"
+                >
+                  <img
+                    src={post.media_type === 'VIDEO' ? (post.thumbnail_url || post.media_url) : post.media_url}
+                    alt={post.caption ? post.caption.slice(0, 90) : 'Instagram post'}
+                    loading="lazy"
+                    decoding="async"
+                    width={300}
+                    height={300}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#2A1740]/90 via-[#5D3E85]/20 to-transparent group-hover:from-black/90 group-hover:via-[#260B3E]/60 transition-all duration-500 flex flex-col justify-end p-3 text-left opacity-0 group-hover:opacity-100">
+                    {post.caption && <span className="text-[11px] font-semibold text-white leading-snug line-clamp-3">{post.caption}</span>}
+                    <span className="text-[10px] text-pink-200 font-extrabold tracking-wider mt-1">View on Instagram &rarr;</span>
+                  </div>
+                </a>
+              ))
+              : randomProducts.map(({ product }, idx) => (
+                // 6 on wide desktop, 4 on laptop (hide 5th/6th), 3 on tablet, 2 on mobile.
+                <div key={product.id} className={idx >= 4 ? 'lg:hidden 2xl:block' : ''}>
+                  <SocialProductTile product={product} onQuickView={setQuickViewProduct} />
+                </div>
+              ))}
+          </div>
+        </section>
+      )}
+
+      {/* FAQ */}
+      {displayFaqs.length > 0 && (
+        <section className={`${SECTION_CLASS} ${band()}`}>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 items-start">
+            <div className="lg:col-span-5 flex flex-col gap-4">
+              <span className={EYEBROW_CLASS}>Before you order</span>
+              <h2 className={H2_CLASS}>Common questions</h2>
+              {whatsappNumber && (
+                <>
+                  <p className="text-sm text-[#5C5566] dark:text-[#C9BED4] leading-relaxed">
+                    Anything not covered here? Send us a message on WhatsApp.
                   </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+                  <a
+                    href={`https://wa.me/${whatsappNumber}?text=Hello%20Dansolam,%20I%20have%20a%20question%20before%20placing%20an%20order.`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all w-fit mt-2 btn-spring"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Chat with us</span>
+                  </a>
+                </>
+              )}
+            </div>
 
-      {/* 9. TRUST BADGES SECTION */}
-      <section className="px-6 sm:px-12 py-12 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/8 rounded-2xl p-6 flex flex-col gap-2">
+            <div className="lg:col-span-7 flex flex-col gap-3">
+              {displayFaqs.map((f, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/8 rounded-2xl p-6 flex flex-col gap-2.5 transition-all shadow-2xs"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
+                    aria-expanded={openFaq === idx}
+                    className="flex items-center justify-between gap-4 text-left cursor-pointer w-full"
+                  >
+                    <span className="text-[15px] font-bold text-[#221B2B] dark:text-[#F3EFF6]">{f.q}</span>
+                    <span className="text-[#5D3E85] dark:text-[#E5C158] font-bold text-lg">{openFaq === idx ? '−' : '+'}</span>
+                  </button>
+                  {openFaq === idx && (
+                    <p className="text-sm leading-relaxed text-[#5C5566] dark:text-[#C9BED4] pt-2 border-t border-[#EADBEE] dark:border-white/10 animate-fade-in font-medium">
+                      {f.a}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* TRUST BADGES */}
+      <section className={`${SECTION_CLASS} ${band()}`}>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/8 rounded-2xl p-6 flex flex-col gap-2 hover:-translate-y-1 transition-transform duration-300">
+            <Leaf className="w-5 h-5 text-[#5D3E85] dark:text-[#E5C158]" />
+            <span className="text-[15px] font-bold text-[#221B2B] dark:text-[#F3EFF6]">100% organic</span>
+            <span className="text-xs text-[#5C5566] dark:text-[#9C90A9]">Natural creams, oils, scrubs and soaps</span>
+          </div>
+          <div className="bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/8 rounded-2xl p-6 flex flex-col gap-2 hover:-translate-y-1 transition-transform duration-300">
             <Truck className="w-5 h-5 text-[#5D3E85] dark:text-[#E5C158]" />
-            <span className="text-[15px] font-bold text-[#221B2B] dark:text-[#F3EFF6]">Express delivery</span>
-            <span className="text-xs text-[#5C5566] dark:text-[#9C90A9]">Nationwide & worldwide shipping</span>
+            <span className="text-[15px] font-bold text-[#221B2B] dark:text-[#F3EFF6]">Delivery</span>
+            <span className="text-xs text-[#5C5566] dark:text-[#9C90A9]">Your order, tracked to your door</span>
           </div>
-          <div className="bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/8 rounded-2xl p-6 flex flex-col gap-2">
-            <ShieldCheck className="w-5 h-5 text-[#5D3E85] dark:text-[#E5C158]" />
-            <span className="text-[15px] font-bold text-[#221B2B] dark:text-[#F3EFF6]">100% authentic</span>
-            <span className="text-xs text-[#5C5566] dark:text-[#9C90A9]">Hand-curated organic formulas</span>
-          </div>
-          <div className="bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/8 rounded-2xl p-6 flex flex-col gap-2">
-            <RefreshCw className="w-5 h-5 text-[#5D3E85] dark:text-[#E5C158]" />
-            <span className="text-[15px] font-bold text-[#221B2B] dark:text-[#F3EFF6]">14-day returns</span>
-            <span className="text-xs text-[#5C5566] dark:text-[#9B8EA9]">Hassle-free sealed exchanges</span>
-          </div>
-          <div className="bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/8 rounded-2xl p-6 flex flex-col gap-2">
+          <div className="bg-white dark:bg-[#1F1729] border border-[#EADBEE] dark:border-white/8 rounded-2xl p-6 flex flex-col gap-2 hover:-translate-y-1 transition-transform duration-300">
             <MessageCircle className="w-5 h-5 text-[#5D3E85] dark:text-[#E5C158]" />
-            <span className="text-[15px] font-bold text-[#221B2B] dark:text-[#F3EFF6]">WhatsApp agent</span>
-            <span className="text-xs text-[#5C5566] dark:text-[#9C90A9]">Skincare help, Mon–Sat</span>
+            <span className="text-[15px] font-bold text-[#221B2B] dark:text-[#F3EFF6]">WhatsApp support</span>
+            <span className="text-xs text-[#5C5566] dark:text-[#9C90A9]">Questions about products or orders</span>
           </div>
         </div>
       </section>
+      </>
+      )}
 
-      {/* Quick View Modal */}
       {quickViewProduct && (
         <QuickViewModal
+          isOpen={!!quickViewProduct}
           product={quickViewProduct}
           onClose={() => setQuickViewProduct(null)}
         />

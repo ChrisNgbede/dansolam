@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { X, Eye, Image as ImageIcon, ArrowLeft } from 'lucide-react';
@@ -6,6 +7,21 @@ import SEO from '../../components/seo/SEO';
 
 export default function Gallery() {
   const [lightboxImg, setLightboxImg] = useState(null);
+
+  // Lock body scroll when lightbox is open
+  useEffect(() => {
+    if (lightboxImg) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => { if (e.key === 'Escape') setLightboxImg(null); };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = '';
+    }
+  }, [lightboxImg]);
 
   // Fetch settings to check visibility
   const { data: settingsData } = useQuery({
@@ -29,7 +45,7 @@ export default function Gallery() {
     return (
       <div className="max-w-md mx-auto text-center py-24 px-6 flex flex-col items-center gap-4 font-sans">
         <span className="text-5xl">🖼️</span>
-        <h2 className="font-serif font-bold text-gray-800 text-lg">Lookbook Inactive</h2>
+        <h2 className="font-serif font-bold text-gray-800 text-lg">Gallery Unavailable</h2>
         <p className="text-xs text-gray-500">The ecommerce gallery showcase is currently offline or disabled by the administrator.</p>
         <Link to="/" className="px-6 py-3 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold rounded-full shadow-md transition-all">
           Return Home
@@ -49,49 +65,42 @@ export default function Gallery() {
   }
 
   return (
-    <div className="bg-[#FBFAF8] dark:bg-[#17101F] min-h-screen font-sans pb-20 transition-colors duration-300">
+    <div className="bg-white dark:bg-[#17101F] min-h-screen font-sans pb-20 transition-colors duration-300">
       <SEO
-        title="Fashion & Spa Lookbooks Showcase | Dansolam Beauty Home"
-        description="Browse through Dansolam Beauty Home elegant spa showcases, skincare results, and luxury treatment spotlights."
+        title="Gallery | Dansolam Beauty Home"
+        description="Browse photos of Dansolam Beauty Home organic skincare products."
       />
 
       <div className="max-w-[1400px] mx-auto px-3 sm:px-5 lg:px-6 pt-20 sm:pt-22 md:pt-24 pb-16 flex flex-col gap-6">
         {/* Hero Banner Card - Compact, Wide, Back to Home Inside */}
-        <div className="h-[200px] sm:h-[240px] md:h-[270px] rounded-[28px] sm:rounded-[36px] overflow-hidden bg-gray-900 relative shadow-md w-full">
-          <img
-            loading="eager"
-            decoding="async"
-            src="https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=1200"
-            className="w-full h-full object-cover object-center"
-            alt="Gallery Lookbooks"
-          />
+        <section className="h-[200px] sm:h-[240px] md:h-[270px] rounded-[28px] sm:rounded-[36px] overflow-hidden bg-gradient-to-br from-[#5D3E85] via-[#4A2B68] to-[#2A1740] relative shadow-md w-full">
 
           {/* Header Action Buttons Inside Banner */}
           <div className="absolute top-4 sm:top-5 left-4 sm:left-6 right-4 sm:right-6 flex justify-between items-center z-20">
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 text-[11px] font-bold text-white shadow-sm transition-all duration-300 btn-spring"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-[11px] font-bold text-white shadow-sm transition-all duration-300 btn-spring"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Home</span>
             </Link>
           </div>
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20 flex flex-col justify-end p-5 sm:p-7 md:p-9 text-left z-10">
+          <div className="absolute inset-0 flex flex-col justify-end p-5 sm:p-7 md:p-9 text-left z-10">
             <span className="text-[9px] sm:text-[10px] font-extrabold text-[#5D3E85] bg-white px-3.5 py-1 rounded-full  tracking-widest self-start mb-2 border border-white/40 shadow-sm">
               Dansolam Gallery
             </span>
-            <h1 className="font-extrabold text-xl sm:text-2xl md:text-3xl lg:text-4xl text-white leading-tight">
-              Our Collections Showcase
+            <h1 className="font-serif font-bold text-2xl sm:text-3xl md:text-4xl text-white leading-tight">
+              Our Gallery
             </h1>
             <p className="text-[11px] sm:text-xs md:text-sm text-gray-200 mt-1 max-w-2xl font-sans leading-snug line-clamp-2">
-              Be inspired by our curated beauty highlights, skincare transformations, and serene spa atmosphere.
+              A look at our organic creams, oils, scrubs and soaps.
             </p>
           </div>
-        </div>
+        </section>
 
         {items.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-2">
+          <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mt-2">
             {items.map((item) => (
               <div
                 key={item.id}
@@ -142,20 +151,25 @@ export default function Gallery() {
                 )}
               </div>
             ))}
-          </div>
+          </section>
         ) : (
-          <div className="bg-white dark:bg-[#1E1528] rounded-3xl py-20 text-center flex flex-col items-center gap-3 shadow-xs max-w-lg mx-auto w-full border border-[#EADBEE] dark:border-white/10">
+          <section className="bg-white dark:bg-[#1E1528] rounded-3xl py-20 text-center flex flex-col items-center gap-3 shadow-xs max-w-lg mx-auto w-full border border-[#EADBEE] dark:border-white/10">
             <div className="w-12 h-12 rounded-full bg-gray-50 dark:bg-white/5 flex items-center justify-center text-gray-400 dark:text-[#9B8EA9]">
               <ImageIcon className="w-6 h-6" />
             </div>
-            <h3 className="font-bold text-[#221B2B] dark:text-[#F3EFF6] text-sm mt-1">Showcase Coming Soon</h3>
-            <p className="text-xs text-gray-400 dark:text-[#9B8EA9] max-w-sm">We are currently editing our lookbook collections. Check back shortly to browse new uploads.</p>
-          </div>
+            <h3 className="font-bold text-[#221B2B] dark:text-[#F3EFF6] text-sm mt-1">Photos Coming Soon</h3>
+            <p className="text-xs text-gray-400 dark:text-[#9B8EA9] max-w-sm">New photos will be added soon.</p>
+          </section>
         )}
 
         {/* LIGHTBOX FOR CLICK TO ZOOM */}
-        {lightboxImg && (
-          <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 animate-fade-in" onClick={() => setLightboxImg(null)}>
+        {lightboxImg && createPortal(
+          <div
+            className="fixed inset-0 bg-black/75 backdrop-blur-md z-[99999] flex items-center justify-center p-4 animate-fade-in"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setLightboxImg(null)}
+          >
             <div className="relative max-w-3xl w-full max-h-[85vh] flex flex-col items-center" onClick={e => e.stopPropagation()}>
               <button
                 onClick={() => setLightboxImg(null)}
@@ -163,9 +177,10 @@ export default function Gallery() {
               >
                 <X className="w-6 h-6" />
               </button>
-              <img loading="lazy" decoding="async" src={lightboxImg} alt="Lookbook Zoom View" className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl" />
+              <img loading="lazy" decoding="async" src={lightboxImg} alt="Gallery image" className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl" />
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </div>

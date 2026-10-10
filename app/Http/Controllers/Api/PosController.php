@@ -49,6 +49,9 @@ class PosController extends Controller
             'offline_enabled' => $this->setting($settings, 'pos_offline_enabled', 'true') === 'true',
             'auto_sync_enabled' => $this->setting($settings, 'pos_auto_sync_enabled', 'true') === 'true',
             'sync_interval' => max(10, (int) $this->setting($settings, 'pos_sync_interval', '30')),
+            'store_name' => $ecommerce->name,
+            'store_address' => $this->setting($settings, 'store_address', ''),
+            'store_phone' => $this->setting($settings, 'whatsapp_number', '+234 800 000 0000'),
         ]]);
     }
 

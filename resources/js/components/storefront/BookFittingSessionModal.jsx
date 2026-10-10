@@ -1,8 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Calendar, Clock, Users, User, Mail, Phone, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import axios from 'axios';
 
 export default function BookFittingSessionModal({ isOpen, onClose }) {
+  // Lock body scroll when BookFittingSessionModal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') onClose();
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = '';
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const todayStr = new Date().toISOString().split('T')[0];
@@ -63,9 +81,12 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6 overflow-y-auto bg-black/70 backdrop-blur-sm animate-fade-in">
-      <div className="relative w-full max-w-lg bg-white dark:bg-[#141414] rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-800 my-auto">
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto overscroll-contain bg-black/75 backdrop-blur-md animate-fade-in" role="dialog" aria-modal="true">
+      {/* Backdrop Click */}
+      <div className="fixed inset-0" onClick={onClose} />
+
+      <div onClick={e => e.stopPropagation()} className="relative z-10 w-full max-w-lg bg-white dark:bg-[#141414] rounded-3xl shadow-[0_25px_70px_rgba(0,0,0,0.5)] overflow-hidden border border-gray-100 dark:border-gray-800 my-auto">
         {/* Header bar */}
         <div className="relative bg-gradient-to-r from-gray-900 via-gray-800 to-black p-6 text-white overflow-hidden">
           <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-primary/20 rounded-full blur-2xl pointer-events-none" />
@@ -247,6 +268,7 @@ export default function BookFittingSessionModal({ isOpen, onClose }) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

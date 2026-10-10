@@ -9,6 +9,7 @@ import {
 import { apiFetch } from '../../hooks/useAuth';
 import { toast as systemToast } from '../../components/ui/ToastProvider';
 import ImageUploadField from '../../components/ui/ImageUploadField';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 export default function AdminNewsletter() {
   const queryClient = useQueryClient();
@@ -221,7 +222,7 @@ export default function AdminNewsletter() {
       setCampaignPreview('Use coupon code WEEKEND15 before Sunday midnight.');
       setCampaignBanner('https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=800');
       setCampaignContent(
-        "Exclusive VIP Offer,\n\nThis weekend only, claim 15% OFF our bestselling whitening polish soaps, discoloration body creams, and glow oils.\n\nEnter code WEEKEND15 at checkout. Free nationwide delivery on orders over ₦100,000."
+        "Exclusive VIP Offer,\n\nThis weekend only, claim 15% OFF our bestselling whitening polish soaps, discoloration body creams, and glow oils.\n\nEnter code WEEKEND15 at checkout. Free delivery on orders over £500."
       );
       setCampaignCtaText('Claim Weekend Discount');
       setCampaignCtaUrl('http://dansolam.test/shop');
@@ -566,7 +567,7 @@ export default function AdminNewsletter() {
                   placeholder="Filter campaigns by title or subject..."
                   className="px-3.5 py-2 border border-gray-300 rounded-xl text-xs bg-white text-gray-900 w-72 focus:outline-none focus:border-[#5D3E85]"
                 />
-                <select
+                <SearchableSelect
                   value={campaignStatus}
                   onChange={e => setCampaignStatus(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-xl text-xs bg-white text-gray-900 focus:outline-none focus:border-[#5D3E85]"
@@ -574,7 +575,7 @@ export default function AdminNewsletter() {
                   <option value="all">All Statuses</option>
                   <option value="sent">Sent Broadcasts</option>
                   <option value="draft">Drafts</option>
-                </select>
+                </SearchableSelect>
               </div>
 
               <button

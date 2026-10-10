@@ -8,6 +8,7 @@ import { apiFetch } from '../../hooks/useAuth';
 import { useTableState } from '../../hooks/useTableState';
 import TablePaginationControls from '../../components/ui/TablePaginationControls';
 import { COUNTRIES, getStates } from '../../utils/geoData';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 export default function AdminOrders() {
   const currencySymbol = getCurrencySymbol();
@@ -20,7 +21,7 @@ export default function AdminOrders() {
     
     const itemsList = (order.items || []).map(item => {
       const label = item.variant_label ? ` (${item.variant_label})` : '';
-      return `• ${item.product_name}${label} x ${item.quantity} - ₦${(item.price * item.quantity).toLocaleString()}`;
+      return `• ${item.product_name}${label} x ${item.quantity} - ${currencySymbol}${(item.price * item.quantity).toLocaleString()}`;
     }).join('\n');
 
     const text = `*DANSOLAM RECEIPT*\n` +
@@ -33,11 +34,11 @@ export default function AdminOrders() {
       `--------------------------------\n` +
       `*Items:*\n${itemsList}\n` +
       `--------------------------------\n` +
-      `*Subtotal:* ₦${parseFloat(order.subtotal || 0).toLocaleString()}\n` +
-      (order.discount_amount > 0 ? `*Discount:* - ₦${parseFloat(order.discount_amount).toLocaleString()}\n` : '') +
-      `*Shipping:* ₦${parseFloat(order.delivery_fee || 0).toLocaleString()}\n` +
-      (parseFloat(order.tax_amount) > 0 ? `*Taxes:* ₦${parseFloat(order.tax_amount).toLocaleString()}\n` : '') +
-      `*Total Paid:* ₦${parseFloat(order.total_amount || 0).toLocaleString()}\n` +
+      `*Subtotal:* ${currencySymbol}${parseFloat(order.subtotal || 0).toLocaleString()}\n` +
+      (order.discount_amount > 0 ? `*Discount:* - ${currencySymbol}${parseFloat(order.discount_amount).toLocaleString()}\n` : '') +
+      `*Shipping:* ${currencySymbol}${parseFloat(order.delivery_fee || 0).toLocaleString()}\n` +
+      (parseFloat(order.tax_amount) > 0 ? `*Taxes:* ${currencySymbol}${parseFloat(order.tax_amount).toLocaleString()}\n` : '') +
+      `*Total Paid:* ${currencySymbol}${parseFloat(order.total_amount || 0).toLocaleString()}\n` +
       `--------------------------------\n` +
       `Thank you for shopping with us!`;
 
@@ -57,7 +58,7 @@ export default function AdminOrders() {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryCity, setDeliveryCity] = useState('');
   const [deliveryState, setDeliveryState] = useState('');
-  const [deliveryCountry, setDeliveryCountry] = useState('Nigeria');
+  const [deliveryCountry, setDeliveryCountry] = useState('United Kingdom');
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
   const [paymentStatus, setPaymentStatus] = useState('pending');
   const [orderStatus, setOrderStatus] = useState('pending_payment');
@@ -204,7 +205,7 @@ export default function AdminOrders() {
     setDeliveryAddress('');
     setDeliveryCity('');
     setDeliveryState('');
-    setDeliveryCountry('Nigeria');
+    setDeliveryCountry('United Kingdom');
     setPaymentMethod('bank_transfer');
     setPaymentStatus('pending');
     setOrderStatus('pending_payment');
@@ -231,7 +232,7 @@ export default function AdminOrders() {
     setDeliveryAddress(ord.delivery_address || '');
     setDeliveryCity(ord.delivery_city || '');
     setDeliveryState(ord.delivery_state || '');
-    setDeliveryCountry(ord.delivery_country || 'Nigeria');
+    setDeliveryCountry(ord.delivery_country || 'United Kingdom');
     setPaymentMethod(ord.payment_method || 'bank_transfer');
     setPaymentStatus(ord.payment_status || 'pending');
     setOrderStatus(ord.order_status || 'pending_payment');
@@ -290,6 +291,28 @@ export default function AdminOrders() {
     setShowRefundModal(true);
   };
 
+  const handlePaypalAuthorizationAction = async (order, action) => {
+    const question = action === 'capture'
+      ? `Collect the held PayPal payment for order #${order.order_number}?`
+      : `Release the held PayPal payment for order #${order.order_number}? The buyer will not be charged and the order will be cancelled.`;
+    if (!window.confirm(question)) return;
+    try {
+      const res = await apiFetch(`/api/admin/paypal/${action === 'capture' ? 'capture' : 'void'}-authorization`, {
+        method: 'POST',
+        body: JSON.stringify({ order_id: order.id }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        systemToast.success(data.message);
+        queryClient.invalidateQueries(['admin-orders']);
+      } else {
+        systemToast.error(data.message || 'PayPal action failed.');
+      }
+    } catch (err) {
+      systemToast.error('Network error contacting PayPal.');
+    }
+  };
+
   const handleExecutePaypalRefund = async (e) => {
     e.preventDefault();
     if (!refundingOrder) return;
@@ -306,7 +329,7 @@ export default function AdminOrders() {
       const data = await res.json();
       setRefundLoading(false);
       if (data.success) {
-        systemToast.success('PayPal refund issued successfully!');
+        systemToast.success(data.message || 'PayPal refund issued successfully!');
         setShowRefundModal(false);
         queryClient.invalidateQueries(['admin-orders']);
       } else {
@@ -435,7 +458,7 @@ export default function AdminOrders() {
                 <Filter className="w-3.5 h-3.5" />
                 Status:
               </label>
-              <select
+              <SearchableSelect
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="text-xs font-semibold px-3 py-1.5 border border-gray-200 rounded-lg focus:outline-none focus:border-primary bg-white cursor-pointer text-gray-700 h-[34px]"
@@ -449,7 +472,7 @@ export default function AdminOrders() {
                 <option value="shipped">Shipped</option>
                 <option value="delivered">Delivered</option>
                 <option value="cancelled">Cancelled</option>
-              </select>
+              </SearchableSelect>
             </div>
           </div>
         </div>
@@ -530,7 +553,25 @@ export default function AdminOrders() {
                         >
                           <Eye className="w-4 h-4" />
                         </Link>
-                        {ord.payment_method === 'paypal' && ord.payment_status === 'paid' && (
+                        {ord.payment_method === 'paypal' && ord.payment_status === 'authorized' && (
+                          <>
+                            <button
+                              onClick={() => handlePaypalAuthorizationAction(ord, 'capture')}
+                              className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 text-[10px] font-bold rounded-md transition-all cursor-pointer"
+                              title="Collect the funds held on this PayPal authorization"
+                            >
+                              Capture
+                            </button>
+                            <button
+                              onClick={() => handlePaypalAuthorizationAction(ord, 'void')}
+                              className="px-2 py-1 bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-600 text-[10px] font-bold rounded-md transition-all cursor-pointer"
+                              title="Release the held funds without charging"
+                            >
+                              Void
+                            </button>
+                          </>
+                        )}
+                        {ord.payment_method === 'paypal' && ['paid', 'partially_refunded'].includes(ord.payment_status) && (
                           <button
                             onClick={() => handleOpenRefundModal(ord)}
                             className="px-2 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 text-[10px] font-bold rounded-md transition-all cursor-pointer flex items-center gap-1"
@@ -648,14 +689,14 @@ export default function AdminOrders() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] text-gray-500 font-bold uppercase">Delivery Method</label>
-                  <select
+                  <SearchableSelect
                     value={deliveryMethod}
                     onChange={e => setDeliveryMethod(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700"
                   >
                     <option value="pickup">Store Pickup</option>
                     <option value="delivery">Home Delivery</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
                 {deliveryMethod === 'delivery' && (
                   <div className="flex flex-col gap-1">
@@ -685,7 +726,7 @@ export default function AdminOrders() {
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] text-gray-550 font-bold uppercase">Country</label>
-                    <select
+                    <SearchableSelect
                       value={deliveryCountry}
                       onChange={e => { setDeliveryCountry(e.target.value); setDeliveryState(''); }}
                       className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 cursor-pointer h-[34px]"
@@ -693,11 +734,11 @@ export default function AdminOrders() {
                       {COUNTRIES.map(c => (
                         <option key={c.code} value={c.name}>{c.name}</option>
                       ))}
-                    </select>
+                    </SearchableSelect>
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] text-gray-550 font-bold uppercase">State</label>
-                    <select
+                    <SearchableSelect
                       value={deliveryState}
                       onChange={e => setDeliveryState(e.target.value)}
                       className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 cursor-pointer h-[34px]"
@@ -706,7 +747,7 @@ export default function AdminOrders() {
                       {getStates(deliveryCountry).map(s => (
                         <option key={s} value={s}>{s}</option>
                       ))}
-                    </select>
+                    </SearchableSelect>
                   </div>
                 </div>
               )}
@@ -715,7 +756,7 @@ export default function AdminOrders() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] text-gray-500 font-bold uppercase">Payment Gateway / Method</label>
-                  <select
+                  <SearchableSelect
                     value={paymentMethod}
                     onChange={e => setPaymentMethod(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700"
@@ -726,11 +767,11 @@ export default function AdminOrders() {
                     <option value="stripe">Stripe Card</option>
                     <option value="paypal">PayPal Express</option>
                     <option value="flutterwave">Flutterwave Gateway</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] text-gray-500 font-bold uppercase">Payment Status</label>
-                  <select
+                  <SearchableSelect
                     value={paymentStatus}
                     onChange={e => setPaymentStatus(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700"
@@ -738,11 +779,11 @@ export default function AdminOrders() {
                     <option value="pending">Pending</option>
                     <option value="paid">Paid</option>
                     <option value="failed">Failed</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] text-gray-500 font-bold uppercase">Order Status</label>
-                  <select
+                  <SearchableSelect
                     value={orderStatus}
                     onChange={e => setOrderStatus(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700"
@@ -755,7 +796,7 @@ export default function AdminOrders() {
                     <option value="shipped">Shipped</option>
                     <option value="delivered">Delivered</option>
                     <option value="cancelled">Cancelled</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
@@ -777,7 +818,7 @@ export default function AdminOrders() {
                     <div key={idx} className="flex flex-wrap sm:flex-nowrap items-end gap-3 bg-gray-50 p-3 rounded-lg border border-gray-150 relative">
                       <div className="flex flex-col gap-1 flex-1 min-w-[150px]">
                         <label className="text-[8px] text-gray-400 font-bold uppercase">Select Product *</label>
-                        <select
+                        <SearchableSelect
                           value={line.product_id}
                           onChange={e => handleProductSelect(idx, e.target.value)}
                           className="px-2 py-1 rounded border border-gray-250 text-xs bg-white text-gray-700 w-full"
@@ -787,13 +828,13 @@ export default function AdminOrders() {
                           {products.map(p => (
                             <option key={p.id} value={p.id}>{p.name}</option>
                           ))}
-                        </select>
+                        </SearchableSelect>
                       </div>
 
                       {selectedProd && selectedProd.variants && selectedProd.variants.length > 0 && (
                         <div className="flex flex-col gap-1 w-32 shrink-0">
                           <label className="text-[8px] text-gray-400 font-bold uppercase">Variant / Sizing *</label>
-                          <select
+                          <SearchableSelect
                             value={line.product_variant_id}
                             onChange={e => handleVariantSelect(idx, e.target.value)}
                             className="px-2 py-1 rounded border border-gray-250 text-xs bg-white text-gray-700 w-full"
@@ -802,7 +843,7 @@ export default function AdminOrders() {
                             {selectedProd.variants.map(v => (
                               <option key={v.id} value={v.id}>{v.size} / {v.color} (Stock: {v.stock_quantity})</option>
                             ))}
-                          </select>
+                          </SearchableSelect>
                         </div>
                       )}
 
@@ -963,14 +1004,14 @@ export default function AdminOrders() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] text-gray-500 font-bold uppercase">Delivery Method</label>
-                  <select
+                  <SearchableSelect
                     value={deliveryMethod}
                     onChange={e => setDeliveryMethod(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700"
                   >
                     <option value="pickup">Store Pickup</option>
                     <option value="delivery">Home Delivery</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
                 {deliveryMethod === 'delivery' && (
                   <div className="flex flex-col gap-1">
@@ -998,7 +1039,7 @@ export default function AdminOrders() {
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] text-gray-550 font-bold uppercase">Country</label>
-                    <select
+                    <SearchableSelect
                       value={deliveryCountry}
                       onChange={e => { setDeliveryCountry(e.target.value); setDeliveryState(''); }}
                       className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 cursor-pointer h-[34px]"
@@ -1006,11 +1047,11 @@ export default function AdminOrders() {
                       {COUNTRIES.map(c => (
                         <option key={c.code} value={c.name}>{c.name}</option>
                       ))}
-                    </select>
+                    </SearchableSelect>
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-[9px] text-gray-555 font-bold uppercase">State</label>
-                    <select
+                    <SearchableSelect
                       value={deliveryState}
                       onChange={e => setDeliveryState(e.target.value)}
                       className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 cursor-pointer h-[34px]"
@@ -1019,7 +1060,7 @@ export default function AdminOrders() {
                       {getStates(deliveryCountry).map(s => (
                         <option key={s} value={s}>{s}</option>
                       ))}
-                    </select>
+                    </SearchableSelect>
                   </div>
                 </div>
               )}
@@ -1027,7 +1068,7 @@ export default function AdminOrders() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] text-gray-500 font-bold uppercase">Payment Gateway</label>
-                  <select
+                  <SearchableSelect
                     value={paymentMethod}
                     onChange={e => setPaymentMethod(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700"
@@ -1038,11 +1079,11 @@ export default function AdminOrders() {
                     <option value="stripe">Stripe Card</option>
                     <option value="paypal">PayPal Express</option>
                     <option value="flutterwave">Flutterwave Gateway</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] text-gray-500 font-bold uppercase">Payment Status</label>
-                  <select
+                  <SearchableSelect
                     value={paymentStatus}
                     onChange={e => setPaymentStatus(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700"
@@ -1050,7 +1091,7 @@ export default function AdminOrders() {
                     <option value="pending">Pending</option>
                     <option value="paid">Paid</option>
                     <option value="failed">Failed</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[9px] text-gray-500 font-bold uppercase flex items-center justify-between">
@@ -1059,7 +1100,7 @@ export default function AdminOrders() {
                       <span className="text-[9px] text-emerald-600 font-extrabold uppercase">🔒 Delivered (Locked)</span>
                     )}
                   </label>
-                  <select
+                  <SearchableSelect
                     value={orderStatus}
                     disabled={selectedOrder?.order_status === 'delivered'}
                     onChange={e => setOrderStatus(e.target.value)}
@@ -1073,7 +1114,7 @@ export default function AdminOrders() {
                     <option value="shipped">Shipped</option>
                     <option value="delivered">Delivered</option>
                     <option value="cancelled">Cancelled</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 

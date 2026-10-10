@@ -10,6 +10,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, useAuth } from '../../hooks/useAuth';
 import { getAdminToken } from '../auth/RequireAdminAuth';
+import ModalStandard from '../ui/ModalStandard';
 
 export default function AdminLayout() {
   const navigate = useNavigate();
@@ -48,6 +49,13 @@ export default function AdminLayout() {
     return localStorage.getItem('dansolam_admin_dark_mode') === 'true';
   });
 
+  // Mark the document so admin dark styling also reaches modals rendered in portals
+  // (outside .admin-shell) without touching the storefront's own dark mode.
+  useEffect(() => {
+    document.documentElement.classList.toggle('admin-dark', isDarkMode);
+    return () => document.documentElement.classList.remove('admin-dark');
+  }, [isDarkMode]);
+
   const toggleDarkMode = () => {
     setIsDarkMode(prev => {
       const val = !prev;
@@ -78,7 +86,7 @@ export default function AdminLayout() {
   useEffect(() => {
     if (settingsRes?.data?.settings) {
       const s = settingsRes.data.settings;
-      localStorage.setItem('dansolam_currency_symbol', s.system_currency_symbol || '₦');
+      localStorage.setItem('dansolam_currency_symbol', s.system_currency_symbol || '£');
     }
   }, [settingsRes]);
 
@@ -228,12 +236,12 @@ export default function AdminLayout() {
                   : 'gap-3 px-4 py-2.5 my-0.5'
               } ${
                 active
-                  ? 'active-glass shadow-sm'
+                  ? 'active-glass shadow-sm text-white hover:text-white'
                   : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
               }`}
             >
               <div className="relative shrink-0">
-                <Icon className={`w-4 h-4 transition-transform group-hover:scale-110 ${active ? 'text-primary dark:text-[#FAF3E8]' : link.color}`} />
+                <Icon className={`w-4 h-4 transition-transform group-hover:scale-110 ${active ? 'text-white' : `${link.color} group-hover:text-white`}`} />
                 {isCollapsed && (
                   <>
                     {link.label === 'Orders' && alertCounts.orders > 0 && (
@@ -256,7 +264,7 @@ export default function AdminLayout() {
               </div>
               {!isCollapsed && (
                 <span className="flex-1 flex items-center justify-between">
-                  <span>{link.label}</span>
+                  <span className={`${active ? 'text-white' : 'group-hover:text-white'} transition-colors`}>{link.label}</span>
                   {link.label === 'Orders' && alertCounts.orders > 0 && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-2 bg-emerald-500 text-white">
                       {alertCounts.orders}
@@ -288,28 +296,28 @@ export default function AdminLayout() {
         <div className="relative group">
           {isCollapsed ? (
             <div className="flex flex-col items-center">
-              <button className={`flex items-center justify-center p-2.5 mx-auto w-10 h-10 my-0.5 rounded-xl transition-all ${isCmsActive ? 'active-glass shadow-sm' : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'}`} title="CMS">
-                <FileText className={`w-4 h-4 ${isCmsActive ? 'text-primary' : 'text-rose-450'}`} />
+              <button className={`flex items-center justify-center p-2.5 mx-auto w-10 h-10 my-0.5 rounded-xl transition-all ${isCmsActive ? 'active-glass shadow-sm text-white hover:text-white' : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'}`} title="CMS">
+                <FileText className={`w-4 h-4 ${isCmsActive ? 'text-white' : 'text-rose-450 group-hover:text-white'}`} />
               </button>
               <div className="absolute left-16 top-0 bg-gray-900 border border-gray-800 rounded-lg shadow-xl py-1.5 px-1 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50 flex flex-col gap-0.5 min-w-[130px]">
                 <div className="px-2.5 py-1 text-[10px] uppercase tracking-wider text-gray-500 font-bold border-b border-gray-800 mb-1">CMS</div>
                 {subCms.map((sub) => {
                   const active = isSubActive(sub);
-                  return <Link key={sub.to} to={sub.to} onClick={onLinkClick} className={`px-3 py-1.5 text-xs rounded font-medium ${active ? 'active-glass font-semibold' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}>{sub.label}</Link>;
+                  return <Link key={sub.to} to={sub.to} onClick={onLinkClick} className={`px-3 py-1.5 text-xs rounded font-medium transition-all ${active ? 'active-glass font-semibold text-white hover:text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}>{sub.label}</Link>;
                 })}
               </div>
             </div>
           ) : (
             <div>
-              <button onClick={() => setCmsExpanded((value) => !value)} className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 my-0.5 rounded-xl text-xs font-semibold transition-all ${isCmsActive ? 'active-glass shadow-sm' : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'}`}>
-                <span className="flex items-center gap-3"><FileText className={`w-4 h-4 ${isCmsActive ? 'text-primary' : 'text-rose-450'}`} /><span>CMS</span></span>
-                {cmsExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+              <button onClick={() => setCmsExpanded((value) => !value)} className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 my-0.5 rounded-xl text-xs font-semibold transition-all group ${isCmsActive ? 'active-glass shadow-sm text-white hover:text-white' : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'}`}>
+                <span className="flex items-center gap-3"><FileText className={`w-4 h-4 transition-transform group-hover:scale-110 ${isCmsActive ? 'text-white' : 'text-rose-450 group-hover:text-white'}`} /><span className={`${isCmsActive ? 'text-white' : 'group-hover:text-white'} transition-colors`}>CMS</span></span>
+                {cmsExpanded ? <ChevronDown className={`w-3.5 h-3.5 ${isCmsActive ? 'text-white' : 'group-hover:text-white'} transition-colors`} /> : <ChevronRight className={`w-3.5 h-3.5 ${isCmsActive ? 'text-white' : 'group-hover:text-white'} transition-colors`} />}
               </button>
               <div className={`transition-all duration-200 overflow-hidden ${cmsExpanded ? 'max-h-48 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'}`}>
                 <div className="pl-6 flex flex-col border-l border-gray-800 ml-6 gap-0.5">
                   {subCms.map((sub) => {
                     const active = isSubActive(sub);
-                    return <Link key={sub.to} to={sub.to} onClick={onLinkClick} className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-all ${active ? 'active-glass font-bold' : 'text-gray-400 hover:bg-gray-800/40 hover:text-white'}`}>{sub.label}</Link>;
+                    return <Link key={sub.to} to={sub.to} onClick={onLinkClick} className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-all ${active ? 'active-glass font-bold text-white hover:text-white' : 'text-gray-400 hover:bg-gray-800/40 hover:text-white'}`}>{sub.label}</Link>;
                   })}
                 </div>
               </div>
@@ -323,13 +331,13 @@ export default function AdminLayout() {
             /* Collapsed Parent Menu Icon */
             <div className="flex flex-col items-center">
               <button
-                className={`flex items-center justify-center p-2.5 mx-auto w-10 h-10 my-0.5 rounded-xl text-xs font-semibold transition-all relative ${
+                className={`flex items-center justify-center p-2.5 mx-auto w-10 h-10 my-0.5 rounded-xl text-xs font-semibold transition-all relative group ${
                   isSettingsActive
-                    ? 'active-glass shadow-sm'
+                    ? 'active-glass shadow-sm text-white hover:text-white'
                     : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
                 }`}
               >
-                <Settings className={`w-4 h-4 shrink-0 transition-transform ${isSettingsActive ? 'text-primary dark:text-[#FAF3E8]' : 'text-gray-400'} group-hover:scale-110`} />
+                <Settings className={`w-4 h-4 shrink-0 transition-transform ${isSettingsActive ? 'text-white' : 'text-gray-400 group-hover:text-white'} group-hover:scale-110`} />
               </button>
               
               {/* Hover Popover containing children */}
@@ -346,7 +354,7 @@ export default function AdminLayout() {
                       onClick={onLinkClick}
                       className={`px-3 py-1.5 text-xs rounded transition-colors text-left font-medium block ${
                         subActive 
-                          ? 'active-glass font-semibold' 
+                          ? 'active-glass font-semibold text-white hover:text-white' 
                           : 'text-gray-300 hover:bg-gray-800 hover:text-white'
                       }`}
                     >
@@ -361,20 +369,20 @@ export default function AdminLayout() {
             <div>
               <button
                 onClick={() => setSettingsExpanded(prev => !prev)}
-                className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 my-0.5 rounded-xl text-xs font-semibold transition-all relative ${
+                className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 my-0.5 rounded-xl text-xs font-semibold transition-all relative group ${
                   isSettingsActive
-                    ? 'active-glass shadow-sm'
+                    ? 'active-glass shadow-sm text-white hover:text-white'
                     : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Settings className={`w-4 h-4 shrink-0 transition-transform ${isSettingsActive ? 'text-primary dark:text-[#FAF3E8]' : 'text-gray-400'} group-hover:scale-110`} />
-                  <span>Settings</span>
+                  <Settings className={`w-4 h-4 shrink-0 transition-transform ${isSettingsActive ? 'text-white' : 'text-gray-400 group-hover:text-white'} group-hover:scale-110`} />
+                  <span className={`${isSettingsActive ? 'text-white' : 'group-hover:text-white'} transition-colors`}>Settings</span>
                 </div>
                 {settingsExpanded ? (
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform shrink-0 ${isSettingsActive ? 'text-primary dark:text-[#FAF3E8] opacity-90' : 'opacity-65'}`} />
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform shrink-0 ${isSettingsActive ? 'text-white' : 'group-hover:text-white opacity-90'}`} />
                 ) : (
-                  <ChevronRight className={`w-3.5 h-3.5 transition-transform shrink-0 ${isSettingsActive ? 'text-primary dark:text-[#FAF3E8] opacity-90' : 'opacity-65'}`} />
+                  <ChevronRight className={`w-3.5 h-3.5 transition-transform shrink-0 ${isSettingsActive ? 'text-white' : 'group-hover:text-white opacity-90'}`} />
                 )}
               </button>
               
@@ -394,7 +402,7 @@ export default function AdminLayout() {
                         onClick={onLinkClick}
                         className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-all ${
                           subActive
-                            ? 'active-glass font-bold'
+                            ? 'active-glass font-bold text-white hover:text-white'
                             : 'text-gray-400 hover:bg-gray-800/40 hover:text-white'
                         }`}
                       >
@@ -413,6 +421,7 @@ export default function AdminLayout() {
 
   return (
     <div className={`admin-shell flex bg-gray-50 min-h-screen text-gray-800 font-sans animate-fade-in ${isDarkMode ? 'dark bg-gray-950 text-gray-100' : ''}`}>
+      <ModalStandard />
       <style>{`
         /* Systematic Visible Borders for All Admin Inputs & Dropdowns (Pages, Views & Modals) */
         .admin-shell input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
@@ -449,68 +458,68 @@ export default function AdminLayout() {
           box-shadow: 0 0 0 3px rgba(93, 62, 133, 0.22) !important;
         }
 
-        .dark {
+        .admin-shell.dark, html.admin-dark .admin-shell {
           background-color: #030712 !important;
           color: #f3f4f6 !important;
         }
-        .dark header, 
-        .dark .bg-white {
+        .admin-shell.dark header, 
+        .admin-shell.dark .bg-white {
           background-color: #09090b !important;
           color: #f3f4f6 !important;
           border-color: #18181b !important;
         }
-        .dark .border-gray-150,
-        .dark .border-gray-200,
-        .dark .border-gray-250,
-        .dark .border-gray-100 {
+        .admin-shell.dark .border-gray-150,
+        .admin-shell.dark .border-gray-200,
+        .admin-shell.dark .border-gray-250,
+        .admin-shell.dark .border-gray-100 {
           border-color: #1f2937 !important;
         }
-        .dark .admin-shell input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
-        .dark .admin-shell select,
-        .dark .admin-shell textarea,
-        .dark .admin-shell .rich-editor,
-        .dark .admin-shell [contenteditable="true"],
-        .dark .fixed input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
-        .dark .fixed select,
-        .dark .fixed textarea,
-        .dark div[role="dialog"] input,
-        .dark div[role="dialog"] select,
-        .dark div[role="dialog"] textarea {
+        .admin-shell.dark .admin-shell input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
+        .admin-shell.dark .admin-shell select,
+        .admin-shell.dark .admin-shell textarea,
+        .admin-shell.dark .admin-shell .rich-editor,
+        .admin-shell.dark .admin-shell [contenteditable="true"],
+        .admin-shell.dark .fixed input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
+        .admin-shell.dark .fixed select,
+        .admin-shell.dark .fixed textarea,
+        .admin-shell.dark div[role="dialog"] input,
+        .admin-shell.dark div[role="dialog"] select,
+        .admin-shell.dark div[role="dialog"] textarea {
           border: 1.5px solid #64748B !important;
           background-color: #1f2937 !important;
           color: #f3f4f6 !important;
           border-color: #64748B !important;
         }
-        .dark input::placeholder, 
-        .dark textarea::placeholder,
-        .dark .text-gray-400,
-        .dark .text-gray-450,
-        .dark .text-gray-500,
-        .dark .text-gray-550 {
+        .admin-shell.dark input::placeholder, 
+        .admin-shell.dark textarea::placeholder,
+        .admin-shell.dark .text-gray-400,
+        .admin-shell.dark .text-gray-450,
+        .admin-shell.dark .text-gray-500,
+        .admin-shell.dark .text-gray-550 {
           color: #cbd5e1 !important;
         }
-        .dark .text-gray-600,
-        .dark .text-gray-650,
-        .dark .text-gray-700,
-        .dark .text-gray-800,
-        .dark .text-gray-850,
-        .dark .text-gray-900,
-        .dark .text-gray-950 {
+        .admin-shell.dark .text-gray-600,
+        .admin-shell.dark .text-gray-650,
+        .admin-shell.dark .text-gray-700,
+        .admin-shell.dark .text-gray-800,
+        .admin-shell.dark .text-gray-850,
+        .admin-shell.dark .text-gray-900,
+        .admin-shell.dark .text-gray-950 {
           color: #f3f4f6 !important;
         }
-        .dark .hover\:bg-gray-50:hover, 
-        .dark .hover\:bg-gray-55:hover,
-        .dark .hover\:bg-gray-50\/50:hover {
+        .admin-shell.dark .hover\:bg-gray-50:hover, 
+        .admin-shell.dark .hover\:bg-gray-55:hover,
+        .admin-shell.dark .hover\:bg-gray-50\/50:hover {
           background-color: #1f2937 !important;
         }
-        .dark table th {
+        .admin-shell.dark table th {
           background-color: #1f2937 !important;
           color: #9ca3af !important;
         }
-        .dark tr {
+        .admin-shell.dark tr {
           border-color: #1f2937 !important;
         }
-        .dark .custom-sidebar-scroll::-webkit-scrollbar-thumb {
+        .admin-shell.dark .custom-sidebar-scroll::-webkit-scrollbar-thumb {
           background: rgba(255, 255, 255, 0.15) !important;
         }
         .custom-sidebar-scroll::-webkit-scrollbar {
@@ -525,6 +534,18 @@ export default function AdminLayout() {
         }
         .custom-sidebar-scroll::-webkit-scrollbar-thumb:hover {
           background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Sidebar Nav hover and active text and icons must always remain pure white */
+        aside a:hover,
+        aside a:hover *,
+        aside button:hover,
+        aside button:hover * {
+          color: #ffffff !important;
+        }
+        aside .active-glass,
+        aside .active-glass * {
+          color: #ffffff !important;
         }
       `}</style>
 
@@ -760,7 +781,7 @@ export default function AdminLayout() {
                                     <span className="text-[9px] text-gray-400 font-mono mt-0.5 leading-none">SKU: {p.sku || 'N/A'}</span>
                                   </div>
                                 </div>
-                                <span className="text-[10px] font-bold text-gray-850 dark:text-gray-300">₦{parseFloat(p.price).toLocaleString()}</span>
+                                <span className="text-[10px] font-bold text-gray-850 dark:text-gray-300">{localStorage.getItem('dansolam_currency_symbol') || '£'}{parseFloat(p.price).toLocaleString()}</span>
                               </Link>
                             ))}
                           </div>
@@ -794,7 +815,7 @@ export default function AdminLayout() {
                                   <span className="text-[9px] text-gray-450 mt-0.5 leading-none truncate dark:text-gray-400">{o.customer_name} · {o.customer_email}</span>
                                 </div>
                                 <div className="text-right flex flex-col items-end shrink-0">
-                                  <span className="font-bold text-gray-850 dark:text-gray-300">₦{parseFloat(o.total_amount).toLocaleString()}</span>
+                                  <span className="font-bold text-gray-850 dark:text-gray-300">{localStorage.getItem('dansolam_currency_symbol') || '£'}{parseFloat(o.total_amount).toLocaleString()}</span>
                                   <span className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider mt-0.5 ${
                                     o.order_status === 'delivered' ? 'bg-green-50 text-green-600 dark:bg-green-950/30 dark:text-green-400' :
                                     o.order_status === 'cancelled' ? 'bg-red-50 text-red-500 dark:bg-red-950/30 dark:text-red-400' : 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400'

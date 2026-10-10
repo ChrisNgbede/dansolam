@@ -10,6 +10,7 @@ import { useTableState } from '../../hooks/useTableState';
 import TablePaginationControls from '../../components/ui/TablePaginationControls';
 import ImageUploadField from '../../components/ui/ImageUploadField';
 import RichTextEditor from '../../components/ui/RichTextEditor';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 export default function AdminArticles() {
   const queryClient = useQueryClient();
@@ -934,7 +935,7 @@ export default function AdminArticles() {
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-gray-555 font-bold uppercase">Blog Category</label>
-                  <select
+                  <SearchableSelect
                     value={blogCategoryId}
                     onChange={e => setBlogCategoryId(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 h-9 cursor-pointer"
@@ -943,18 +944,18 @@ export default function AdminArticles() {
                     {categories.map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-gray-555 font-bold uppercase">Publish Status</label>
-                  <select
+                  <SearchableSelect
                     value={status}
                     onChange={e => setStatus(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700 w-full h-9 cursor-pointer"
                   >
                     <option value="published">Published</option>
                     <option value="draft">Draft / Private</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 
@@ -1105,7 +1106,7 @@ export default function AdminArticles() {
               <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3">
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-gray-555 font-bold uppercase">Blog Category</label>
-                  <select
+                  <SearchableSelect
                     value={blogCategoryId}
                     onChange={e => setBlogCategoryId(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 h-9 cursor-pointer"
@@ -1114,18 +1115,18 @@ export default function AdminArticles() {
                     {categories.map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] text-gray-555 font-bold uppercase">Publish Status</label>
-                  <select
+                  <SearchableSelect
                     value={status}
                     onChange={e => setStatus(e.target.value)}
                     className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700 w-full h-9 cursor-pointer"
                   >
                     <option value="published">Published</option>
                     <option value="draft">Draft / Private</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               </div>
 

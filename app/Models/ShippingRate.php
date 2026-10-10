@@ -11,6 +11,13 @@ class ShippingRate extends Model
 
     protected $fillable = [
         'name',
+        'zone',
+        'min_quantity',
+        'max_quantity',
+        'description',
+        'is_default',
+        'is_pickup',
+        'sort_order',
         'type',
         'rate',
         'applicability',
@@ -35,6 +42,11 @@ class ShippingRate extends Model
         'max_volume' => 'decimal:2',
         'only_fragile' => 'boolean',
         'shipping_countries' => 'array',
+        'min_quantity' => 'integer',
+        'max_quantity' => 'integer',
+        'is_default' => 'boolean',
+        'is_pickup' => 'boolean',
+        'sort_order' => 'integer',
     ];
 
     public function products()

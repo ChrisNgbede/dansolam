@@ -12,6 +12,15 @@ import CaptchaWidget from '../../components/ui/CaptchaWidget';
 import { FormattedText } from '../../utils/formatText';
 import FacelessAvatar from '../../components/ui/FacelessAvatar';
 
+// "Standard"/"Default" variants carry no information for shoppers, so leave them out.
+function variantLabel(variant, sep = ', ') {
+  if (!variant) return '';
+  const parts = [];
+  if (variant.size && !/^(standard|default)$/i.test(variant.size)) parts.push(`Size: ${variant.size}`);
+  if (variant.color && !/^(standard|default)$/i.test(variant.color)) parts.push(`Color: ${variant.color}`);
+  return parts.join(sep);
+}
+
 export default function ProductDetails() {
   const currencySymbol = getCurrencySymbol();
   const { slug } = useParams();
@@ -42,6 +51,27 @@ export default function ProductDetails() {
   const [reviewImageUrl, setReviewImageUrl] = useState('');
   const [reviewCaptchaVerified, setReviewCaptchaVerified] = useState(false);
   const [activeLightboxImage, setActiveLightboxImage] = useState(null);
+
+  // Lock background body scroll when size guide or review image lightbox is open
+  useEffect(() => {
+    const isModalOpen = sizeGuideOpen || !!activeLightboxImage;
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+          setSizeGuideOpen(false);
+          setActiveLightboxImage(null);
+        }
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = '';
+    }
+  }, [sizeGuideOpen, activeLightboxImage]);
 
   // Fetch Product Details
   const { data: productRes, isLoading } = useQuery({
@@ -127,6 +157,7 @@ export default function ProductDetails() {
         queryClient.invalidateQueries(['product-details', slug]);
         setReviewName('');
         setReviewComment('');
+        setReviewImageUrl('');
         setTimeout(() => setReviewSuccess(false), 5000);
       }
     }
@@ -197,11 +228,11 @@ export default function ProductDetails() {
 
   // WhatsApp click pre-fill message
   const getWhatsAppLink = () => {
-    const brandName = 'Dansolam';
-    const whatsappNum = '2348000000000';
+    const brandName = settings.ecommerce_name || 'Dansolam';
+    const whatsappNum = String(settings.whatsapp_number || '+234 800 000 0000').replace(/[^0-9]/g, '');
     const currentUrl = window.location.href;
     const priceText = `${currencySymbol}${parseFloat(selectedVariant?.price || product.sale_price || product.price).toLocaleString()}`;
-    const variantDesc = selectedVariant ? `(Size: ${selectedVariant.size}, Color: ${selectedVariant.color})` : '';
+    const variantDesc = variantLabel(selectedVariant) ? `(${variantLabel(selectedVariant)})` : '';
 
     const message = `Hello ${brandName}, I'm interested in purchasing the "${product.name}" ${variantDesc} - Price: ${priceText}. Here is the link: ${currentUrl}`;
     return `https://wa.me/${whatsappNum}?text=${encodeURIComponent(message)}`;
@@ -262,7 +293,7 @@ export default function ProductDetails() {
   const isOutOfStock = activeStock <= 0;
   const canOrder = allowOverselling || !isOutOfStock;
 
-  const DEFAULT_PRODUCT_FALLBACK = 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=800';
+  const DEFAULT_PRODUCT_FALLBACK = '/images/placeholder-product.svg';
   const getValidImage = (url) => {
     if (url && typeof url === 'string' && url.trim().length > 3) {
       const trimmed = url.trim();
@@ -272,7 +303,7 @@ export default function ProductDetails() {
   };
 
   return (
-    <div className="bg-[#FBFAF8] dark:bg-[#17101F] min-h-screen pt-28 sm:pt-36 pb-20 px-4 sm:px-6 md:px-12 font-sans transition-colors duration-300 relative overflow-hidden w-full">
+    <div className="bg-white dark:bg-[#17101F] min-h-screen pt-28 sm:pt-36 pb-20 px-4 sm:px-6 md:px-12 font-sans transition-colors duration-300 relative overflow-hidden w-full">
       {/* Full-bleed subtle top-right ambient glow */}
       <div
         className="fixed top-0 right-0 w-[950px] h-[950px] rounded-full pointer-events-none z-0 blur-3xl opacity-75 -translate-y-1/3 translate-x-1/4"
@@ -330,7 +361,7 @@ export default function ProductDetails() {
               <span className="text-xs text-[#5D3E85] dark:text-[#EC268F] font-extrabold  tracking-wider">
                 {product.categories && product.categories.length > 0
                   ? product.categories.map(c => c.name).join(' · ')
-                  : (product.category?.name || 'Sanctuary Collection')}
+                  : (product.category?.name || 'Skincare')}
               </span>SHOP
               <h1 className="font-extrabold text-2xl md:text-4xl text-[#221B2B] dark:text-[#F3EFF6] leading-tight">
                 {product.name}
@@ -571,7 +602,7 @@ export default function ProductDetails() {
 
             {/* Add review form */}
             <div className="bg-[#FAF7FC] dark:bg-[#1E1528] p-6 rounded-2xl border border-[#EADBEE] dark:border-white/10 text-left">
-              <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase mb-4">Write a Review</h4>
+              <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6]  mb-4">Write a Review</h4>
               {reviewSuccess ? (
                 <div className="bg-green-50 dark:bg-green-950/40 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 rounded-xl p-4 text-xs font-semibold mb-4">
                   Thank you! Your review has been submitted successfully and is under moderation.
@@ -580,7 +611,7 @@ export default function ProductDetails() {
                 <form onSubmit={handleReviewSubmit} className="flex flex-col gap-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-semibold uppercase">Your Name</label>
+                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-semibold ">Your Name</label>
                       <input
                         type="text"
                         required
@@ -591,7 +622,7 @@ export default function ProductDetails() {
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-semibold uppercase">Rating</label>
+                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-semibold ">Rating</label>
                       <select
                         value={reviewRating}
                         onChange={(e) => setReviewRating(parseInt(e.target.value))}
@@ -608,7 +639,7 @@ export default function ProductDetails() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-semibold uppercase">Avatar Image URL (Optional)</label>
+                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-semibold ">Avatar Image URL (Optional)</label>
                       <input
                         type="text"
                         value={reviewAvatarUrl}
@@ -618,7 +649,7 @@ export default function ProductDetails() {
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
-                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-semibold uppercase">Review Screenshot URL (Optional)</label>
+                      <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-semibold ">Review Screenshot URL (Optional)</label>
                       <input
                         type="text"
                         value={reviewImageUrl}
@@ -630,7 +661,7 @@ export default function ProductDetails() {
                   </div>
 
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-semibold uppercase">Comment</label>
+                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-semibold ">Comment</label>
                     <textarea
                       required
                       value={reviewComment}
@@ -675,36 +706,51 @@ export default function ProductDetails() {
 
         {/* SIZE GUIDE MODAL/OVERLAY */}
         {sizeGuideOpen && createPortal(
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white rounded-3xl max-w-2xl w-full p-6 flex flex-col gap-4 relative max-h-[85vh] overflow-y-auto custom-sidebar-scroll shadow-2xl">
+          <div
+            className="fixed inset-0 bg-black/75 backdrop-blur-md z-[99999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto overscroll-contain animate-fade-in"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Skincare Volume & Application Guide"
+          >
+            {/* Backdrop click */}
+            <div className="fixed inset-0" onClick={() => setSizeGuideOpen(false)} />
+
+            <div
+              onClick={e => e.stopPropagation()}
+              className="bg-white dark:bg-[#1E1528] text-gray-900 dark:text-[#F3EFF6] rounded-3xl max-w-2xl w-full p-6 flex flex-col gap-4 relative z-10 max-h-[85vh] overflow-y-auto custom-sidebar-scroll shadow-[0_25px_70px_rgba(0,0,0,0.5)] border border-gray-150 dark:border-white/10"
+            >
               <button
+                type="button"
                 onClick={() => setSizeGuideOpen(false)}
-                className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-900 hover:bg-gray-55 rounded-full cursor-pointer transition-colors"
+                className="absolute top-4 right-4 p-1.5 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 rounded-full cursor-pointer transition-all hover:rotate-90"
+                aria-label="Close guide"
               >
                 <X className="w-5 h-5" />
               </button>
 
               <div>
-                <h3 className="font-serif font-bold text-lg text-gray-950">Skincare Volume & Application Guide</h3>
-                <p className="text-[10px] text-gray-400 mt-0.5">Recommended application methods and net volumes for Dansolam organic products.</p>
+                <h3 className="font-serif font-bold text-lg text-gray-950 dark:text-white">Skincare Volume & Application Guide</h3>
+                <p className="text-[10px] text-gray-400 dark:text-[#9B8EA9] mt-0.5">Recommended application methods and net volumes for Dansolam organic products.</p>
               </div>
 
               {/* Modal Tabs */}
-              <div className="flex border-b border-gray-150">
+              <div className="flex border-b border-gray-150 dark:border-white/10">
                 <button
+                  type="button"
                   onClick={() => setModalSizeTab('creams')}
-                  className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${modalSizeTab === 'creams' || modalSizeTab === 'dresses'
-                    ? 'border-[#5D3E85] text-[#5D3E85]'
-                    : 'border-transparent text-gray-400 hover:text-gray-650'
+                  className={`px-4 py-2 text-xs font-bold  tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${modalSizeTab === 'creams' || modalSizeTab === 'dresses'
+                    ? 'border-[#5D3E85] text-[#5D3E85] dark:border-[#EC268F] dark:text-[#EC268F]'
+                    : 'border-transparent text-gray-400 hover:text-gray-650 dark:hover:text-white'
                     }`}
                 >
                   ✨ Creams & Soaps
                 </button>
                 <button
+                  type="button"
                   onClick={() => setModalSizeTab('oils')}
-                  className={`px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${modalSizeTab === 'oils' || modalSizeTab === 'shoes'
-                    ? 'border-[#5D3E85] text-[#5D3E85]'
-                    : 'border-transparent text-gray-400 hover:text-gray-650'
+                  className={`px-4 py-2 text-xs font-bold  tracking-wider transition-all border-b-2 -mb-[2px] cursor-pointer flex items-center gap-1.5 ${modalSizeTab === 'oils' || modalSizeTab === 'shoes'
+                    ? 'border-[#5D3E85] text-[#5D3E85] dark:border-[#EC268F] dark:text-[#EC268F]'
+                    : 'border-transparent text-gray-400 hover:text-gray-650 dark:hover:text-white'
                     }`}
                 >
                   🌿 Oils & Fragrances
@@ -713,37 +759,37 @@ export default function ProductDetails() {
 
               {/* Modal Tables content */}
               {modalSizeTab === 'creams' || modalSizeTab === 'dresses' ? (
-                <div className="overflow-x-auto rounded-2xl border border-gray-150 shadow-sm bg-white">
+                <div className="overflow-x-auto rounded-2xl border border-gray-150 dark:border-white/10 shadow-sm bg-white dark:bg-[#231B30]">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-gray-50 border-b border-gray-150 text-[9px] text-gray-500 uppercase tracking-wider font-semibold">
+                      <tr className="bg-gray-50 dark:bg-white/5 border-b border-gray-150 dark:border-white/10 text-[9px] text-gray-500 dark:text-[#9B8EA9]  tracking-wider font-semibold">
                         <th className="p-3">Product Line</th>
                         <th className="p-3">Net Vol</th>
                         <th className="p-3">Usage</th>
                         <th className="p-3">Target Concern</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 text-gray-700">
-                      <tr className="hover:bg-gray-50/50">
-                        <td className="p-3 font-semibold text-gray-900">Glowing Moisturizing Cream</td>
+                    <tbody className="divide-y divide-gray-100 dark:divide-white/5 text-gray-700 dark:text-[#C9BED4]">
+                      <tr className="hover:bg-gray-50/50 dark:hover:bg-white/5">
+                        <td className="p-3 font-semibold text-gray-900 dark:text-white">Glowing Moisturizing Cream</td>
                         <td className="p-3">500g</td>
                         <td className="p-3">Daily Morning & Night</td>
                         <td className="p-3">Hydration & Glow</td>
                       </tr>
-                      <tr className="hover:bg-gray-50/55 bg-gray-50/20">
-                        <td className="p-3 font-semibold text-gray-900">Whitening Polish Soap</td>
+                      <tr className="hover:bg-gray-50/55 bg-gray-50/20 dark:bg-white/2">
+                        <td className="p-3 font-semibold text-gray-900 dark:text-white">Whitening Polish Soap</td>
                         <td className="p-3">750ml</td>
                         <td className="p-3">Daily Wash</td>
                         <td className="p-3">Pores & Spots</td>
                       </tr>
-                      <tr className="hover:bg-gray-50/50">
-                        <td className="p-3 font-semibold text-gray-900">Dansolam Plus (Molato)</td>
+                      <tr className="hover:bg-gray-50/50 dark:hover:bg-white/5">
+                        <td className="p-3 font-semibold text-gray-900 dark:text-white">Dansolam Plus (Molato)</td>
                         <td className="p-3">500g</td>
                         <td className="p-3">Daily Face/Body</td>
                         <td className="p-3">Sunburn & Discolouration</td>
                       </tr>
-                      <tr className="hover:bg-gray-50/50 bg-gray-50/20">
-                        <td className="p-3 font-semibold text-gray-900">Glowing Face Cream (SPF 30)</td>
+                      <tr className="hover:bg-gray-50/50 bg-gray-50/20 dark:bg-white/2">
+                        <td className="p-3 font-semibold text-gray-900 dark:text-white">Glowing Face Cream (SPF 30)</td>
                         <td className="p-3">30g</td>
                         <td className="p-3">Day & Night</td>
                         <td className="p-3">Facial Dark Spots</td>
@@ -752,25 +798,25 @@ export default function ProductDetails() {
                   </table>
                 </div>
               ) : (
-                <div className="overflow-x-auto rounded-2xl border border-gray-150 shadow-sm bg-white">
+                <div className="overflow-x-auto rounded-2xl border border-gray-150 dark:border-white/10 shadow-sm bg-white dark:bg-[#231B30]">
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
-                      <tr className="bg-gray-50 border-b border-gray-150 text-[9px] text-gray-500 uppercase tracking-wider font-semibold">
+                      <tr className="bg-gray-50 dark:bg-white/5 border-b border-gray-150 dark:border-white/10 text-[9px] text-gray-500 dark:text-[#9B8EA9]  tracking-wider font-semibold">
                         <th className="p-3">Product Line</th>
                         <th className="p-3">Net Vol</th>
                         <th className="p-3">Application</th>
                         <th className="p-3">Key Ingredients</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 text-gray-700">
-                      <tr className="hover:bg-gray-50/50">
-                        <td className="p-3 font-semibold text-gray-900">Discoloration Oil</td>
+                    <tbody className="divide-y divide-gray-100 dark:divide-white/5 text-gray-700 dark:text-[#C9BED4]">
+                      <tr className="hover:bg-gray-50/50 dark:hover:bg-white/5">
+                        <td className="p-3 font-semibold text-gray-900 dark:text-white">Discoloration Oil</td>
                         <td className="p-3">250ml</td>
                         <td className="p-3">Massage targeted areas</td>
                         <td className="p-3">Almond & Organic Herbs</td>
                       </tr>
-                      <tr className="hover:bg-gray-50/50 bg-gray-50/20">
-                        <td className="p-3 font-semibold text-gray-900">Essential Oil</td>
+                      <tr className="hover:bg-gray-50/50 bg-gray-50/20 dark:bg-white/2">
+                        <td className="p-3 font-semibold text-gray-900 dark:text-white">Essential Oil</td>
                         <td className="p-3">250ml</td>
                         <td className="p-3">After bath care</td>
                         <td className="p-3">100% Botanical Oils</td>
@@ -780,11 +826,11 @@ export default function ProductDetails() {
                 </div>
               )}
 
-              <div className="bg-gray-50 border border-gray-150 rounded-2xl p-4 flex flex-col gap-2 mt-2">
-                <span className="text-[10px] font-bold text-gray-700 flex items-center gap-1.5 ">
-                  <Info className="w-3.5 h-3.5 text-[#5D3E85]" /> Organic Skincare Disclaimer
+              <div className="bg-gray-50 dark:bg-white/5 border border-gray-150 dark:border-white/10 rounded-2xl p-4 flex flex-col gap-2 mt-2">
+                <span className="text-[10px] font-bold text-gray-700 dark:text-gray-300 flex items-center gap-1.5 ">
+                  <Info className="w-3.5 h-3.5 text-[#5D3E85] dark:text-[#EC268F]" /> Organic Skincare Disclaimer
                 </span>
-                <p className="text-[11px] text-gray-500 leading-relaxed font-sans">
+                <p className="text-[11px] text-gray-500 dark:text-gray-400 leading-relaxed font-sans">
                   For best results, store all Dansolam organic products in a cool, dry place away from direct sunlight. Perform a patch test before first full application.
                 </p>
               </div>
@@ -795,15 +841,23 @@ export default function ProductDetails() {
 
         {/* REVIEW LIGHTBOX MODAL */}
         {activeLightboxImage && createPortal(
-          <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4 animate-fade-in" onClick={() => setActiveLightboxImage(null)}>
-            <div className="relative max-w-lg w-full bg-white rounded-xl overflow-hidden p-2 flex flex-col" onClick={e => e.stopPropagation()}>
+          <div
+            className="fixed inset-0 bg-black/85 backdrop-blur-md z-[99999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto overscroll-contain animate-fade-in"
+            onClick={() => setActiveLightboxImage(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Review Image Lightbox"
+          >
+            <div className="relative max-w-2xl w-full bg-white dark:bg-[#1E1528] rounded-3xl overflow-hidden p-3 flex flex-col shadow-[0_25px_70px_rgba(0,0,0,0.5)] border border-white/10" onClick={e => e.stopPropagation()}>
               <button
+                type="button"
                 onClick={() => setActiveLightboxImage(null)}
-                className="absolute top-4 right-4 p-1.5 bg-black/60 hover:bg-black text-white rounded-full transition-all"
+                className="absolute top-4 right-4 p-2 bg-black/60 hover:bg-black text-white rounded-full transition-all cursor-pointer z-10 hover:rotate-90"
+                aria-label="Close image"
               >
                 <X className="w-4 h-4" />
               </button>
-              <img loading="lazy" decoding="async" src={activeLightboxImage} alt="Storefront Review Lightbox" className="w-full h-auto max-h-[75vh] object-contain rounded" />
+              <img loading="lazy" decoding="async" src={activeLightboxImage} alt="Storefront Review Lightbox" className="w-full h-auto max-h-[80vh] object-contain rounded-2xl" />
             </div>
           </div>,
           document.body
@@ -814,7 +868,7 @@ export default function ProductDetails() {
           <div className="fixed bottom-6 right-6 bg-white border border-gray-150 rounded-2xl shadow-2xl p-4 z-50 flex items-center gap-3.5 animate-slide-in max-w-sm w-full">
             <div className="w-12 h-12 rounded-xl bg-gray-50 overflow-hidden shrink-0 border border-gray-100">
               <img loading="lazy" decoding="async"
-                src={product.images?.[0]?.image_url || '/images/products/placeholder.jpg'}
+                src={product.images?.[0]?.image_url || '/images/placeholder-product.svg'}
                 className="w-full h-full object-cover"
                 alt={product.name}
               />
@@ -823,7 +877,7 @@ export default function ProductDetails() {
               <span className="text-[9px] font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded-full  tracking-wider">Added to Bag</span>
               <h4 className="text-xs font-bold text-gray-805 truncate mt-1">{product.name}</h4>
               <p className="text-[10px] text-gray-400 mt-0.5">
-                {selectedVariant ? `Size: ${selectedVariant.size} · Color: ${selectedVariant.color}` : 'Standard Edition'}
+                {variantLabel(selectedVariant, ' · ') || 'Standard'}
               </p>
             </div>
             <button

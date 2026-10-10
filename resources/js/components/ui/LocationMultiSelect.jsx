@@ -5,7 +5,7 @@ import { COUNTRIES, STATES_BY_COUNTRY } from '../../utils/geoData';
 export default function LocationMultiSelect({
   selected = [],
   onChange,
-  domesticCountry = 'Nigeria',
+  domesticCountry = 'United Kingdom',
   placeholder = 'Select areas...'
 }) {
   const [isOpen, setIsOpen] = useState(false);

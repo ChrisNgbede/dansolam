@@ -25,6 +25,7 @@ import {
   MapPin
 } from 'lucide-react';
 import { apiFetch } from '../../hooks/useAuth';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 export default function AdminOrderDetails() {
   const currencySymbol = getCurrencySymbol();
@@ -56,7 +57,7 @@ export default function AdminOrderDetails() {
 
     const itemsList = (ord.items || []).map(item => {
       const label = item.variant_label ? ` (${item.variant_label})` : '';
-      return `• ${item.product_name}${label} x ${item.quantity} - ₦${(item.price * item.quantity).toLocaleString()}`;
+      return `• ${item.product_name}${label} x ${item.quantity} - ${currencySymbol}${(item.price * item.quantity).toLocaleString()}`;
     }).join('\n');
 
     const text = `*DANSOLAM LUXURY BEAUTY HOME - ORDER RECEIPT*\n` +
@@ -70,11 +71,11 @@ export default function AdminOrderDetails() {
       `--------------------------------\n` +
       `*Items:*\n${itemsList}\n` +
       `--------------------------------\n` +
-      `*Subtotal:* ₦${parseFloat(ord.subtotal || 0).toLocaleString()}\n` +
-      (ord.discount_amount > 0 ? `*Discount:* - ₦${parseFloat(ord.discount_amount).toLocaleString()}\n` : '') +
-      `*Delivery Fee:* ₦${parseFloat(ord.delivery_fee || 0).toLocaleString()}\n` +
-      (parseFloat(ord.tax_amount) > 0 ? `*Taxes:* ₦${parseFloat(ord.tax_amount).toLocaleString()}\n` : '') +
-      `*Total Amount:* ₦${parseFloat(ord.total_amount || 0).toLocaleString()}\n` +
+      `*Subtotal:* ${currencySymbol}${parseFloat(ord.subtotal || 0).toLocaleString()}\n` +
+      (ord.discount_amount > 0 ? `*Discount:* - ${currencySymbol}${parseFloat(ord.discount_amount).toLocaleString()}\n` : '') +
+      `*Delivery Fee:* ${currencySymbol}${parseFloat(ord.delivery_fee || 0).toLocaleString()}\n` +
+      (parseFloat(ord.tax_amount) > 0 ? `*Taxes:* ${currencySymbol}${parseFloat(ord.tax_amount).toLocaleString()}\n` : '') +
+      `*Total Amount:* ${currencySymbol}${parseFloat(ord.total_amount || 0).toLocaleString()}\n` +
       `--------------------------------\n` +
       `*Track your order live:* ${window.location.origin}/order-tracking?order_number=${ord.order_number}&contact=${encodeURIComponent(ord.customer_email || '')}\n\n` +
       `Thank you for choosing Dansolam!`;
@@ -381,7 +382,7 @@ export default function AdminOrderDetails() {
                     <span className="text-gray-400 block text-[10px] uppercase font-bold">Shipping Destination</span>
                     <span className="font-medium text-[#221B2B] dark:text-[#F3EFF6] leading-relaxed">
                       {order.delivery_method === 'delivery' ? (
-                        `${order.delivery_address || ''}, ${order.delivery_city || ''}, ${order.delivery_state || ''}, ${order.delivery_country || 'Nigeria'}`
+                        `${order.delivery_address || ''}, ${order.delivery_city || ''}, ${order.delivery_state || ''}, ${order.delivery_country || 'United Kingdom'}`
                       ) : (
                         'Dansolam Beauty Home Main Branch'
                       )}
@@ -603,7 +604,7 @@ export default function AdminOrderDetails() {
                 <form onSubmit={handleUpdateSubmit} className="flex flex-col gap-4">
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-extrabold uppercase">Payment Status</label>
-                    <select
+                    <SearchableSelect
                       value={paymentStatus}
                       onChange={e => setPaymentStatus(e.target.value)}
                       className="px-3.5 py-2.5 rounded-2xl border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs font-bold bg-white dark:bg-[#231B30] text-[#221B2B] dark:text-[#F3EFF6]"
@@ -611,12 +612,12 @@ export default function AdminOrderDetails() {
                       <option value="pending">Pending</option>
                       <option value="paid">Paid (Confirm Payment)</option>
                       <option value="failed">Failed</option>
-                    </select>
+                    </SearchableSelect>
                   </div>
 
                   <div className="flex flex-col gap-1.5">
                     <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-extrabold uppercase">Order Fulfillment Status</label>
-                    <select
+                    <SearchableSelect
                       value={orderStatus}
                       onChange={e => setOrderStatus(e.target.value)}
                       className="px-3.5 py-2.5 rounded-2xl border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs font-bold bg-white dark:bg-[#231B30] text-[#221B2B] dark:text-[#F3EFF6]"
@@ -629,7 +630,7 @@ export default function AdminOrderDetails() {
                       <option value="shipped">Shipped / Dispatched</option>
                       <option value="delivered">Delivered Successfully</option>
                       <option value="cancelled">Cancelled</option>
-                    </select>
+                    </SearchableSelect>
                   </div>
 
                   <button

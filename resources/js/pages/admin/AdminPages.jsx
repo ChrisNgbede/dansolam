@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, Trash2, Edit, Save, X, FileText, Globe, ArrowUpRight, HelpCircle } from 'lucide-react';
 import { apiFetch } from '../../hooks/useAuth';
 import RichTextEditor from '../../components/ui/RichTextEditor';
+import AboutSectionsEditor, { ABOUT_SLUGS, EMPTY_ABOUT_SECTIONS, PageMetaFields } from '../../components/admin/PageSectionsEditor';
 
 export default function AdminPages() {
   const queryClient = useQueryClient();
@@ -32,6 +33,8 @@ export default function AdminPages() {
   const [pageTitle, setPageTitle] = useState('');
   const [pageSlug, setPageSlug] = useState('');
   const [pageContent, setPageContent] = useState('');
+  const [pageMeta, setPageMeta] = useState({});
+  const [pageSections, setPageSections] = useState(null);
 
   // Fetch Pages
   const { data: pagesRes, isLoading: isPagesLoading } = useQuery({
@@ -45,6 +48,8 @@ export default function AdminPages() {
     setPageTitle('');
     setPageSlug('');
     setPageContent('');
+    setPageMeta({});
+    setPageSections(null);
     setShowPageModal(true);
   };
 
@@ -53,6 +58,13 @@ export default function AdminPages() {
     setPageTitle(page.title);
     setPageSlug(page.slug);
     setPageContent(page.content);
+    setPageMeta({
+      subtitle: page.subtitle || '',
+      hero_image_url: page.hero_image_url || '',
+      meta_title: page.meta_title || '',
+      meta_description: page.meta_description || '',
+    });
+    setPageSections(page.sections || (ABOUT_SLUGS.includes(page.slug) ? EMPTY_ABOUT_SECTIONS : null));
     setShowPageModal(true);
   };
 
@@ -105,7 +117,10 @@ export default function AdminPages() {
 
   const handlePageSubmit = (e) => {
     e.preventDefault();
-    const payload = { title: pageTitle, slug: pageSlug, content: pageContent };
+    const payload = { title: pageTitle, slug: pageSlug, content: pageContent, ...pageMeta };
+    if (ABOUT_SLUGS.includes(pageSlug)) {
+      payload.sections = pageSections || EMPTY_ABOUT_SECTIONS;
+    }
     if (editingPage) {
       updatePageMutation.mutate({ id: editingPage.id, payload });
     } else {
@@ -393,7 +408,7 @@ export default function AdminPages() {
       {/* Pages Editor Modal */}
       {showPageModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full border border-gray-100 shadow-2xl flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-2xl max-w-3xl w-full border border-gray-100 shadow-2xl flex flex-col max-h-[90vh]">
             <div className="p-5 border-b border-gray-100 flex items-center justify-between shrink-0">
               <h3 className="font-serif text-lg font-bold text-gray-800">
                 {editingPage ? `Edit Page: ${editingPage.title}` : 'Create CMS Page'}
@@ -443,6 +458,12 @@ export default function AdminPages() {
                 onChange={setPageContent}
                 placeholder="<h1>About Our Ecommerce</h1><p>Welcome to Dansolam...</p>"
               />
+
+              <PageMetaFields values={pageMeta} onChange={setPageMeta} />
+
+              {ABOUT_SLUGS.includes(pageSlug) && (
+                <AboutSectionsEditor sections={pageSections} onChange={setPageSections} />
+              )}
 
               <div className="flex justify-end gap-2.5 border-t border-gray-100 pt-4 mt-2 shrink-0">
                 <button

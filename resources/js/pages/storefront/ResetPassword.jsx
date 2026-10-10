@@ -94,13 +94,15 @@ export default function ResetPassword() {
 
         <div className="bg-white dark:bg-[#1E1528] rounded-[36px] overflow-hidden shadow-2xl flex flex-col md:flex-row min-h-[550px] border border-[#EADBEE] dark:border-white/10 transition-colors duration-300">
           {/* Left Column: Image/Banner (hidden on mobile) */}
-          <div className="hidden md:flex md:w-1/2 relative bg-[#181120] items-end p-10 text-left">
+          <div className="hidden md:flex md:w-1/2 relative bg-gradient-to-br from-[#5D3E85] via-[#4A2B68] to-[#2A1740] items-end p-10 text-left">
             <div className="absolute inset-0 bg-gradient-to-t from-[#181120] via-[#5D3E85]/40 to-transparent z-10" />
-            <img loading="eager" decoding="async" fetchPriority="high"
-              src={settings.auth_image_url || settingsData?.data?.fallback_auth_image_url || "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=800"}
+            {(settings.auth_image_url || settingsData?.data?.fallback_auth_image_url) && (
+            <img loading="eager" decoding="async" fetchPriority="high" width="600" height="800"
+              src={settings.auth_image_url || settingsData?.data?.fallback_auth_image_url}
               alt="Dansolam Beauty Home Campaign"
               className="absolute inset-0 w-full h-full object-cover"
             />
+            )}
             <div className="relative z-20 text-white flex flex-col gap-3">
               <span className="text-[10px]  tracking-widest text-[#EC268F] font-extrabold bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full border border-white/20 self-start">
                 Update Password
@@ -109,7 +111,7 @@ export default function ResetPassword() {
                 {settings.auth_title || "Unlock Your Radiant Inner Glow"}
               </h2>
               <p className="text-xs text-white/80 font-medium max-w-xs leading-relaxed">
-                {settings.auth_subtitle || "Join Dansolam Beauty Home and experience luxury spa, skincare, and fashion."}
+                {settings.auth_subtitle || "Join Dansolam Beauty Home for 100% organic skincare and body care."}
               </p>
             </div>
           </div>
@@ -118,7 +120,7 @@ export default function ResetPassword() {
           <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center bg-white dark:bg-[#1E1528]">
             <div className="flex flex-col items-center text-center mb-4">
               {settings.logo_url ? (
-                <img loading="eager" decoding="async" fetchPriority="high" src={settings.logo_url} alt={settings.ecommerce_name || "Logo"} className="h-10 object-contain mb-4 mx-auto" />
+                <img loading="eager" decoding="async" width="160" height="40" src={settings.logo_url} alt={settings.ecommerce_name || "Logo"} className="h-10 object-contain mb-4 mx-auto" />
               ) : (
                 <div className="flex flex-col leading-none text-center mb-4">
                   <span className="font-extrabold text-[#181120] dark:text-[#F3EFF6] text-xl tracking-tight">Dansolam</span>
@@ -135,7 +137,7 @@ export default function ResetPassword() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold uppercase tracking-wider">Email Address</label>
+                  <label className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold  tracking-wider">Email Address</label>
                   <input
                     type="email"
                     required
@@ -147,7 +149,7 @@ export default function ResetPassword() {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold uppercase tracking-wider">Reset Code (Token)</label>
+                  <label className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold  tracking-wider">Reset Code (Token)</label>
                   <input
                     type="text"
                     required
@@ -160,7 +162,7 @@ export default function ResetPassword() {
 
                 <div className="grid grid-cols-2 gap-3.5">
                   <div className="flex flex-col gap-1.5 relative">
-                    <label className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold uppercase tracking-wider">New Password</label>
+                    <label className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold  tracking-wider">New Password</label>
                     <div className="relative">
                       <input
                         type={showPassword ? 'text' : 'password'}
@@ -180,7 +182,7 @@ export default function ResetPassword() {
                     </div>
                   </div>
                   <div className="flex flex-col gap-1.5 relative">
-                    <label className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold uppercase tracking-wider">Confirm Password</label>
+                    <label className="text-[10px] text-gray-500 dark:text-[#C9BED4] font-bold  tracking-wider">Confirm Password</label>
                     <div className="relative">
                       <input
                         type={showPasswordConf ? 'text' : 'password'}
@@ -226,7 +228,7 @@ export default function ResetPassword() {
 
                 <button
                   onClick={() => navigate('/account')}
-                  className="w-full py-3.5 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold rounded-full flex items-center justify-center gap-2 shadow-lg transition-all duration-300 uppercase tracking-wider btn-spring cursor-pointer"
+                  className="w-full py-3.5 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold rounded-full flex items-center justify-center gap-2 shadow-lg transition-all duration-300  tracking-wider btn-spring cursor-pointer"
                 >
                   Go to Sign In
                 </button>

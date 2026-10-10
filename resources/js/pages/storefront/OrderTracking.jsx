@@ -84,42 +84,42 @@ export default function OrderTracking() {
   const order = orderResponse?.data;
   const activeStepIdx = order ? getStatusStepIndex(order.order_status) : 0;
 
+  // Fetch store settings
+  const { data: settingsRes } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => fetch('/api/settings').then(res => res.json())
+  });
+  const settings = settingsRes?.data?.settings || {};
+
   // WhatsApp click pre-fill message
   const getWhatsAppInquiryLink = () => {
     if (!order) return '';
-    const brandName = 'Dansolam';
-    const whatsappNum = '2348000000000';
+    const brandName = settings.ecommerce_name || 'Dansolam';
+    const whatsappNum = String(settings.whatsapp_number || '+234 800 000 0000').replace(/[^0-9]/g, '');
     const message = `Hello ${brandName}, I'm checking on the status of my order #${order.order_number} placed under the name "${order.customer_name}". Can you please update me?`;
     return `https://wa.me/${whatsappNum}?text=${encodeURIComponent(message)}`;
   };
 
   return (
-    <div className="bg-[#FBFAF8] dark:bg-[#17101F] min-h-screen font-sans pb-20 transition-colors duration-300">
+    <div className="bg-white dark:bg-[#17101F] min-h-screen font-sans pb-20 transition-colors duration-300">
       <SEO title="Track Your Order - Dansolam Beauty Home" description="Track the real-time payment and delivery status of your order at Dansolam Beauty Home." />
 
       <div className="max-w-[1400px] mx-auto px-3 sm:px-5 lg:px-6 pt-20 sm:pt-22 md:pt-24 pb-12 flex flex-col gap-6">
         {/* Hero Banner Card - Compact, Wide, Back to Home Inside */}
-        <div className="h-[200px] sm:h-[240px] md:h-[270px] rounded-[28px] sm:rounded-[36px] overflow-hidden bg-gray-900 relative shadow-md w-full">
-          <img
-            loading="eager"
-            decoding="async"
-            src="https://images.unsplash.com/photo-1556228720-195a672e8a03?q=80&w=1200"
-            className="w-full h-full object-cover object-center"
-            alt="Track Your Order"
-          />
+        <section className="h-[200px] sm:h-[240px] md:h-[270px] rounded-[28px] sm:rounded-[36px] overflow-hidden bg-gradient-to-br from-[#5D3E85] via-[#4A2B68] to-[#2A1740] relative shadow-md w-full">
 
           {/* Header Action Buttons Inside Banner */}
           <div className="absolute top-4 sm:top-5 left-4 sm:left-6 right-4 sm:right-6 flex justify-between items-center z-20">
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 text-[11px] font-bold text-white shadow-sm transition-all duration-300 btn-spring"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-[11px] font-bold text-white shadow-sm transition-all duration-300 btn-spring"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Home</span>
             </Link>
           </div>
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20 flex flex-col justify-end p-5 sm:p-7 md:p-9 text-left z-10">
+          <div className="absolute inset-0 flex flex-col justify-end p-5 sm:p-7 md:p-9 text-left z-10">
             {(showOnlineSuccess || showCodPrompt || showBankTransferPrompt) && (
               <div className="mb-2 w-full max-w-xl">
                 <CheckoutStepper currentStep={3} />
@@ -128,16 +128,16 @@ export default function OrderTracking() {
             <span className="text-[9px] sm:text-[10px] font-extrabold text-[#5D3E85] bg-white px-3.5 py-1 rounded-full  tracking-widest self-start mb-2 border border-white/40 shadow-sm">
               Live Order Tracking
             </span>
-            <h1 className="font-extrabold text-xl sm:text-2xl md:text-3xl lg:text-4xl text-white leading-tight">
+            <h1 className="font-serif font-bold text-2xl sm:text-3xl md:text-4xl text-white leading-tight">
               Track Your Order
             </h1>
             <p className="text-[11px] sm:text-xs md:text-sm text-gray-200 mt-1 max-w-2xl font-sans leading-snug line-clamp-2">
               Monitor payment receipts, shop processing stages, and real-time delivery status.
             </p>
           </div>
-        </div>
+        </section>
 
-        <div className="max-w-4xl mx-auto w-full flex flex-col gap-8 text-left">
+        <section className="max-w-4xl mx-auto w-full flex flex-col gap-8 text-left">
 
           {/* Checkout Success Alerts */}
           {showOnlineSuccess && (
@@ -202,7 +202,7 @@ export default function OrderTracking() {
 
             <form onSubmit={handleTrackSubmit} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
               <div className="flex flex-col gap-1.5 sm:col-span-5">
-                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">
+                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">
                   Order Number <span className="text-[#EC268F]">*</span>
                 </label>
                 <input
@@ -211,11 +211,11 @@ export default function OrderTracking() {
                   placeholder="e.g. FQ-XXXXXX-XXX"
                   value={orderNumber}
                   onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
-                  className="px-4 py-3 border-2 border-[#D4C3E2] dark:border-white/20 rounded-full focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C] uppercase font-bold text-[#221B2B] dark:text-[#F3EFF6] shadow-xs"
+                  className="px-4 py-3 border-2 border-[#D4C3E2] dark:border-white/20 rounded-full focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C]  font-bold text-[#221B2B] dark:text-[#F3EFF6] shadow-xs"
                 />
               </div>
               <div className="flex flex-col gap-1.5 sm:col-span-4">
-                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase tracking-wider">
+                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold  tracking-wider">
                   Email / Phone <span className="text-gray-400 font-normal lowercase">(optional)</span>
                 </label>
                 <input
@@ -294,7 +294,7 @@ export default function OrderTracking() {
                           } ${isCurrent && 'ring-4 ring-[#EC268F]/30 bg-[#EC268F] border-[#EC268F]'}`}>
                           {isPassed && idx < activeStepIdx ? <Check className="w-4 h-4" /> : idx + 1}
                         </div>
-                        <span className={`text-[9px] font-extrabold tracking-wider uppercase ${isPassed ? 'text-[#221B2B] dark:text-[#F3EFF6]' : 'text-gray-400 dark:text-[#6B6274]'
+                        <span className={`text-[9px] font-extrabold tracking-wider  ${isPassed ? 'text-[#221B2B] dark:text-[#F3EFF6]' : 'text-gray-400 dark:text-[#6B6274]'
                           }`}>
                           {step.label}
                         </span>
@@ -310,7 +310,7 @@ export default function OrderTracking() {
 
                 {/* Delivery address details */}
                 <div className="bg-white dark:bg-[#1E1528] border border-gray-100 dark:border-white/10 rounded-2xl p-5 shadow-xs flex flex-col gap-3">
-                  <h4 className="font-bold text-[10px] text-[#221B2B] dark:text-[#F3EFF6] uppercase tracking-wider border-b border-gray-100 dark:border-white/10 pb-2 flex items-center gap-1.5">
+                  <h4 className="font-bold text-[10px] text-[#221B2B] dark:text-[#F3EFF6]  tracking-wider border-b border-gray-100 dark:border-white/10 pb-2 flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-[#5D3E85] dark:text-[#EC268F]" />
                     Delivery & Customer Details
                   </h4>
@@ -327,7 +327,7 @@ export default function OrderTracking() {
 
                 {/* Payment & Invoice stats */}
                 <div className="bg-white dark:bg-[#1E1528] border border-gray-100 dark:border-white/10 rounded-2xl p-5 shadow-xs flex flex-col gap-3">
-                  <h4 className="font-bold text-[10px] text-[#221B2B] dark:text-[#F3EFF6] uppercase tracking-wider border-b border-gray-100 dark:border-white/10 pb-2 flex items-center gap-1.5">
+                  <h4 className="font-bold text-[10px] text-[#221B2B] dark:text-[#F3EFF6]  tracking-wider border-b border-gray-100 dark:border-white/10 pb-2 flex items-center gap-1.5">
                     <Receipt className="w-3.5 h-3.5 text-[#5D3E85] dark:text-[#EC268F]" />
                     Invoice Summary
                   </h4>
@@ -339,7 +339,7 @@ export default function OrderTracking() {
                       💵 Total: <span className="text-[#5D3E85] dark:text-[#EC268F] font-extrabold">{currencySymbol}{parseFloat(order.total_amount).toLocaleString()}</span>
                     </p>
                     <p>💳 <strong>Gateway Method:</strong> {order.payment_method === 'paystack' ? 'Online Paystack' : 'Direct Bank Transfer'}</p>
-                    <p>📊 <strong>Status:</strong> <span className={`font-semibold uppercase ${order.payment_status === 'paid' ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>{order.payment_status}</span></p>
+                    <p>📊 <strong>Status:</strong> <span className={`font-semibold  ${order.payment_status === 'paid' ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>{order.payment_status}</span></p>
                   </div>
                 </div>
 
@@ -347,7 +347,7 @@ export default function OrderTracking() {
 
               {/* Ordered items listing */}
               <div className="bg-white dark:bg-[#1E1528] border border-gray-100 dark:border-white/10 rounded-2xl p-6 shadow-xs text-left flex flex-col gap-3">
-                <h4 className="font-bold text-[10px] text-[#221B2B] dark:text-[#F3EFF6] uppercase tracking-wider border-b border-gray-100 dark:border-white/10 pb-3">Ordered Items</h4>
+                <h4 className="font-bold text-[10px] text-[#221B2B] dark:text-[#F3EFF6]  tracking-wider border-b border-gray-100 dark:border-white/10 pb-3">Ordered Items</h4>
                 <div className="flex flex-col gap-4 divide-y divide-gray-100 dark:divide-white/10">
                   {order.items?.map((item) => (
                     <div key={item.id} className="flex justify-between items-center text-xs pt-3 first:pt-0">
@@ -383,11 +383,11 @@ export default function OrderTracking() {
               Security & Guarantee details
             </div>
             <p className="text-[10px] text-gray-400 dark:text-[#9B8EA9] leading-normal">
-              For returns, skin consultation queries, or package tracking issues, reach our customer care agent directly.
+              For returns, product questions or delivery issues, contact our customer care team directly.
             </p>
           </div>
 
-        </div>
+        </section>
       </div>
     </div>
   );

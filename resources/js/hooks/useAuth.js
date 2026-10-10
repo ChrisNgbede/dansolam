@@ -1,5 +1,28 @@
 import { useState, useEffect } from 'react';
 import { getAdminToken } from '../components/auth/RequireAdminAuth';
+import { toast } from '../components/ui/ToastProvider';
+import { shareSessionLogin, shareSessionLogout } from '../utils/sessionShare';
+
+// Actions that change data should confirm themselves; pages can still raise a more
+// specific message, which replaces this one.
+const CHANGING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
+const SILENT_PATHS = [/\/api\/admin\/upload/, /\/api\/admin\/login/, /\/api\/admin\/logout/, /\/api\/pos\//];
+
+async function announceResult(url, method, response) {
+  if (!CHANGING_METHODS.includes(method) || SILENT_PATHS.some((re) => re.test(url))) return;
+  try {
+    // Read a copy so callers still get an unread body.
+    const data = await response.clone().json();
+    const message = data?.message;
+    if (response.ok && data?.success !== false) {
+      toast.success(message || 'Your changes have been saved.', { auto: true });
+    } else if (message) {
+      toast.error(message);
+    }
+  } catch {
+    if (response.ok) toast.success('Your changes have been saved.', { auto: true });
+  }
+}
 
 // Common helper to make fetch requests with auth headers
 export const apiFetch = async (url, options = {}) => {
@@ -32,6 +55,7 @@ export const apiFetch = async (url, options = {}) => {
     sessionStorage.removeItem('dansolam_customer_token');
     localStorage.removeItem('dansolam_admin_token');
     sessionStorage.removeItem('dansolam_admin_token');
+    shareSessionLogout();
     
     // Dispatch custom event to sync all useAuth hook states
     window.dispatchEvent(new Event('dansolam_auth_logout'));
@@ -40,6 +64,10 @@ export const apiFetch = async (url, options = {}) => {
     if (window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
       window.location.href = '/admin/login';
     }
+  }
+
+  if (typeof url === 'string' && url.startsWith('/api/admin')) {
+    await announceResult(url, String(options.method || 'GET').toUpperCase(), response);
   }
 
   return response;
@@ -90,6 +118,7 @@ export const useAuth = () => {
         sessionStorage.removeItem('dansolam_customer_token');
         localStorage.removeItem('dansolam_admin_token');
         sessionStorage.removeItem('dansolam_admin_token');
+        shareSessionLogout();
         setCustomer(null);
         setAdmin(null);
 
@@ -168,6 +197,7 @@ export const useAuth = () => {
         sessionStorage.setItem('dansolam_customer_token', data.data.token);
         localStorage.removeItem('dansolam_customer_token');
         localStorage.removeItem('dansolam_remembered_email');
+        shareSessionLogin();
       }
       setCustomer(data.data.customer);
       return { success: true, customer: data.data.customer };
@@ -197,6 +227,7 @@ export const useAuth = () => {
     }
     localStorage.removeItem('dansolam_customer_token');
     sessionStorage.removeItem('dansolam_customer_token');
+    shareSessionLogout(['dansolam_customer_token']);
     setCustomer(null);
   };
 
@@ -214,6 +245,7 @@ export const useAuth = () => {
         sessionStorage.setItem('dansolam_admin_token', data.data.token);
         localStorage.removeItem('dansolam_admin_token');
         localStorage.removeItem('dansolam_remembered_admin_email');
+        shareSessionLogin();
       }
       setAdmin(data.data.user);
       return { success: true };
@@ -229,6 +261,7 @@ export const useAuth = () => {
     }
     localStorage.removeItem('dansolam_admin_token');
     sessionStorage.removeItem('dansolam_admin_token');
+    shareSessionLogout(['dansolam_admin_token']);
     setAdmin(null);
   };
 

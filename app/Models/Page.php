@@ -12,6 +12,15 @@ class Page extends Model
     protected $fillable = [
         'title',
         'slug',
+        'subtitle',
+        'hero_image_url',
         'content',
+        'sections',
+        'meta_title',
+        'meta_description',
+    ];
+
+    protected $casts = [
+        'sections' => 'array',
     ];
 }

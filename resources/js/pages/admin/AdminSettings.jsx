@@ -10,6 +10,7 @@ import RichTextEditor from '../../components/ui/RichTextEditor';
 import { COUNTRIES } from '../../utils/geoData';
 import SettingsSearchTypeahead from '../../components/admin/SettingsSearchTypeahead';
 import { PaystackLogo, StripeLogo, PayPalLogo } from '../../components/storefront/PaymentGatewayLogos';
+import SearchableSelect from '../../components/ui/SearchableSelect';
 
 const CURRENCIES = [
   { code: 'NGN', symbol: '₦', name: 'Nigerian Naira (₦)' },
@@ -83,6 +84,8 @@ export default function AdminSettings() {
   const [whatsappNumber, setWhatsappNumber] = useState('');
   const [storeAddress, setStoreAddress] = useState('');
   const [openingHours, setOpeningHours] = useState('');
+  const [supportEmail, setSupportEmail] = useState('');
+  const [openingHoursNote, setOpeningHoursNote] = useState('');
 
   // Settings states - Meet the CEO
   const [ceoName, setCeoName] = useState('');
@@ -133,11 +136,6 @@ export default function AdminSettings() {
   const [promoPopupDelay, setPromoPopupDelay] = useState('3000');
 
   // Settings states - Shipping configs
-  const [shippingBaseDomestic, setShippingBaseDomestic] = useState('2000');
-  const [shippingSameDaySurcharge, setShippingSameDaySurcharge] = useState('5000');
-  const [shippingInternationalBase, setShippingInternationalBase] = useState('25000');
-  const [shippingFreeThreshold, setShippingFreeThreshold] = useState('100000');
-  const [shippingItemMultiplier, setShippingItemMultiplier] = useState('1500');
   const [allowOverselling, setAllowOverselling] = useState(false);
 
   // Settings states - Payment Gateways
@@ -155,6 +153,7 @@ export default function AdminSettings() {
   const [paypalIntent, setPaypalIntent] = useState('CAPTURE');
   const [paypalCurrency, setPaypalCurrency] = useState('USD');
   const [paypalExchangeRate, setPaypalExchangeRate] = useState('1');
+  const [paypalWebhookId, setPaypalWebhookId] = useState('');
   const [paystackKeyPublic, setPaystackKeyPublic] = useState('');
   const [paystackKeySecret, setPaystackKeySecret] = useState('');
   const [flutterwaveKeyPublic, setFlutterwaveKeyPublic] = useState('');
@@ -199,10 +198,10 @@ export default function AdminSettings() {
   // SKU, Currency, Timezone & Domicile settings
   const [skuPrefix, setSkuPrefix] = useState('FQ-');
   const [skuSuffix, setSkuSuffix] = useState('');
-  const [systemCurrencyCode, setSystemCurrencyCode] = useState('NGN');
+  const [systemCurrencyCode, setSystemCurrencyCode] = useState('GBP');
   const [systemCurrencySymbol, setSystemCurrencySymbol] = useState(getCurrencySymbol());
-  const [systemTimezone, setSystemTimezone] = useState('Africa/Lagos');
-  const [systemDomesticCountry, setSystemDomesticCountry] = useState('Nigeria');
+  const [systemTimezone, setSystemTimezone] = useState('Europe/London');
+  const [systemDomesticCountry, setSystemDomesticCountry] = useState('United Kingdom');
   const [enableFittingSessions, setEnableFittingSessions] = useState(true);
 
   // Submit states
@@ -239,6 +238,8 @@ export default function AdminSettings() {
       setWhatsappNumber(s.whatsapp_number || '');
       setStoreAddress(s.store_address || '');
       setOpeningHours(s.opening_hours || '');
+      setSupportEmail(s.support_email || s.contact_email || '');
+      setOpeningHoursNote(s.opening_hours_note || '');
 
       setCeoName(s.ceo_name || '');
       setCeoBio(s.ceo_bio || '');
@@ -286,11 +287,6 @@ export default function AdminSettings() {
       setPromoPopupDelay(s.promo_popup_delay || '3000');
 
       // Load Shipping configs
-      setShippingBaseDomestic(s.shipping_base_domestic || '2000');
-      setShippingSameDaySurcharge(s.shipping_same_day_surcharge || '5000');
-      setShippingInternationalBase(s.shipping_international_base || '25000');
-      setShippingFreeThreshold(s.shipping_free_threshold || '100000');
-      setShippingItemMultiplier(s.shipping_item_multiplier || '1500');
       setAllowOverselling(s.allow_overselling === 'true' || s.allow_overselling === true || s.allow_overselling === '1' || s.allow_overselling === 1);
 
       // Load Payment Gateways
@@ -308,6 +304,7 @@ export default function AdminSettings() {
       setPaypalIntent(s.paypal_intent || 'CAPTURE');
       setPaypalCurrency(s.paypal_currency || 'USD');
       setPaypalExchangeRate(s.paypal_exchange_rate || '1');
+      setPaypalWebhookId(s.paypal_webhook_id || '');
       setPaystackKeyPublic(s.paystack_key_public || '');
       setPaystackKeySecret(s.paystack_key_secret || '');
       setFlutterwaveKeyPublic(s.flutterwave_key_public || '');
@@ -353,10 +350,10 @@ export default function AdminSettings() {
       // Load SKU, Currency, Timezone & Domicile
       setSkuPrefix(s.sku_prefix || 'FQ-');
       setSkuSuffix(s.sku_suffix || '');
-      setSystemCurrencyCode(s.system_currency_code || 'NGN');
+      setSystemCurrencyCode(s.system_currency_code || 'GBP');
       setSystemCurrencySymbol(s.system_currency_symbol || getCurrencySymbol());
-      setSystemTimezone(s.system_timezone || 'Africa/Lagos');
-      setSystemDomesticCountry(s.system_domestic_country || 'Nigeria');
+      setSystemTimezone(s.system_timezone || 'Europe/London');
+      setSystemDomesticCountry(s.system_domestic_country || 'United Kingdom');
     }
   }, [settingsRes]);
 
@@ -383,6 +380,8 @@ export default function AdminSettings() {
       whatsapp_number: whatsappNumber,
       store_address: storeAddress,
       opening_hours: openingHours,
+      support_email: supportEmail,
+      opening_hours_note: openingHoursNote,
       ceo_name: ceoName,
       ceo_bio: ceoBio,
       ceo_image_url: ceoImageUrl,
@@ -427,11 +426,6 @@ export default function AdminSettings() {
       promo_popup_delay: promoPopupDelay,
 
       // Shipping configs payload
-      shipping_base_domestic: shippingBaseDomestic,
-      shipping_same_day_surcharge: shippingSameDaySurcharge,
-      shipping_international_base: shippingInternationalBase,
-      shipping_free_threshold: shippingFreeThreshold,
-      shipping_item_multiplier: shippingItemMultiplier,
       allow_overselling: allowOverselling ? 'true' : 'false',
       enable_fitting_sessions: enableFittingSessions ? 'true' : 'false',
 
@@ -450,6 +444,7 @@ export default function AdminSettings() {
       paypal_intent: paypalIntent,
       paypal_currency: paypalCurrency,
       paypal_exchange_rate: paypalExchangeRate,
+      paypal_webhook_id: paypalWebhookId.trim(),
       paystack_key_public: paystackKeyPublic,
       paystack_key_secret: paystackKeySecret,
       flutterwave_key_public: flutterwaveKeyPublic,
@@ -576,14 +571,14 @@ export default function AdminSettings() {
   };
 
   if (isLoading) {
-    return <div className="animate-pulse bg-white border rounded-xl h-96 w-full" />;
+    return <div className="animate-pulse bg-white dark:bg-gray-900 border dark:border-gray-800 rounded-xl h-96 w-full" />;
   }
 
   return (
     <div className="flex flex-col gap-6 w-full">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif font-bold text-2xl text-gray-900">Ecommerce Configuration & Settings</h2>
+          <h2 className="font-serif font-bold text-2xl text-gray-900 dark:text-gray-100">Ecommerce Configuration & Settings</h2>
           <p className="text-xs text-gray-400 mt-1 font-semibold">Configure white-label styling, bank transfers, payment channels (Stripe, PayPal, Paystack, Flutterwave), and email dispatch settings.</p>
         </div>
 
@@ -592,15 +587,14 @@ export default function AdminSettings() {
       </div>
 
       {/* Tabs Menu button bar */}
-      <div style={{ backgroundColor: '#F1F5F9' }} className="flex items-center gap-1.5 p-1.5 rounded-2xl border border-gray-200 overflow-x-auto scrollbar-none text-xs font-bold shadow-2xs">
+      <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-slate-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 overflow-x-auto scrollbar-none text-xs font-bold shadow-2xs">
         <button
           type="button"
           onClick={() => setActiveSettingsTab('brand')}
-          style={{ backgroundColor: activeSettingsTab === 'brand' ? '#5D3E85' : '#FFFFFF' }}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
             activeSettingsTab === 'brand'
-              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
-              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
+              ? 'bg-[#5D3E85] text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-[#5D3E85] dark:hover:text-purple-300 border border-gray-200 dark:border-gray-700 shadow-2xs'
           }`}
         >
           <Settings className="w-3.5 h-3.5" />
@@ -609,11 +603,10 @@ export default function AdminSettings() {
         <button
           type="button"
           onClick={() => setActiveSettingsTab('promotions')}
-          style={{ backgroundColor: activeSettingsTab === 'promotions' ? '#5D3E85' : '#FFFFFF' }}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
             activeSettingsTab === 'promotions'
-              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
-              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
+              ? 'bg-[#5D3E85] text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-[#5D3E85] dark:hover:text-purple-300 border border-gray-200 dark:border-gray-700 shadow-2xs'
           }`}
         >
           <Volume2 className="w-3.5 h-3.5" />
@@ -622,11 +615,10 @@ export default function AdminSettings() {
         <button
           type="button"
           onClick={() => setActiveSettingsTab('shipping')}
-          style={{ backgroundColor: activeSettingsTab === 'shipping' ? '#5D3E85' : '#FFFFFF' }}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
             activeSettingsTab === 'shipping'
-              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
-              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
+              ? 'bg-[#5D3E85] text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-[#5D3E85] dark:hover:text-purple-300 border border-gray-200 dark:border-gray-700 shadow-2xs'
           }`}
         >
           <Truck className="w-3.5 h-3.5" />
@@ -635,11 +627,10 @@ export default function AdminSettings() {
         <button
           type="button"
           onClick={() => setActiveSettingsTab('payment')}
-          style={{ backgroundColor: activeSettingsTab === 'payment' ? '#5D3E85' : '#FFFFFF' }}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
             activeSettingsTab === 'payment'
-              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
-              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
+              ? 'bg-[#5D3E85] text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-[#5D3E85] dark:hover:text-purple-300 border border-gray-200 dark:border-gray-700 shadow-2xs'
           }`}
         >
           <CreditCard className="w-3.5 h-3.5" />
@@ -648,11 +639,10 @@ export default function AdminSettings() {
         <button
           type="button"
           onClick={() => setActiveSettingsTab('smtp')}
-          style={{ backgroundColor: activeSettingsTab === 'smtp' ? '#5D3E85' : '#FFFFFF' }}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
             activeSettingsTab === 'smtp'
-              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
-              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
+              ? 'bg-[#5D3E85] text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-[#5D3E85] dark:hover:text-purple-300 border border-gray-200 dark:border-gray-700 shadow-2xs'
           }`}
         >
           <Lock className="w-3.5 h-3.5" />
@@ -661,11 +651,10 @@ export default function AdminSettings() {
         <button
           type="button"
           onClick={() => setActiveSettingsTab('templates')}
-          style={{ backgroundColor: activeSettingsTab === 'templates' ? '#5D3E85' : '#FFFFFF' }}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
             activeSettingsTab === 'templates'
-              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
-              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
+              ? 'bg-[#5D3E85] text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-[#5D3E85] dark:hover:text-purple-300 border border-gray-200 dark:border-gray-700 shadow-2xs'
           }`}
         >
           <Mail className="w-3.5 h-3.5" />
@@ -674,11 +663,10 @@ export default function AdminSettings() {
         <button
           type="button"
           onClick={() => setActiveSettingsTab('pages')}
-          style={{ backgroundColor: activeSettingsTab === 'pages' ? '#5D3E85' : '#FFFFFF' }}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
             activeSettingsTab === 'pages'
-              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
-              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
+              ? 'bg-[#5D3E85] text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-[#5D3E85] dark:hover:text-purple-300 border border-gray-200 dark:border-gray-700 shadow-2xs'
           }`}
         >
           <FileText className="w-3.5 h-3.5" />
@@ -687,11 +675,10 @@ export default function AdminSettings() {
         <button
           type="button"
           onClick={() => setActiveSettingsTab('modules')}
-          style={{ backgroundColor: activeSettingsTab === 'modules' ? '#5D3E85' : '#FFFFFF' }}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
             activeSettingsTab === 'modules'
-              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
-              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
+              ? 'bg-[#5D3E85] text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-[#5D3E85] dark:hover:text-purple-300 border border-gray-200 dark:border-gray-700 shadow-2xs'
           }`}
         >
           <Layers className="w-3.5 h-3.5" />
@@ -700,11 +687,10 @@ export default function AdminSettings() {
         <button
           type="button"
           onClick={() => setActiveSettingsTab('security')}
-          style={{ backgroundColor: activeSettingsTab === 'security' ? '#5D3E85' : '#FFFFFF' }}
           className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl transition-all cursor-pointer whitespace-nowrap ${
             activeSettingsTab === 'security'
-              ? 'text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
-              : 'text-gray-700 hover:text-[#5D3E85] border border-gray-200 shadow-2xs'
+              ? 'bg-[#5D3E85] text-white shadow-sm shadow-[#5D3E85]/25 font-bold'
+              : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-[#5D3E85] dark:hover:text-purple-300 border border-gray-200 dark:border-gray-700 shadow-2xs'
           }`}
         >
           <ShieldCheck className="w-3.5 h-3.5" />
@@ -712,7 +698,7 @@ export default function AdminSettings() {
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col gap-6 font-sans">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 shadow-sm flex flex-col gap-6 font-sans text-gray-700 dark:text-gray-200">
         
         {/* ==========================================
             TAB 1: BRAND & BANK DETAILS
@@ -745,7 +731,7 @@ export default function AdminSettings() {
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] text-gray-555 font-bold uppercase">Storefront Theme Mode</label>
-                <select
+                <SearchableSelect
                   value={storefrontThemeMode}
                   onChange={e => setStorefrontThemeMode(e.target.value)}
                   className="px-3 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 font-medium cursor-pointer"
@@ -753,21 +739,21 @@ export default function AdminSettings() {
                   <option value="user_choice">User Choice (Allow Visitor Toggle)</option>
                   <option value="b_night">B Night (Enforce Dark Mode)</option>
                   <option value="light">Quiet Editorial (Enforce Light Mode)</option>
-                </select>
+                </SearchableSelect>
                 <span className="text-[10px] text-gray-400">Controls whether visitors can toggle between B Night and Light mode</span>
               </div>
 
               {storefrontThemeMode === 'user_choice' && (
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] text-gray-555 font-bold uppercase">Default Theme for New Visitors</label>
-                  <select
+                  <SearchableSelect
                     value={storefrontDefaultTheme}
                     onChange={e => setStorefrontDefaultTheme(e.target.value)}
                     className="px-3 py-2.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800 font-medium cursor-pointer"
                   >
                     <option value="dark">B Night (Dark Mode)</option>
                     <option value="light">Quiet Editorial (Light Mode)</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
               )}
             </div>
@@ -875,18 +861,74 @@ export default function AdminSettings() {
               </div>
             </div>
 
-            <h3 id="setting-social-links" className="font-semibold text-xs text-gray-800 uppercase tracking-wider border-b border-gray-50 pb-2 mt-4">Social Selling & Contact</h3>
+            <h3 id="setting-contact-details" className="font-semibold text-xs text-gray-800 uppercase tracking-wider border-b border-gray-50 pb-2 mt-4 flex items-center justify-between">
+              <span>Beauty Center & Store Contact Details</span>
+              <span className="text-[10px] text-[#5D3E85] font-semibold lowercase">Managed live across storefront Contact Us page & footer</span>
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
+                <label className="text-[10px] text-gray-555 font-bold uppercase">SHOP Physical Address</label>
+                <input
+                  type="text"
+                  value={storeAddress}
+                  onChange={e => setStoreAddress(e.target.value)}
+                  className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
+                  placeholder="e.g. 123 High Street, London, UK"
+                />
+                <span className="text-[9px] text-gray-400">Displayed on the Contact Us page, directions banner, storefront footer, and mobile navigation drawer.</span>
+              </div>
+
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-555 font-bold uppercase">WhatsApp Chat Number</label>
+                <label className="text-[10px] text-gray-555 font-bold uppercase">Customer Support Email</label>
+                <input
+                  type="email"
+                  value={supportEmail}
+                  onChange={e => setSupportEmail(e.target.value)}
+                  className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
+                  placeholder="e.g. support@dansolam.com"
+                />
+                <span className="text-[9px] text-gray-400">Direct recipient for customer support queries and mailto links.</span>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] text-gray-555 font-bold uppercase">WhatsApp Business Number</label>
                 <input
                   type="text"
                   value={whatsappNumber}
                   onChange={e => setWhatsappNumber(e.target.value)}
                   className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                  placeholder="e.g. 2348012345678"
+                  placeholder="e.g. +234 800 000 0000 or 2348000000000"
                 />
+                <span className="text-[9px] text-gray-400">Formatted contact number used for one-click WhatsApp chat triggers.</span>
               </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] text-gray-555 font-bold uppercase">Opening Hours (Operating Schedule)</label>
+                <input
+                  type="text"
+                  value={openingHours}
+                  onChange={e => setOpeningHours(e.target.value)}
+                  className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
+                  placeholder="e.g. Monday–Saturday: 9:00 AM - 6:00 PM"
+                />
+                <span className="text-[9px] text-gray-400">Daily business operating schedule.</span>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[10px] text-gray-555 font-bold uppercase">Opening Hours Note / Weekend Status</label>
+                <input
+                  type="text"
+                  value={openingHoursNote}
+                  onChange={e => setOpeningHoursNote(e.target.value)}
+                  className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
+                  placeholder="e.g. Closed on Sundays"
+                />
+                <span className="text-[9px] text-gray-400">Highlighted status note displayed directly below operating hours.</span>
+              </div>
+            </div>
+
+            <h3 id="setting-social-links" className="font-semibold text-xs text-gray-800 uppercase tracking-wider border-b border-gray-50 pb-2 mt-4">Social Media Channels & Feeds</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] text-gray-555 font-bold uppercase">Instagram URL</label>
                 <input
@@ -920,27 +962,6 @@ export default function AdminSettings() {
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] text-gray-555 font-bold uppercase">X / Twitter URL</label>
                 <input type="url" value={twitterUrl} onChange={e => setTwitterUrl(e.target.value)} className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-555 font-bold uppercase">Store Physical Address</label>
-                <input
-                  type="text"
-                  value={storeAddress}
-                  onChange={e => setStoreAddress(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-555 font-bold uppercase">Opening Hours</label>
-                <input
-                  type="text"
-                  value={openingHours}
-                  onChange={e => setOpeningHours(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                />
               </div>
             </div>
 
@@ -1002,7 +1023,7 @@ export default function AdminSettings() {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] text-gray-555 font-bold uppercase">System Currency *</label>
-                <select
+                <SearchableSelect
                   value={systemCurrencyCode}
                   onChange={e => {
                     const selected = CURRENCIES.find(c => c.code === e.target.value);
@@ -1016,11 +1037,11 @@ export default function AdminSettings() {
                   {CURRENCIES.map(c => (
                     <option key={c.code} value={c.code}>{c.name}</option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] text-gray-555 font-bold uppercase">System Default Timezone</label>
-                <select
+                <SearchableSelect
                   value={systemTimezone}
                   onChange={e => setSystemTimezone(e.target.value)}
                   className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700 cursor-pointer h-[38px]"
@@ -1034,11 +1055,11 @@ export default function AdminSettings() {
                   <option value="Asia/Dubai">Asia/Dubai (GST)</option>
                   <option value="Asia/Singapore">Asia/Singapore (SGT)</option>
                   <option value="Australia/Sydney">Australia/Sydney (AEST/AEDT)</option>
-                </select>
+                </SearchableSelect>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] text-gray-555 font-bold uppercase">Business Domicile Country *</label>
-                <select
+                <SearchableSelect
                   value={systemDomesticCountry}
                   onChange={e => setSystemDomesticCountry(e.target.value)}
                   className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700 cursor-pointer h-[38px]"
@@ -1046,7 +1067,7 @@ export default function AdminSettings() {
                   {COUNTRIES.map(c => (
                     <option key={c.code} value={c.name}>{c.name}</option>
                   ))}
-                </select>
+                </SearchableSelect>
               </div>
             </div>
           </div>
@@ -1213,7 +1234,7 @@ export default function AdminSettings() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-gray-200/80 pt-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] text-gray-600 font-bold uppercase">Rotation Speed (ms)</label>
-                  <select
+                  <SearchableSelect
                     value={announcementAutoplaySpeed}
                     onChange={e => setAnnouncementAutoplaySpeed(e.target.value)}
                     className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white cursor-pointer"
@@ -1224,12 +1245,12 @@ export default function AdminSettings() {
                     <option value="6000">6 Seconds (Relaxed)</option>
                     <option value="8000">8 Seconds (Slow)</option>
                     <option value="0">Disabled (Static First Slide)</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] text-gray-600 font-bold uppercase">Transition Animation</label>
-                  <select
+                  <SearchableSelect
                     value={announcementAnimationMode}
                     onChange={e => setAnnouncementAnimationMode(e.target.value)}
                     className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white cursor-pointer"
@@ -1238,7 +1259,7 @@ export default function AdminSettings() {
                     <option value="fade_slide">Fade & Slide</option>
                     <option value="fade_only">Smooth Fade</option>
                     <option value="pulse">Pulse In</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
 
                 <div className="flex flex-col gap-1.5">
@@ -1337,60 +1358,12 @@ export default function AdminSettings() {
            ========================================== */}
         {activeSettingsTab === 'shipping' && (
           <div id="setting-shipping-rates" className="flex flex-col gap-5 animate-fade-in">
-            <h3 className="font-semibold text-xs text-gray-800 uppercase tracking-wider border-b border-gray-50 pb-2">Dynamic Shipping Surcharges</h3>
-            <p className="text-xs text-gray-400">Configure base courier weights, same-day delivery fees, international limits, and order bulk modifiers.</p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-555 font-bold uppercase">Base Domestic shipping ({currencySymbol})</label>
-                <input
-                  type="number"
-                  value={shippingBaseDomestic}
-                  onChange={e => setShippingBaseDomestic(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-555 font-bold uppercase">Same-Day Express Surcharge ({currencySymbol})</label>
-                <input
-                  type="number"
-                  value={shippingSameDaySurcharge}
-                  onChange={e => setShippingSameDaySurcharge(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-555 font-bold uppercase">Base International Courier ({currencySymbol})</label>
-                <input
-                  type="number"
-                  value={shippingInternationalBase}
-                  onChange={e => setShippingInternationalBase(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-555 font-bold uppercase">Free Shipping Subtotal Threshold ({currencySymbol})</label>
-                <input
-                  type="number"
-                  value={shippingFreeThreshold}
-                  onChange={e => setShippingFreeThreshold(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                  placeholder="Set to 0 to disable"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-555 font-bold uppercase">Bulk Surcharge ({currencySymbol} per piece above 5 items)</label>
-                <input
-                  type="number"
-                  value={shippingItemMultiplier}
-                  onChange={e => setShippingItemMultiplier(e.target.value)}
-                  className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white"
-                />
-              </div>
-            </div>
+            <h3 className="font-semibold text-xs text-gray-800 tracking-wider border-b border-gray-50 pb-2">Shipping charges</h3>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Shipping charges are set per method (UK / International, by number of items) on the{' '}
+              <a href="/admin/shipping" className="text-primary font-semibold underline">Shipping methods</a> page.
+              Customers choose one of the methods that apply to their order at checkout.
+            </p>
 
             <div className="border-t border-gray-100 pt-5 mt-2">
               <label className={`flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-all ${
@@ -1429,12 +1402,12 @@ export default function AdminSettings() {
               ].map(([label, value, setter]) => (
                 <label key={label} className="flex flex-col gap-1.5 p-3 rounded-xl border border-gray-200 bg-white">
                   <span className="text-[10px] font-bold uppercase text-gray-600">{label} availability</span>
-                  <select value={value} onChange={e => setter(e.target.value)} disabled={!modulePosEnabled}
+                  <SearchableSelect value={value} onChange={e => setter(e.target.value)} disabled={!modulePosEnabled}
                     className="px-3 py-2 rounded-lg border border-gray-200 bg-white text-xs disabled:opacity-60">
                     <option value="storefront">Storefront only</option>
                     <option value="pos">POS only</option>
                     <option value="both">Storefront and POS</option>
-                  </select>
+                  </SearchableSelect>
                   {!modulePosEnabled && <span className="text-[9px] text-gray-400">Enable POS to configure channel availability.</span>}
                 </label>
               ))}
@@ -1442,7 +1415,7 @@ export default function AdminSettings() {
 
             <div id="setting-payment-active" className="flex flex-col gap-1.5 bg-gray-50 p-4 border border-gray-150 rounded-xl">
               <label className="text-[10px] text-gray-555 font-bold uppercase">Active Default Gateway Channel</label>
-              <select
+              <SearchableSelect
                 value={paymentGatewayActive}
                 onChange={e => setPaymentGatewayActive(e.target.value)}
                 className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700 font-semibold"
@@ -1450,9 +1423,9 @@ export default function AdminSettings() {
                 <option value="bank_transfer">Bank Wire Transfer (Manual Verification)</option>
                 <option value="stripe">Stripe Checkout (International Card Payments)</option>
                 <option value="paypal">PayPal Payment Express (Global Checkout)</option>
-                <option value="paystack">Paystack Payments (Nigerian & African Cards)</option>
+                <option value="paystack">Paystack Payments (Online Card Payments)</option>
                 <option value="flutterwave">Flutterwave Gateway (Multi-Currency Africa)</option>
-              </select>
+              </SearchableSelect>
             </div>
             
             <div id="setting-cod-toggle" className="grid grid-cols-1 gap-4">
@@ -1607,14 +1580,14 @@ export default function AdminSettings() {
                   PayPal Express Gateway (Global PayPal Wallets & Cards)
                 </h4>
                 <div className="flex items-center gap-4">
-                  <select
+                  <SearchableSelect
                     value={paypalMode}
                     onChange={e => setPaypalMode(e.target.value)}
                     className="px-2.5 py-1 text-xs rounded-lg border border-gray-200 font-semibold text-gray-700 bg-gray-50"
                   >
                     <option value="sandbox">Sandbox (Testing)</option>
                     <option value="live">Live (Production)</option>
-                  </select>
+                  </SearchableSelect>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <span className="text-[11px] font-semibold text-gray-600">{paypalEnabled ? 'Active' : 'Disabled'}</span>
                     <input
@@ -1651,18 +1624,18 @@ export default function AdminSettings() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-gray-100">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Payment Intent</label>
-                  <select
+                  <SearchableSelect
                     value={paypalIntent}
                     onChange={e => setPaypalIntent(e.target.value)}
                     className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-white font-semibold text-gray-800"
                   >
                     <option value="CAPTURE">Immediate Capture (Direct Settlement)</option>
                     <option value="AUTHORIZE">Authorize Only (Hold Funds)</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">PayPal Settlement Currency</label>
-                  <select
+                  <SearchableSelect
                     value={paypalCurrency}
                     onChange={e => setPaypalCurrency(e.target.value)}
                     className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-white font-semibold text-gray-800"
@@ -1672,7 +1645,7 @@ export default function AdminSettings() {
                     <option value="GBP">GBP - British Pound (£)</option>
                     <option value="CAD">CAD - Canadian Dollar (C$)</option>
                     <option value="AUD">AUD - Australian Dollar (A$)</option>
-                  </select>
+                  </SearchableSelect>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">
@@ -1703,6 +1676,21 @@ export default function AdminSettings() {
                     </span>
                   )}
                 </div>
+              </div>
+              <div className="flex flex-col gap-1.5 pt-2 border-t border-gray-100">
+                <label className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Webhook ID (recommended)</label>
+                <input
+                  type="text"
+                  value={paypalWebhookId}
+                  onChange={e => setPaypalWebhookId(e.target.value)}
+                  placeholder="e.g. 8PT597110X687430LKGECATA"
+                  className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-white font-mono text-gray-800"
+                />
+                <span className="text-[10px] text-gray-400 leading-relaxed">
+                  In the PayPal developer dashboard, add a webhook for <code className="bg-gray-100 px-1 rounded">{`${window.location.origin}/api/paypal/webhook`}</code> with
+                  the events Checkout order approved, Payment capture completed / denied / refunded / reversed, then paste its ID here.
+                  It confirms payments even when a buyer closes the tab before returning to the store.
+                </span>
               </div>
             </div>
 
@@ -1759,7 +1747,7 @@ export default function AdminSettings() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[10px] text-gray-555 font-bold uppercase">Encryption protocol</label>
-                <select
+                <SearchableSelect
                   value={smtpEncryption}
                   onChange={e => setSmtpEncryption(e.target.value)}
                   className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-700"
@@ -1767,7 +1755,7 @@ export default function AdminSettings() {
                   <option value="tls">STARTTLS / TLS (Recommend)</option>
                   <option value="ssl">SSL / SMTPS</option>
                   <option value="none">None (Plaintext)</option>
-                </select>
+                </SearchableSelect>
               </div>
             </div>
 

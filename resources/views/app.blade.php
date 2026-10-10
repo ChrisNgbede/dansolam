@@ -2,12 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Dansolam - Luxury Skincare & Beauty</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Dansolam - Organic Skincare</title>
+    <meta name="description" content="Dansolam makes 100% organic body creams, oils, scrubs and soaps that moisturise, even out skin tone and restore natural radiance.">
     
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#17101F" media="(prefers-color-scheme: dark)">
-    <meta name="theme-color" content="#FBFAF8" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     @php
@@ -47,12 +48,30 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=Manrope:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    @php
+        $fontsHref = 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..800&family=Manrope:wght@400;500;600;700;800&display=swap';
+    @endphp
+    <link rel="preload" as="style" href="{{ $fontsHref }}">
+    <link rel="stylesheet" href="{{ $fontsHref }}" media="print" onload="this.media='all'">
+    <noscript><link rel="stylesheet" href="{{ $fontsHref }}"></noscript>
 
     <!-- Vite Styles & Scripts -->
-    @vite(['resources/css/app.css', 'resources/js/app.jsx'])
+    @php
+        // Fetch the current page's chunk in parallel with the app bundle instead of after it.
+        $pageEntry = match (true) {
+            request()->is('shop') => 'resources/js/pages/storefront/Shop.jsx',
+            request()->is('product/*', 'products/*') => 'resources/js/pages/storefront/ProductDetails.jsx',
+            request()->is('pages/*') => 'resources/js/pages/storefront/PolicyPage.jsx',
+            request()->is('reviews') => 'resources/js/pages/storefront/Reviews.jsx',
+            default => null,
+        };
+    @endphp
+    @vite(array_values(array_filter(['resources/css/app.css', 'resources/js/app.jsx', $pageEntry])))
+    @if (request()->is('shop'))
+        <link rel="preload" as="image" href="/images/banners/shop_hero_banner.webp" fetchpriority="high">
+    @endif
 </head>
-<body class="bg-[#FBFAF8] dark:bg-[#17101F] text-[#221B2B] dark:text-[#F3EFF6] font-sans antialiased selection:bg-[#EC268F] selection:text-white overflow-x-hidden transition-colors duration-300">
+<body class="bg-white dark:bg-[#17101F] text-[#221B2B] dark:text-[#F3EFF6] font-sans antialiased selection:bg-[#EC268F] selection:text-white overflow-x-hidden transition-colors duration-300">
     
     <!-- React Mount Node -->
     <div id="root"></div>

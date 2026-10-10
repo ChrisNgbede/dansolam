@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Star, Plus, Loader2, CheckCircle, AlertCircle, X, ArrowLeft } from 'lucide-react';
@@ -21,6 +22,23 @@ export default function Reviews() {
   // UI Messages
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Lock background body scroll when review modal is open
+  useEffect(() => {
+    if (showForm) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') setShowForm(false);
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = '';
+    }
+  }, [showForm]);
 
   // 1. Fetch live public reviews with dynamic infinite scroll and filtering
   const {
@@ -157,23 +175,17 @@ export default function Reviews() {
   };
 
   return (
-    <div className="bg-[#FBFAF8] dark:bg-[#17101F] min-h-screen font-sans pb-24 transition-colors duration-300 text-left">
+    <div className="bg-white dark:bg-[#17101F] min-h-screen font-sans pb-24 transition-colors duration-300 text-left">
       <SEO
-        title="Client Reviews & Verified Testimonials | Dansolam Beauty Home"
-        description="Read verified client reviews on Dansolam skincare formulas, luxury facial treatments, and organic spa rituals."
+        title="Reviews & Testimonials"
+        description="Real feedback from Dansolam customers on our organic creams, oils, scrubs and soaps."
       />
 
       <div className="max-w-[1400px] mx-auto px-3 sm:px-5 lg:px-6 pt-20 sm:pt-22 md:pt-24 pb-12 flex flex-col gap-6">
         
         {/* ─── HERO SUBHEADER BANNER (Standard Width across all pages) ─── */}
-        <div className="h-[200px] sm:h-[240px] md:h-[270px] rounded-[28px] sm:rounded-[36px] overflow-hidden bg-gray-900 relative shadow-md w-full">
-          <img
-            loading="eager"
-            decoding="async"
-            src="https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?q=80&w=1200"
-            className="w-full h-full object-cover object-center"
-            alt="Dansolam Client Reviews"
-          />
+        <div className="h-[200px] sm:h-[240px] md:h-[270px] rounded-[28px] sm:rounded-[36px] overflow-hidden bg-gradient-to-br from-[#5D3E85] via-[#4A2B68] to-[#2A1740] relative shadow-md w-full">
+          <div aria-hidden="true" className="absolute -right-16 -top-16 w-64 h-64 rounded-full bg-[#EC268F]/25 blur-3xl animate-pulse-glow" />
 
           {/* Header Action Buttons Inside Banner */}
           <div className="absolute top-4 sm:top-5 left-4 sm:left-6 right-4 sm:right-6 flex justify-between items-center z-20">
@@ -199,7 +211,7 @@ export default function Reviews() {
             </button>
           </div>
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20 flex flex-col justify-end p-5 sm:p-7 md:p-9 text-left z-10">
+          <div className="absolute inset-0 flex flex-col justify-end p-5 sm:p-7 md:p-9 text-left z-10">
             <span className="text-[9px] sm:text-[10px] font-extrabold text-[#5D3E85] bg-white px-3.5 py-1 rounded-full  tracking-widest self-start mb-2 border border-white/40 shadow-sm">
               Client Love
             </span>
@@ -207,7 +219,7 @@ export default function Reviews() {
               Customer Reviews & Testimonials
             </h1>
             <p className="text-[11px] sm:text-xs md:text-sm text-gray-200 mt-1 max-w-2xl font-sans leading-snug line-clamp-2">
-              Read verified experiences and feedback on our organic skincare formulas, facials, and spa rituals.
+              What our customers say about our organic creams, oils, scrubs and soaps.
             </p>
           </div>
         </div>
@@ -403,20 +415,24 @@ export default function Reviews() {
 
                       {/* Optional Review Image */}
                       {rev.image_url && (
-                        <div className="mt-2">
+                        <a href={rev.image_url} target="_blank" rel="noopener noreferrer" className="mt-2 self-start group/img">
                           <img
                             src={rev.image_url}
-                            alt="Review upload"
-                            className="w-20 h-20 rounded-xl object-cover border border-gray-200 dark:border-white/10"
+                            alt={`Photo shared by ${rev.customer_name || 'a customer'}`}
+                            loading="lazy"
+                            decoding="async"
+                            width="112"
+                            height="144"
+                            className="w-28 h-36 rounded-xl object-cover object-top border border-gray-200 dark:border-white/10 transition-transform duration-300 group-hover/img:scale-105"
                           />
-                        </div>
+                        </a>
                       )}
                     </div>
 
                     {/* Column 3: Verification Badge & Product Name (approx 3 cols) */}
                     <div className="md:col-span-3 md:text-right flex md:flex-col md:items-end justify-between items-center gap-1.5">
                       <span className="inline-block text-[9px] font-extrabold tracking-wider text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded ">
-                        VERIFIED
+                        Verified
                       </span>
 
                       {rev.product?.slug ? (
@@ -428,7 +444,7 @@ export default function Reviews() {
                         </Link>
                       ) : (
                         <span className="text-xs text-gray-500 dark:text-gray-400 font-normal truncate max-w-[200px] block">
-                          {rev.product?.name || 'General Skincare & Spa'}
+                          {rev.product?.name || 'Dansolam'}
                         </span>
                       )}
                     </div>
@@ -469,17 +485,33 @@ export default function Reviews() {
       </div>
 
       {/* ─── WRITE A REVIEW MODAL DIALOG ─── */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/65 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-[#1E1528] text-[#221B2B] dark:text-[#F3EFF6] rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl flex flex-col gap-4 border border-[#EADBEE] dark:border-white/10 animate-scale-up max-h-[90vh] overflow-y-auto text-left">
+      {/* ─── WRITE A REVIEW MODAL DIALOG (HOISTED ON TOP OF ALL LAYERS VIA PORTAL) ─── */}
+      {showForm && createPortal(
+        <div
+          className="fixed inset-0 bg-black/75 backdrop-blur-md z-[99999] flex items-center justify-center p-4 sm:p-6 overflow-y-auto overscroll-contain animate-fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Write a Product Review"
+        >
+          {/* Backdrop Click */}
+          <div
+            className="fixed inset-0"
+            onClick={() => setShowForm(false)}
+          />
 
+          <div
+            onClick={e => e.stopPropagation()}
+            className="relative z-10 bg-white dark:bg-[#1E1528] text-[#221B2B] dark:text-[#F3EFF6] rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-[0_25px_70px_rgba(0,0,0,0.5)] flex flex-col gap-4 border border-[#EADBEE] dark:border-white/10 animate-scale-up max-h-[90vh] overflow-y-auto text-left"
+          >
             <div className="flex justify-between items-center border-b border-gray-100 dark:border-white/10 pb-3">
               <h3 className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6] text-base">Write a Product Review</h3>
               <button
+                type="button"
                 onClick={() => setShowForm(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer"
+                className="w-8 h-8 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white flex items-center justify-center transition-all cursor-pointer hover:rotate-90"
+                aria-label="Close modal"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -487,7 +519,7 @@ export default function Reviews() {
               
               {/* Product selection */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase">Product or Service</label>
+                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Product or Service</label>
                 <select
                   value={selectedProductId}
                   onChange={e => setSelectedProductId(e.target.value)}
@@ -502,7 +534,7 @@ export default function Reviews() {
 
               {/* Name */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase">Your Name *</label>
+                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Your Name *</label>
                 <input
                   type="text"
                   value={customerName}
@@ -515,7 +547,7 @@ export default function Reviews() {
 
               {/* Rating */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase">Rating *</label>
+                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Rating *</label>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -536,7 +568,7 @@ export default function Reviews() {
 
               {/* Headline */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase">Review Headline</label>
+                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Review Headline</label>
                 <input
                   type="text"
                   value={reviewTitle}
@@ -548,7 +580,7 @@ export default function Reviews() {
 
               {/* Review comment */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold uppercase">Review Details *</label>
+                <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-bold ">Review Details *</label>
                 <textarea
                   value={comment}
                   onChange={e => setComment(e.target.value)}
@@ -599,7 +631,8 @@ export default function Reviews() {
 
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>

@@ -18,8 +18,44 @@
     RewriteCond %{REQUEST_URI} (.+)/$
     RewriteRule ^ %1 [L,R=301]
 
+    # Serve a pre-generated AVIF in place of WebP to browsers that accept it.
+    RewriteCond %{HTTP_ACCEPT} image/avif
+    RewriteCond %{REQUEST_FILENAME} ^(.+)\.webp$
+    RewriteCond %1.avif -f
+    RewriteRule ^(.+)\.webp$ $1.avif [T=image/avif,E=img_negotiated:1,L]
+
     # Send Requests To Front Controller...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+</IfModule>
+
+# ---------------------------------------------------------------------------
+# Performance: compression + long-lived caching for fingerprinted assets.
+# (Apache/cPanel. On nginx, mirror these in the server block.)
+# ---------------------------------------------------------------------------
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css text/plain text/xml application/javascript application/json image/svg+xml
+</IfModule>
+
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/avif "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+</IfModule>
+
+<IfModule mod_headers.c>
+    # Vite output is content-hashed, so it can be cached forever.
+    <If "%{REQUEST_URI} =~ m#^/build/assets/#">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </If>
+    # Uploads are stored under UUID filenames and never overwritten.
+    <If "%{REQUEST_URI} =~ m#^/(storage|images)/#">
+        Header set Cache-Control "public, max-age=2592000"
+        Header append Vary Accept
+    </If>
 </IfModule>

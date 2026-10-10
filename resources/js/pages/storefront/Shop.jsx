@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   SlidersHorizontal, ArrowUpDown, Grid, Search, X, Loader2, ArrowLeft, ArrowRight, Check, Mic, Camera, Flame, Eye, Truck, ShieldCheck, RefreshCw, Star, Heart, ShoppingBag, Award, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { ProductCard } from './Home';
+import { useCardQuickView } from '../../components/storefront/QuickViewProvider';
 import QuickViewModal from '../../components/storefront/QuickViewModal';
 import FlashSaleSpotlightSection from '../../components/storefront/FlashSaleSpotlightSection';
 import SEO from '../../components/seo/SEO';
@@ -12,17 +14,47 @@ import { getCurrencySymbol } from '../../utils/currency';
 import { useRecentlyViewedStore } from '../../store/recentlyViewedStore';
 import { toast as systemToast } from '../../components/ui/ToastProvider';
 
+/** Recently viewed tile: the whole card opens Quick View. */
+function RecentlyViewedCard({ product, cardClassName, children }) {
+  const cardQuickView = useCardQuickView(product);
+  return <div {...cardQuickView} className={cardClassName}>{children}</div>;
+}
+
 export default function Shop() {
   const currencySymbol = getCurrencySymbol();
   const [searchParams, setSearchParams] = useSearchParams();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState(null);
 
+  // Lock body scroll when mobile filter drawer is open
+  useEffect(() => {
+    if (filtersOpen) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => { if (e.key === 'Escape') setFiltersOpen(false); };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = '';
+    }
+  }, [filtersOpen]);
+
   const recentlyViewedItems = useRecentlyViewedStore(state => state.items);
 
   // States mirroring URL parameters
   const [category, setCategory] = useState(searchParams.get('category') || '');
   const [collection, setCollection] = useState(searchParams.get('collection') || '');
+  // Shop-by-concern cards on Home link here with ?concern=<slug>
+  const concern = searchParams.get('concern') || '';
+  const { data: concernsRes } = useQuery({
+    queryKey: ['shop-concerns'],
+    queryFn: () => fetch('/api/shop-concerns').then(res => res.json()),
+    enabled: !!concern,
+    staleTime: 5 * 60_000,
+  });
+  const activeConcern = (concernsRes?.data?.items || []).find((c) => c.slug === concern);
   const [selectedSizes, setSelectedSizes] = useState(searchParams.get('size') ? searchParams.get('size').split(',') : []);
   const [sort, setSort] = useState(searchParams.get('sort') || 'newest');
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
@@ -202,6 +234,7 @@ export default function Shop() {
     let url = `/api/products?sort=${sort}&page=${page}&per_page=${perPage}`;
     if (category) url += `&category=${category}`;
     if (collection) url += `&collection=${collection}`;
+    if (concern) url += `&concern=${encodeURIComponent(concern)}`;
     if (selectedSizes.length > 0) url += `&size=${selectedSizes.join(',')}`;
     if (searchQuery) url += `&q=${encodeURIComponent(searchQuery)}`;
     if (minPrice) url += `&min_price=${minPrice}`;
@@ -212,7 +245,7 @@ export default function Shop() {
 
   // Fetch Filtered Products list
   const { data: productsRes, isLoading } = useQuery({
-    queryKey: ['products-list', category, collection, selectedSizes, sort, searchQuery, minPrice, maxPrice, inStock, page, perPage],
+    queryKey: ['products-list', category, collection, concern, selectedSizes, sort, searchQuery, minPrice, maxPrice, inStock, page, perPage],
     queryFn: () => fetch(buildApiUrl()).then(res => res.json())
   });
 
@@ -296,7 +329,8 @@ export default function Shop() {
     : '';
 
   const getCatalogHeading = () => {
-    let baseTitle = selectedCollection?.name
+    let baseTitle = activeConcern?.name
+      || selectedCollection?.name
       || selectedCategory?.name
       || readableFilterName(collection)
       || readableFilterName(category)
@@ -395,50 +429,62 @@ export default function Shop() {
 
   const activeFiltersCount = (category ? 1 : 0) + (collection ? 1 : 0) + selectedSizes.length + (minPrice || maxPrice ? 1 : 0) + (inStock ? 1 : 0);
 
-  const sizeOptions = ['UK 8', 'UK 10', 'UK 12', 'UK 14', 'UK 16', 'UK 18', 'EU 37', 'EU 38', 'EU 39', 'EU 40', 'EU 41'];
+  // Real variant sizes only (e.g. 250ml / 500g); hidden while every variant is "Standard".
+  const sizeOptions = Array.from(new Set([
+    ...products.flatMap((p) => (p.variants || []).map((v) => v.size)),
+    ...selectedSizes,
+  ].filter((sz) => sz && !/^(standard|default)$/i.test(sz))));
   const trendingSearches = ['Glowing Moisturizing Cream', 'Whitening Polish Soap', 'Discoloration Oil', 'Dansolam Plus', 'Essential Oil', 'Fragrance'];
 
   return (
-    <div className="bg-[#FBFAF8] dark:bg-[#17101F] min-h-screen font-sans pb-24 text-left transition-colors duration-300">
-      <SEO title={`${catalogHeading} | Dansolam Beauty Home`} description="Explore the full catalog of Dansolam Beauty Home. Browse and order luxury beauty, skincare, and couture products." />
+    <div className="bg-white dark:bg-[#17101F] min-h-screen font-sans pb-24 text-left transition-colors duration-300">
+      <SEO title={`${catalogHeading} | Dansolam Beauty Home`} description="Explore the full catalog of Dansolam Beauty Home. Browse and order 100% organic body creams, oils, scrubs, soaps and skincare." />
 
       <div className="max-w-[1400px] mx-auto px-3 sm:px-5 lg:px-6 pt-20 sm:pt-22 md:pt-24 pb-8 flex flex-col gap-6">
         {/* Hero Banner Card - Compact, Wide, Back to Home Inside */}
-        <div className="h-[200px] sm:h-[240px] md:h-[270px] rounded-[28px] sm:rounded-[36px] overflow-hidden bg-gray-900 relative shadow-md w-full">
+        <section className="h-[200px] sm:h-[240px] md:h-[270px] rounded-[28px] sm:rounded-[36px] overflow-hidden bg-gradient-to-br from-[#5D3E85] via-[#4A2B68] to-[#2A1740] relative shadow-md w-full">
           <img
             loading="eager"
+            fetchPriority="high"
             decoding="async"
-            src="/images/banners/shop_hero_banner.jpg"
-            className="w-full h-full object-cover object-center"
-            alt="Dansolam Shop Catalog"
+            width="1400"
+            height="270"
+            src="/images/banners/shop_hero_banner.webp"
+            className="absolute inset-0 w-full h-full object-cover object-center"
+            alt=""
           />
 
           {/* Header Action Buttons Inside Banner */}
           <div className="absolute top-4 sm:top-5 left-4 sm:left-6 right-4 sm:right-6 flex justify-between items-center z-20">
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 text-[11px] font-bold text-white shadow-sm transition-all duration-300 btn-spring"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-[11px] font-bold text-white shadow-sm transition-all duration-300 btn-spring"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Back to Home</span>
             </Link>
           </div>
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/20 flex flex-col justify-end p-5 sm:p-7 md:p-9 text-left z-10">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20 flex flex-col justify-end p-5 sm:p-7 md:p-9 text-left z-10">
             <span className="text-[9px] sm:text-[10px] font-extrabold text-[#5D3E85] bg-white px-3.5 py-1 rounded-full  tracking-widest self-start mb-2 border border-white/40 shadow-sm">
-              SHOP Catalog
+              {activeConcern ? 'Shop by concern' : 'Shop Catalog'}
             </span>
-            <h1 className="font-extrabold text-xl sm:text-2xl md:text-3xl lg:text-4xl text-white leading-tight">
+            <h1 className="font-serif font-bold text-2xl sm:text-3xl md:text-4xl text-white leading-tight">
               {catalogHeading}
             </h1>
             <p className="text-[11px] sm:text-xs md:text-sm text-gray-200 mt-1 max-w-2xl font-sans leading-snug line-clamp-2">
-              Explore {products.length} hand-curated luxury skincare, organic beauty, and VIP salon formulations.
+              {activeConcern?.blurb || `Browse ${products.length} organic body creams, oils, scrubs, soaps and more.`}
             </p>
+            {concern && (
+              <Link to="/shop" className="mt-3 self-start inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 hover:bg-white/25 border border-white/25 text-[11px] font-bold text-white transition-colors">
+                ✕ Show all products
+              </Link>
+            )}
           </div>
-        </div>
+        </section>
 
-        {/* Redesigned Luxury Search Bar, Category Chips, and Social Proof */}
-        <div className="w-full flex flex-col items-center gap-4 text-center">
+        {/* Search Bar, Category Chips, and Social Proof */}
+        <section className="w-full flex flex-col items-center gap-4 text-center">
           <form
             ref={typeaheadRef}
             onSubmit={e => {
@@ -520,7 +566,7 @@ export default function Shop() {
               <div className="absolute top-[calc(100%+0.5rem)] left-0 right-0 bg-white dark:bg-[#1E1528] backdrop-blur-2xl border border-[#EADBEE] dark:border-white/10 rounded-3xl shadow-2xl z-50 overflow-hidden text-left animate-fade-in divide-y divide-gray-100 dark:divide-white/10 max-h-[420px] overflow-y-auto">
                 {searchQuery.trim().length < 1 && (
                   <div className="p-4 flex flex-col gap-3">
-                    <div className="text-[10px] font-extrabold text-[#5D3E85] dark:text-[#EC268F] uppercase tracking-widest flex items-center gap-1.5">
+                    <div className="text-[10px] font-extrabold text-[#5D3E85] dark:text-[#EC268F]  tracking-widest flex items-center gap-1.5">
                       <Flame className="w-3.5 h-3.5 text-[#EC268F]" />
                       <span>Trending Search Terms</span>
                     </div>
@@ -577,23 +623,14 @@ export default function Shop() {
               </button>
             ))}
           </div>
-
-          {/* Social Proof Live Activity Pill */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 text-[11px] font-bold text-gray-600 dark:text-[#C9BED4] shadow-xs">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-            <span>🔥 18 VIP shoppers exploring the shop catalog right now</span>
-          </div>
-        </div>
+        </section>
       </div>
 
       {/* Main Container */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 py-8 flex flex-col gap-8 w-full">
 
         {/* Catalog Filter Controls Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 py-3.5 border border-[#EADBEE] dark:border-white/10 bg-white dark:bg-[#1E1528] px-5 sm:px-6 rounded-2xl shadow-xs transition-colors">
+        <section className="flex flex-wrap items-center justify-between gap-4 py-3.5 border border-[#EADBEE] dark:border-white/10 bg-white dark:bg-[#1E1528] px-5 sm:px-6 rounded-2xl shadow-xs transition-colors">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setFiltersOpen(true)}
@@ -603,7 +640,7 @@ export default function Shop() {
               Filters {activeFiltersCount > 0 && `(${activeFiltersCount})`}
             </button>
 
-            <div className="hidden md:flex items-center gap-2 text-[10px] text-[#5D3E85] dark:text-[#EC268F] font-extrabold uppercase tracking-widest">
+            <div className="hidden md:flex items-center gap-2 text-[10px] text-[#5D3E85] dark:text-[#EC268F] font-extrabold  tracking-widest">
               <Grid className="w-4 h-4 text-[#EC268F]" />
               <span>
                 {perPage === 'all'
@@ -661,12 +698,12 @@ export default function Shop() {
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Main Layout Grid */}
-        <div className="flex gap-8 items-start">
+        <section className="flex gap-8 items-start">
           {/* LEFT COLUMN: FILTER SIDEBAR */}
-          <aside className="w-64 flex flex-col gap-6 hidden md:flex shrink-0 text-left bg-[#F7F3F9] dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-3xl p-6 shadow-sm sticky top-24 transition-colors">
+          <aside className="shop-filters w-64 flex flex-col gap-6 hidden md:flex shrink-0 text-left bg-[#F7F3F9] dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-3xl p-6 shadow-sm sticky top-24 transition-colors">
 
             {/* Active Filter Clear Header */}
             {activeFiltersCount > 0 && (
@@ -683,11 +720,11 @@ export default function Shop() {
 
             {/* Categories */}
             <div className="flex flex-col gap-3">
-              <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase tracking-wider border-b border-[#EADBEE] dark:border-white/10 pb-2">Categories</h4>
+              <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6]  tracking-wider border-b border-[#EADBEE] dark:border-white/10 pb-2">Categories</h4>
               <div className="flex flex-col gap-1.5">
                 <button
                   onClick={() => { setCategory(''); setCollection(''); updateUrlParams({ category: '', collection: '' }); }}
-                  className={`flex items-center justify-between w-full text-xs transition-colors py-2 font-extrabold rounded-xl px-3 cursor-pointer btn-spring ${!category ? 'text-white bg-[#5D3E85] dark:bg-[#EC268F] shadow-sm' : 'text-gray-700 dark:text-[#C9BED4] hover:bg-white dark:hover:bg-white/10'
+                  className={`flex items-center justify-between w-full text-xs transition-colors py-2 font-extrabold rounded-xl px-3 cursor-pointer btn-spring ${!category ? 'text-white bg-[#5D3E85] dark:bg-[#EC268F] shadow-sm' : 'text-gray-700 dark:text-[#C9BED4] hover:bg-[#5D3E85]/10 hover:text-[#5D3E85] dark:hover:bg-white/10 dark:hover:text-white'
                     }`}
                 >
                   <span>All Products</span>
@@ -701,7 +738,7 @@ export default function Shop() {
                   <button
                     key={cat.id}
                     onClick={() => { setCategory(cat.slug); setCollection(''); updateUrlParams({ category: cat.slug, collection: '' }); }}
-                    className={`flex items-center justify-between w-full text-xs transition-colors py-2 font-extrabold rounded-xl px-3 cursor-pointer btn-spring ${category === cat.slug ? 'text-white bg-[#5D3E85] dark:bg-[#EC268F] shadow-sm' : 'text-gray-700 dark:text-[#C9BED4] hover:bg-white dark:hover:bg-white/10'
+                    className={`flex items-center justify-between w-full text-xs transition-colors py-2 font-extrabold rounded-xl px-3 cursor-pointer btn-spring ${category === cat.slug ? 'text-white bg-[#5D3E85] dark:bg-[#EC268F] shadow-sm' : 'text-gray-700 dark:text-[#C9BED4] hover:bg-[#5D3E85]/10 hover:text-[#5D3E85] dark:hover:bg-white/10 dark:hover:text-white'
                       }`}
                   >
                     <span>{cat.name}</span>
@@ -715,8 +752,9 @@ export default function Shop() {
             </div>
 
             {/* Size Filter */}
-            <div className="border-t border-[#EADBEE] dark:border-white/10 pt-5 flex flex-col gap-3">
-              <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase tracking-wider border-b border-[#EADBEE] dark:border-white/10 pb-2">Filter by Size</h4>
+            {sizeOptions.length > 0 && (
+<div className="border-t border-[#EADBEE] dark:border-white/10 pt-5 flex flex-col gap-3">
+              <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6]  tracking-wider border-b border-[#EADBEE] dark:border-white/10 pb-2">Filter by Size</h4>
               <div className="grid grid-cols-3 gap-2">
                 {sizeOptions.map((sz) => (
                   <button
@@ -732,10 +770,11 @@ export default function Shop() {
                 ))}
               </div>
             </div>
+)}
 
             {/* Price Range Filter */}
             <div className="border-t border-[#EADBEE] dark:border-white/10 pt-5 flex flex-col gap-3">
-              <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase tracking-wider border-b border-[#EADBEE] dark:border-white/10 pb-2">Price Range ({currencySymbol})</h4>
+              <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6]  tracking-wider border-b border-[#EADBEE] dark:border-white/10 pb-2">Price Range ({currencySymbol})</h4>
 
               {/* Quick Price Presets */}
               <div className="flex flex-wrap gap-1.5">
@@ -798,7 +837,7 @@ export default function Shop() {
 
             {/* Availability */}
             <div className="border-t border-[#EADBEE] dark:border-white/10 pt-5 flex flex-col gap-3">
-              <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase tracking-wider border-b border-[#EADBEE] dark:border-white/10 pb-2">Stock Status</h4>
+              <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6]  tracking-wider border-b border-[#EADBEE] dark:border-white/10 pb-2">Stock Status</h4>
               <label className="flex items-center gap-2.5 cursor-pointer text-xs text-gray-700 dark:text-[#C9BED4] font-extrabold">
                 <input
                   type="checkbox"
@@ -836,7 +875,7 @@ export default function Shop() {
                       />
 
                       {/* Flash Sale Spotlight Section inserted after 6th product (showing items under flash sales) */}
-                      {index === 5 && flashSaleProducts.length > 0 && (
+                      {index === 5 && flashSaleProducts.length > 0 && settings.flash_sale_show !== 'false' && settings.flash_sale_is_ended !== 'true' && (
                         <div className="col-span-2 lg:col-span-3 my-4">
                           <FlashSaleSpotlightSection
                             settings={settings}
@@ -966,11 +1005,11 @@ export default function Shop() {
               </div>
             )}
           </div>
-        </div>
+        </section>
 
         {/* Recently Viewed Products Section */}
         {recentlyViewedItems.length > 0 && (
-          <div className="border-t border-[#EADBEE] dark:border-white/10 pt-10 mt-10 text-left">
+          <section className="border-t border-[#EADBEE] dark:border-white/10 pt-10 mt-10 text-left">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-extrabold text-lg text-[#221B2B] dark:text-[#F3EFF6] flex items-center gap-2">
                 <Eye className="w-5 h-5 text-[#5D3E85] dark:text-[#EC268F]" />
@@ -980,14 +1019,14 @@ export default function Shop() {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
               {recentlyViewedItems.slice(0, 6).map((rvProd) => (
-                <div
+                <RecentlyViewedCard
                   key={rvProd.id}
-                  onClick={() => navigate(`/product/${rvProd.slug || rvProd.id}`)}
-                  className="bg-white dark:bg-[#1E1528] p-3 rounded-2xl border border-[#EADBEE] dark:border-white/10 hover:shadow-md transition-all cursor-pointer flex flex-col gap-2 group btn-spring"
+                  product={rvProd}
+                  cardClassName="bg-white dark:bg-[#1E1528] p-3 rounded-2xl border border-[#EADBEE] dark:border-white/10 hover:shadow-md transition-all duration-300 hover:-translate-y-1 cursor-pointer flex flex-col gap-2 group btn-spring"
                 >
                   <div className="aspect-square rounded-xl overflow-hidden bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10">
-                    <img
-                      src={rvProd.images?.[0]?.image_url || rvProd.image || rvProd.image_url || '/images/products/placeholder.jpg'}
+                    <img loading="lazy" decoding="async" width="200" height="200"
+                      src={rvProd.images?.[0]?.image_url || rvProd.image || rvProd.image_url || '/images/placeholder-product.svg'}
                       alt={rvProd.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />
@@ -998,50 +1037,53 @@ export default function Shop() {
                   <span className="text-xs font-extrabold text-[#5D3E85] dark:text-[#EC268F]">
                     {currencySymbol}{parseFloat(rvProd.sale_price || rvProd.price || 0).toLocaleString()}
                   </span>
-                </div>
+                </RecentlyViewedCard>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* Luxury Trust Badges */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 border-t border-[#EADBEE] dark:border-white/10 pt-10 mt-4 text-left">
+        {/* Trust Badges */}
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-4 border-t border-[#EADBEE] dark:border-white/10 pt-10 mt-4 text-left">
           <div className="bg-white dark:bg-[#1E1528] p-5 rounded-2xl border border-[#EADBEE] dark:border-white/10 flex items-center gap-3.5 shadow-2xs">
             <Truck className="w-8 h-8 text-[#5D3E85] dark:text-[#EC268F] shrink-0" />
             <div>
-              <h5 className="text-xs font-extrabold text-[#221B2B] dark:text-[#F3EFF6]">Express Delivery</h5>
-              <p className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-medium">Nationwide & Worldwide Shipping</p>
+              <h5 className="text-xs font-extrabold text-[#221B2B] dark:text-[#F3EFF6]">Delivery</h5>
+              <p className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-medium">Nationwide delivery</p>
             </div>
           </div>
           <div className="bg-white dark:bg-[#1E1528] p-5 rounded-2xl border border-[#EADBEE] dark:border-white/10 flex items-center gap-3.5 shadow-2xs">
             <ShieldCheck className="w-8 h-8 text-[#EC268F] shrink-0" />
             <div>
-              <h5 className="text-xs font-extrabold text-[#221B2B] dark:text-[#F3EFF6]">100% Authentic</h5>
-              <p className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-medium">Verified Hand-curated Design</p>
+              <h5 className="text-xs font-extrabold text-[#221B2B] dark:text-[#F3EFF6]">100% Organic</h5>
+              <p className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-medium">Natural ingredients</p>
             </div>
           </div>
           <div className="bg-white dark:bg-[#1E1528] p-5 rounded-2xl border border-[#EADBEE] dark:border-white/10 flex items-center gap-3.5 shadow-2xs">
             <RefreshCw className="w-8 h-8 text-[#5D3E85] dark:text-[#EC268F] shrink-0" />
             <div>
-              <h5 className="text-xs font-extrabold text-[#221B2B] dark:text-[#F3EFF6]">Easy 14-Day Returns</h5>
-              <p className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-medium">Hassle-free Exchange Policy</p>
+              <h5 className="text-xs font-extrabold text-[#221B2B] dark:text-[#F3EFF6]">Returns</h5>
+              <p className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-medium">See our returns policy</p>
             </div>
           </div>
           <div className="bg-white dark:bg-[#1E1528] p-5 rounded-2xl border border-[#EADBEE] dark:border-white/10 flex items-center gap-3.5 shadow-2xs">
             <Award className="w-8 h-8 text-[#E5C158] shrink-0" />
             <div>
-              <h5 className="text-xs font-extrabold text-[#221B2B] dark:text-[#F3EFF6]">24/7 VIP AGENT</h5>
-              <p className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-medium">Instant Styling & Order Assistance</p>
+              <h5 className="text-xs font-extrabold text-[#221B2B] dark:text-[#F3EFF6]">Customer Support</h5>
+              <p className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-medium">Help with your order</p>
             </div>
           </div>
-        </div>
+        </section>
       </div>
 
       {/* MOBILE DRAWER FILTERS MODAL */}
+      {createPortal(
       <div
-        className={`fixed inset-0 bg-black/55 backdrop-blur-xs z-50 flex justify-end md:hidden transition-opacity duration-300 ${filtersOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 bg-black/75 backdrop-blur-md z-[99999] flex justify-end md:hidden transition-opacity duration-300 ${filtersOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
         onClick={() => setFiltersOpen(false)}
+        role="dialog"
+        aria-modal="true"
       >
         <div
           onClick={e => e.stopPropagation()}
@@ -1057,7 +1099,7 @@ export default function Shop() {
 
           {/* Mobile Categories */}
           <div>
-            <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase mb-3">Categories</h4>
+            <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6]  mb-3">Categories</h4>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => { setCategory(''); setCollection(''); updateUrlParams({ category: '', collection: '' }); }}
@@ -1092,8 +1134,9 @@ export default function Shop() {
           </div>
 
           {/* Mobile Size list */}
-          <div className="border-t border-gray-100 dark:border-white/10 pt-4">
-            <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6] uppercase mb-3">Filter by Size</h4>
+          {sizeOptions.length > 0 && (
+<div className="border-t border-gray-100 dark:border-white/10 pt-4">
+            <h4 className="font-extrabold text-xs text-[#221B2B] dark:text-[#F3EFF6]  mb-3">Filter by Size</h4>
             <div className="grid grid-cols-3 gap-2">
               {sizeOptions.map((sz) => (
                 <button
@@ -1109,10 +1152,11 @@ export default function Shop() {
               ))}
             </div>
           </div>
+)}
 
           {/* Mobile Price Range */}
           <div className="border-t border-gray-100 pt-4">
-            <h4 className="font-extrabold text-xs text-[#181120] uppercase mb-3">Price Range ({currencySymbol})</h4>
+            <h4 className="font-extrabold text-xs text-[#181120]  mb-3">Price Range ({currencySymbol})</h4>
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -1150,7 +1194,7 @@ export default function Shop() {
 
           {/* Mobile Stock status */}
           <div className="border-t border-gray-100 pt-4">
-            <h4 className="font-extrabold text-xs text-[#181120] uppercase mb-3">Stock Status</h4>
+            <h4 className="font-extrabold text-xs text-[#181120]  mb-3">Stock Status</h4>
             <label className="flex items-center gap-2 cursor-pointer text-xs text-gray-600 font-extrabold">
               <input
                 type="checkbox"
@@ -1178,7 +1222,9 @@ export default function Shop() {
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
+      )}
 
       {/* Render Quick View Modal when active */}
       <QuickViewModal

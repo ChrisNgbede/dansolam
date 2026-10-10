@@ -88,22 +88,24 @@ class DatabaseSeeder extends Seeder
             'tiktok_url' => '',
             'youtube_url' => '',
             'twitter_url' => '',
-            'whatsapp_number' => '2348000000000',
-            'store_address' => 'Plot 1234, SHOP Boulevard',
-            'opening_hours' => 'Monday-Saturday: 9:00 AM - 6:00 PM',
-            'currency' => 'NGN',
-            'delivery_coverage' => 'Nationwide & Worldwide delivery',
-            'bank_name' => 'Access Bank',
-            'bank_account_number' => '1234567890',
+            'whatsapp_number' => '+234 800 000 0000',
+            'support_email' => 'info@dansolam.com',
+            'store_address' => '',
+            'opening_hours' => 'Monday–Saturday: 9:00 AM - 6:00 PM',
+            'opening_hours_note' => 'Closed on Sundays',
+            'currency' => 'GBP',
+            'delivery_coverage' => 'Worldwide delivery',
+            'bank_name' => '',
+            'bank_account_number' => '',
             'bank_account_name' => 'Dansolam Beauty Home Ltd',
             'return_policy' => 'We accept returns within 7 days of delivery for unused products in original packaging.',
             'privacy_policy' => 'We respect your privacy. We collect your name, phone number, email, and address to process your orders securely.',
             'terms_conditions' => 'By shopping with us, you agree to our terms. Payments must be verified before delivery.',
-            'shipping_base_domestic' => '2000',
-            'shipping_same_day_surcharge' => '5000',
-            'shipping_international_base' => '25000',
-            'shipping_free_threshold' => '100000',
-            'shipping_item_multiplier' => '1500',
+            'shipping_base_domestic' => '5',
+            'shipping_same_day_surcharge' => '10',
+            'shipping_international_base' => '25',
+            'shipping_free_threshold' => '500',
+            'shipping_item_multiplier' => '3',
             'payment_gateway_active' => 'paystack',
             'paystack_key_public' => 'pk_test_mock123456789',
             'paystack_key_secret' => 'sk_test_mock123456789',
@@ -111,20 +113,20 @@ class DatabaseSeeder extends Seeder
             'flutterwave_key_secret' => 'flw_secret_mock123456789',
             'cod_enabled' => 'true',
             'announcement_show' => 'true',
-            'announcement_text' => '✨ Free delivery on orders above ₦100,000 across Nigeria! | 🌿 100% Organic Skincare, Whitening Soaps & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF your first beauty order',
+            'announcement_text' => '✨ Free delivery on orders above £500! | 🌿 100% Organic Skincare, Whitening Soaps & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF your first beauty order',
             'promo_popup_show' => 'true',
             'promo_popup_title' => 'Welcome to Dansolam Beauty Home',
             'promo_popup_body' => '<p>Subscribe to our newsletter for <strong>exclusive skincare offers</strong> and beauty tips!</p>',
-            'promo_popup_image' => '/images/popup-banner.jpg',
+            'promo_popup_image' => '/images/popup-banner.webp',
             'promo_popup_delay' => '5000',
             'show_gallery_page' => 'true',
             'show_blog_page' => 'true',
             'sold_count_enabled' => 'true',
             'sku_prefix' => 'DSL-',
             'sku_suffix' => '',
-            'system_currency_code' => 'NGN',
-            'system_currency_symbol' => '₦',
-            'system_timezone' => 'Africa/Lagos',
+            'system_currency_code' => 'GBP',
+            'system_currency_symbol' => '£',
+            'system_timezone' => 'Europe/London',
         ];
 
         foreach ($settings as $key => $value) {
@@ -249,10 +251,10 @@ class DatabaseSeeder extends Seeder
 
         // 7. Shipping Rates
         $shippingRates = [
-            ['name' => 'Standard Domestic', 'type' => 'flat', 'rate' => 2000, 'applicability' => 'all', 'is_active' => true, 'calculation_method' => 'flat', 'shipping_zone_type' => 'domestic'],
-            ['name' => 'Express Same-Day Dispatch', 'type' => 'flat', 'rate' => 5000, 'applicability' => 'all', 'is_active' => true, 'calculation_method' => 'flat', 'shipping_zone_type' => 'domestic'],
-            ['name' => 'International DHL Express', 'type' => 'flat', 'rate' => 25000, 'applicability' => 'all', 'is_active' => true, 'calculation_method' => 'flat', 'shipping_zone_type' => 'international', 'shipping_countries' => ['US', 'UK', 'CA', 'AU']],
-            ['name' => 'Free Delivery (Above ₦100k)', 'type' => 'flat', 'rate' => 0, 'applicability' => 'all', 'is_active' => true, 'calculation_method' => 'flat', 'shipping_zone_type' => 'domestic'],
+            ['name' => 'Standard Domestic', 'type' => 'flat', 'rate' => 5, 'applicability' => 'all', 'is_active' => true, 'calculation_method' => 'flat', 'shipping_zone_type' => 'domestic'],
+            ['name' => 'Express Next-Day Dispatch', 'type' => 'flat', 'rate' => 10, 'applicability' => 'all', 'is_active' => true, 'calculation_method' => 'flat', 'shipping_zone_type' => 'domestic'],
+            ['name' => 'International Express', 'type' => 'flat', 'rate' => 25, 'applicability' => 'all', 'is_active' => true, 'calculation_method' => 'flat', 'shipping_zone_type' => 'international', 'shipping_countries' => ['US', 'CA', 'AU', 'DE', 'FR']],
+            ['name' => 'Free Delivery (Above £500)', 'type' => 'flat', 'rate' => 0, 'applicability' => 'all', 'is_active' => true, 'calculation_method' => 'flat', 'shipping_zone_type' => 'domestic'],
         ];
 
         foreach ($shippingRates as $rate) {
@@ -260,7 +262,7 @@ class DatabaseSeeder extends Seeder
         }
 
         // 8. Taxes
-        Tax::updateOrCreate(['name' => 'VAT (Nigeria)'], ['rate' => 7.5, 'type' => 'exclusive', 'applicable_areas' => 'all', 'is_active' => true]);
+        Tax::updateOrCreate(['name' => 'VAT'], ['rate' => 20, 'type' => 'exclusive', 'applicable_areas' => 'all', 'is_active' => true]);
 
         // 9. Coupons
         $coupons = [
@@ -296,11 +298,6 @@ class DatabaseSeeder extends Seeder
                 'content' => '<h2>About Dansolam Beauty Home</h2><p>Welcome to <strong>Dansolam Beauty Home</strong>. We are a premier organic skincare shop dedicated to delivering flawless, radiant, and healthy skin through 100% natural organic formulations. <em>Looking Good Is Our Pride!</em></p><h3>Our Promise & Organic Purity</h3><p>Every Dansolam product is crafted with 100% natural herbs, almond extract, botanical oils, and essential nutrients. Our formulas protect, hydrate, and rejuvenate your skin without hydroquinone, steroids, or harsh chemicals. Whether you seek to fade dark spots, smooth sunburn, restore uneven skin tone, or maintain a golden glow, Dansolam provides proven organic solutions.</p>'
             ],
             [
-                'title' => 'Beauty Tips',
-                'slug' => 'tips',
-                'content' => '<h2>Dansolam Organic Skincare Application Guide</h2><p>For best results, follow our recommended application routines for Dansolam organic products:</p><ul><li><strong>Whitening Polish Soap (750ml):</strong> Apply daily during bath/shower. Lather over face and body, leave for 2-3 minutes, then rinse thoroughly. Visible glow in 5 days!</li><li><strong>Glowing Moisturizing Cream (500g):</strong> Apply generously twice daily after bathing for 24-hour hydration and smooth texture.</li><li><strong>Dansolam Plus / Molato Soap (500g):</strong> Ideal for clearing tough dark spots, sunburn, and hyperpigmentation. Use daily.</li><li><strong>Discoloration & Essential Oils (250ml):</strong> Gently massage targeted areas daily to lock in botanical moisture and restore skin tone.</li><li><strong>Glowing Face Cream (30g):</strong> Apply small amounts to clean facial skin morning and night for spot-free protection.</li></ul>'
-            ],
-            [
                 'title' => 'FAQ',
                 'slug' => 'faq',
                 'content' => '<h2>Frequently Asked Questions</h2><p>Find answers to common questions about Dansolam organic skincare products, shipping timelines, payment options, and patch testing.</p>'
@@ -308,17 +305,17 @@ class DatabaseSeeder extends Seeder
             [
                 'title' => 'Shipping & Delivery Policy',
                 'slug' => 'shipping-delivery',
-                'content' => '<h2>Dansolam Shipping & Delivery Policy</h2><p>We ensure fast, secure delivery of your organic skincare orders nationwide and worldwide.</p><h3>Delivery Timelines & Rates</h3><ul><li><strong>Local Standard Delivery:</strong> 1–2 Business Days (₦2,000 flat rate or free store pickup).</li><li><strong>Express Same-Day Dispatch:</strong> Orders placed before 12 PM delivered same day (₦5,000).</li><li><strong>Nationwide Delivery:</strong> 3–5 Business Days (₦3,500 – ₦5,000 depending on location).</li><li><strong>International Shipping (Worldwide):</strong> 7–10 Business Days via DHL Express (₦25,000 flat rate).</li><li><strong>Free Delivery Offer:</strong> Free shipping on orders above ₦100,000!</li></ul>'
+                'content' => '<h2>Dansolam Shipping & Delivery Policy</h2><p>We ensure fast, secure delivery of your organic skincare orders worldwide.</p><h3>Delivery Timelines & Rates</h3><ul><li><strong>UK Standard Delivery:</strong> 2–4 Business Days (£4.99 flat rate).</li><li><strong>UK Express Next-Day:</strong> Orders placed before 2 PM arrive next business day (£9.99).</li><li><strong>Europe Delivery:</strong> 5–7 Business Days (£14.99 flat rate).</li><li><strong>Rest of World:</strong> 7–14 Business Days via tracked international courier (£24.99).</li><li><strong>Free Delivery:</strong> Free UK shipping on all orders above £500!</li></ul><h3>Order Processing</h3><p>All orders are processed within 1–2 business days. You will receive a tracking number via email once your order has been dispatched.</p><h3>Customs & Import Duties</h3><p>For international orders, customs duties and import taxes may apply upon arrival in your country. These charges are the responsibility of the recipient and are not included in our shipping fees.</p>'
             ],
             [
                 'title' => 'Privacy Policy',
                 'slug' => 'privacy-policy',
-                'content' => '<h2>Dansolam Privacy & Data Protection Policy</h2><p>At <strong>Dansolam Beauty Home</strong>, protecting your personal privacy and order security is our utmost priority. Looking Good Is Our Pride — and so is keeping your information safe!</p><h3>Information We Collect</h3><p>When you browse or place an order at Dansolam Beauty Home, we collect necessary transaction details including your name, delivery address, phone number, email address, and order items. Payment card details are processed directly and securely through PCI-DSS compliant payment gateways (Paystack) with end-to-end encryption. Dansolam never stores raw credit/debit card numbers on our servers.</p><h3>How We Use Your Data</h3><ul><li>To process, fulfill, and ship your skincare orders efficiently.</li><li>To send automated email or WhatsApp order updates and tracking numbers.</li><li>To provide personalized customer support and product consultation via our WhatsApp agent.</li><li>To improve our online shopping catalog and skincare product offerings.</li></ul><h3>Third-Party Sharing & Security</h3><p>We do NOT sell, rent, or trade your personal information to third-party advertisers. Your information is shared strictly with trusted logistics partners (couriers, DHL) solely for delivery purposes.</p>'
+                'content' => '<h2>Dansolam Privacy & Data Protection Policy</h2><p>At <strong>Dansolam Beauty Home</strong>, protecting your personal privacy and order security is our utmost priority. Looking Good Is Our Pride — and so is keeping your information safe!</p><h3>Information We Collect</h3><p>When you browse or place an order at Dansolam Beauty Home, we collect necessary transaction details including your name, delivery address, phone number, email address, and order items. Payment card details are processed directly and securely through PCI-DSS compliant payment gateways with end-to-end encryption. Dansolam never stores raw credit/debit card numbers on our servers.</p><h3>How We Use Your Data</h3><ul><li>To process, fulfill, and ship your skincare orders efficiently.</li><li>To send automated email order updates and tracking numbers.</li><li>To provide personalized customer support and product consultation.</li><li>To improve our online shopping catalog and skincare product offerings.</li></ul><h3>Third-Party Sharing & Security</h3><p>We do NOT sell, rent, or trade your personal information to third-party advertisers. Your information is shared strictly with trusted logistics partners solely for delivery purposes. All data is handled in compliance with applicable data protection regulations including GDPR.</p>'
             ],
             [
                 'title' => 'Terms of Service',
                 'slug' => 'terms-conditions',
-                'content' => '<h2>Dansolam Terms & Conditions</h2><p>Welcome to <strong>Dansolam Beauty Home</strong>. By accessing our website or purchasing products, you agree to comply with our Terms of Service.</p><h3>Product Quality & Usage Guidelines</h3><p>All Dansolam products are formulated with 100% organic ingredients. We recommend performing a small patch test on your arm 24 hours prior to full application. Store all creams, soaps, and oils in a cool, dry place away from direct sunlight.</p><h3>Order Processing & Cancellation</h3><p>Orders are processed within 24 hours of payment confirmation. Once an order has shipped, cancellations are subject to return shipping costs. Orders paid via Paystack or direct bank transfer are confirmed immediately.</p>'
+                'content' => '<h2>Dansolam Terms & Conditions</h2><p>Welcome to <strong>Dansolam Beauty Home</strong>. By accessing our website or purchasing products, you agree to comply with our Terms of Service.</p><h3>Product Quality & Usage Guidelines</h3><p>All Dansolam products are formulated with 100% organic ingredients. We recommend performing a small patch test on your arm 24 hours prior to full application. Store all creams, soaps, and oils in a cool, dry place away from direct sunlight.</p><h3>Order Processing & Cancellation</h3><p>Orders are processed within 24 hours of payment confirmation. Once an order has shipped, cancellations are subject to return shipping costs. All payments are processed securely through our verified payment gateways.</p>'
             ],
         ];
         foreach ($pages as $p) {
@@ -958,26 +955,12 @@ class DatabaseSeeder extends Seeder
                 'image_url' => $pData['images'][0] ?? null,
                 'status' => 'active',
             ]);
-
-            // Sample Reviews
-            Review::create([
-                'product_id' => $product->id,
-                'customer_name' => 'Blessing O.',
-                'rating' => 5,
-                'comment' => 'Very effective product! My skin feels smooth and radiant.',
-                'is_approved' => true,
-            ]);
-            Review::create([
-                'product_id' => $product->id,
-                'customer_name' => 'Grace A.',
-                'rating' => 5,
-                'comment' => 'Looking Good Is Our Pride indeed! 100% natural and high quality.',
-                'is_approved' => true,
-            ]);
         }
 
         $this->call(FaqSeeder::class);
-        $this->call(ArticleSeeder::class);
+        // ArticleSeeder holds placeholder posts; run it manually for demo data only.
         $this->call(BannerSeeder::class);
+        $this->call(StorefrontContentSeeder::class);
+        $this->call(ShippingRulesSeeder::class);
     }
 }

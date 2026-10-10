@@ -35,4 +35,17 @@ return [
         ],
     ],
 
+    // Settings saved in Admin → Settings take precedence over these.
+    'paypal' => [
+        'client_id' => env('PAYPAL_CLIENT_ID', ''),
+        'client_secret' => env('PAYPAL_CLIENT_SECRET', ''),
+        'webhook_id' => env('PAYPAL_WEBHOOK_ID', ''),
+    ],
+
+    // Simulated ("mock") gateway payments are for local development and tests only.
+    // Never enable in production: it lets orders be marked paid without a real payment.
+    'payments' => [
+        'allow_simulation' => (bool) env('PAYMENTS_ALLOW_SIMULATION', env('APP_ENV', 'production') !== 'production'),
+    ],
+
 ];
