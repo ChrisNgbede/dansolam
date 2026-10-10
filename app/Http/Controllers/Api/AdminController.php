@@ -536,7 +536,7 @@ class AdminController extends Controller
         foreach ($settingsRaw as $s) {
             $settings[$s->key] = $s->value;
         }
-        $prefix = $settings['sku_prefix'] ?? 'FQ-';
+        $prefix = $settings['sku_prefix'] ?? 'DAN-';
         $suffix = $settings['sku_suffix'] ?? '';
 
         do {
@@ -608,7 +608,7 @@ class AdminController extends Controller
             foreach ($settingsRaw as $s) {
                 $settings[$s->key] = $s->value;
             }
-            $prefix = $settings['sku_prefix'] ?? 'FQ-';
+            $prefix = $settings['sku_prefix'] ?? 'DAN-';
             $suffix = $settings['sku_suffix'] ?? '';
             do {
                 $sku = $prefix . strtoupper(Str::random(6)) . $suffix;
@@ -758,7 +758,7 @@ class AdminController extends Controller
             foreach ($settingsRaw as $s) {
                 $settings[$s->key] = $s->value;
             }
-            $prefix = $settings['sku_prefix'] ?? 'FQ-';
+            $prefix = $settings['sku_prefix'] ?? 'DAN-';
             $suffix = $settings['sku_suffix'] ?? '';
             do {
                 $sku = $prefix . strtoupper(Str::random(6)) . $suffix;

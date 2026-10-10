@@ -8,6 +8,7 @@ import { useTableState } from '../../hooks/useTableState';
 import TablePaginationControls from '../../components/ui/TablePaginationControls';
 import { COUNTRIES, getStates } from '../../utils/geoData';
 import SearchableSelect from '../../components/ui/SearchableSelect';
+import { getAdminToken } from '../../components/auth/RequireAdminAuth';
 
 export default function AdminInvoices() {
   const currencySymbol = getCurrencySymbol();
@@ -169,7 +170,7 @@ export default function AdminInvoices() {
     setPdfLoading(true);
 
     try {
-      const token = localStorage.getItem('dansolam_admin_token');
+      const token = getAdminToken();
       const res = await fetch('/api/admin/invoices/export', {
         method: 'POST',
         headers: {
@@ -233,7 +234,7 @@ export default function AdminInvoices() {
   const handleDownloadOrderInvoice = async (orderId, orderNum) => {
     setDownloadingOrderId(orderId);
     try {
-      const token = localStorage.getItem('dansolam_admin_token');
+      const token = getAdminToken();
       const res = await fetch(`/api/admin/orders/${orderId}/invoice`, {
         method: 'GET',
         headers: {

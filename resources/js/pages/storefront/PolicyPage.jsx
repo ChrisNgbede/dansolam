@@ -5,6 +5,7 @@ import { ArrowLeft, Search, ChevronDown, ChevronUp, Ruler, Heart, HelpCircle, Ch
 import FaqSection from '../../components/storefront/FaqSection';
 import About from './About';
 import { cmsPageQuery } from '../../utils/pageQueries';
+import { getAdminToken } from '../../components/auth/RequireAdminAuth';
 
 export default function PolicyPage() {
   const { slug } = useParams();
@@ -71,7 +72,7 @@ export default function PolicyPage() {
     );
   }
 
-  const isAdmin = !!localStorage.getItem('dansolam_admin_token');
+  const isAdmin = !!getAdminToken();
 
   // Filter FAQs based on query
   const filteredFaqs = faqs.filter(item => {

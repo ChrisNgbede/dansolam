@@ -7,6 +7,7 @@ import { apiFetch } from '../../hooks/useAuth';
 import { useTableState } from '../../hooks/useTableState';
 import TablePaginationControls from '../../components/ui/TablePaginationControls';
 import SearchableSelect from '../../components/ui/SearchableSelect';
+import { getAdminToken } from '../../components/auth/RequireAdminAuth';
 
 const REPORT_TYPES = [
   { key: 'sales', label: 'Sales Report', icon: TrendingUp, desc: 'Revenue, order counts, and discounts by date' },
@@ -95,7 +96,7 @@ export default function AdminReports() {
   const handleExportCsv = async () => {
     setExporting(true);
     try {
-      const token = localStorage.getItem('dansolam_admin_token');
+      const token = getAdminToken();
       const res = await fetch(`/api/admin/reports/csv?${queryParams.toString()}`, {
         headers: { Authorization: `Bearer ${token}`, Accept: 'text/csv' },
       });
@@ -111,7 +112,7 @@ export default function AdminReports() {
   };
 
   const handleExportPdf = () => {
-    const token = localStorage.getItem('dansolam_admin_token');
+    const token = getAdminToken();
     window.open(`/api/admin/reports/pdf?${queryParams.toString()}&token=${token}`, '_blank');
   };
 

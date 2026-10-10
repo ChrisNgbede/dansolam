@@ -5,6 +5,7 @@ import { Plus, Edit, Trash2, X, Loader2, AlertCircle, CheckCircle, Eye, EyeOff, 
 import { apiFetch } from '../../hooks/useAuth';
 import ImageUploadField from '../../components/ui/ImageUploadField';
 import SearchableSelect from '../../components/ui/SearchableSelect';
+import { getAdminToken } from '../../components/auth/RequireAdminAuth';
 
 export default function AdminGallery() {
   const queryClient = useQueryClient();
@@ -147,7 +148,7 @@ export default function AdminGallery() {
   // Bulk upload mutation
   const bulkUploadMutation = useMutation({
     mutationFn: (formData) => {
-      const token = localStorage.getItem('dansolam_admin_token');
+      const token = getAdminToken();
       return fetch('/api/admin/gallery/bulk-upload', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },

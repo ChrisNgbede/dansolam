@@ -211,15 +211,12 @@ export default function AdminProductForm() {
 
   const handleAutoGenerateSku = async () => {
     try {
-      const token = localStorage.getItem('dansolam_admin_token');
-      const res = await fetch('/api/admin/products/generate-sku', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (data.success) {
+      const res = await apiFetch('/api/admin/products/generate-sku');
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success) {
         setSku(data.sku);
       } else {
-        systemToast.error(data.message || 'Failed to auto-generate SKU');
+        systemToast.error(data?.message || 'Could not generate a SKU. Please try again.');
       }
     } catch {
       systemToast.error('Network error auto-generating SKU');
