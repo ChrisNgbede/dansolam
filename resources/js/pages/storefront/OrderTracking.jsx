@@ -8,6 +8,7 @@ import CheckoutStepper from '../../components/storefront/CheckoutStepper';
 import { useLiveValidation } from '../../hooks/useLiveValidation';
 import { FieldMessage, PasswordStrength } from '../../components/ui/FieldMessage';
 import * as rules from '../../utils/validators';
+import { needsPayment, payOrderUrl } from '../../utils/orderPayment';
 
 export default function OrderTracking() {
   const currencySymbol = getCurrencySymbol();
@@ -389,6 +390,21 @@ export default function OrderTracking() {
               </div>
 
               {/* Fulfillments follow up chat */}
+              {needsPayment(order) && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-5 py-4 mb-3">
+                  <div className="text-left">
+                    <p className="text-xs font-extrabold text-amber-900 dark:text-amber-200">Payment is still pending</p>
+                    <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80">Your order will be prepared once {currencySymbol}{parseFloat(order.total_amount).toFixed(2)} has been paid.</p>
+                  </div>
+                  <Link
+                    to={payOrderUrl(order, activeQuery?.contact)}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-[#EC268F] hover:bg-[#C9166F] text-white text-xs font-extrabold rounded-full shadow-sm transition-colors shrink-0"
+                  >
+                    <CreditCard className="w-4 h-4" />
+                    {order.payment_method === 'bank_transfer' ? 'How to Pay' : 'Complete Payment'}
+                  </Link>
+                </div>
+              )}
               <a
                 href={getWhatsAppInquiryLink()}
                 target="_blank"

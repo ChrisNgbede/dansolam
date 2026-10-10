@@ -43,6 +43,7 @@ class PayPalController extends Controller
     {
         $request->validate([
             'order_number' => 'required|string|exists:orders,order_number',
+            'return_to' => 'nullable|in:checkout,pay',
         ]);
 
         $order = Order::with('items')->where('order_number', $request->order_number)->firstOrFail();
@@ -65,8 +66,13 @@ class PayPalController extends Controller
             (float) $order->total_amount,
             null,
             $items,
-            url("/checkout?paypal_return=true&order_number={$order->order_number}"),
-            url('/checkout?paypal_cancel=true&order_number=' . $order->order_number)
+            // Paying later from the order page comes back there; checkout comes back to checkout.
+            $request->return_to === 'pay'
+                ? url('/pay/' . rawurlencode($order->order_number) . '?paypal_return=true')
+                : url("/checkout?paypal_return=true&order_number={$order->order_number}"),
+            $request->return_to === 'pay'
+                ? url('/pay/' . rawurlencode($order->order_number) . '?paypal_cancel=true')
+                : url('/checkout?paypal_cancel=true&order_number=' . $order->order_number)
         );
 
         if (!$result['success'] || empty($result['paypal_order_id'])) {

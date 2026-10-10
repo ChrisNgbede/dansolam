@@ -10,6 +10,7 @@ import SEO from '../../components/seo/SEO';
 import { useLiveValidation } from '../../hooks/useLiveValidation';
 import { FieldMessage, PasswordStrength } from '../../components/ui/FieldMessage';
 import * as rules from '../../utils/validators';
+import { needsPayment, payOrderUrl } from '../../utils/orderPayment';
 
 export default function Account() {
   const currencySymbol = getCurrencySymbol();
@@ -623,13 +624,24 @@ export default function Account() {
                     <p>💵 Total: <span className="font-bold text-[#221B2B] dark:text-[#F3EFF6]">{currencySymbol}{parseFloat(ord.total_amount).toLocaleString()}</span></p>
                   </div>
 
-                  <Link
-                    to={`/order-tracking?order_number=${ord.order_number}&contact=${encodeURIComponent(customer.email)}`}
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-bold rounded-full shadow-sm transition-all btn-spring"
-                  >
-                    Track Order
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                    {needsPayment(ord) && (
+                      <Link
+                        to={payOrderUrl(ord, customer.email)}
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 bg-[#EC268F] hover:bg-[#C9166F] text-white text-xs font-extrabold rounded-full shadow-sm transition-all btn-spring"
+                      >
+                        <CreditCard className="w-3.5 h-3.5" />
+                        {ord.payment_method === 'bank_transfer' ? 'How to Pay' : 'Complete Payment'}
+                      </Link>
+                    )}
+                    <Link
+                      to={`/order-tracking?order_number=${ord.order_number}&contact=${encodeURIComponent(customer.email)}`}
+                      className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-bold rounded-full shadow-sm transition-all btn-spring ${needsPayment(ord) ? 'border border-[#5D3E85]/30 dark:border-white/15 text-[#5D3E85] dark:text-[#F3EFF6] hover:bg-[#5D3E85]/5 dark:hover:bg-white/5' : 'bg-[#5D3E85] hover:bg-[#EC268F] text-white'}`}
+                    >
+                      Track Order
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
                 </div>
               ))
             ) : (

@@ -269,6 +269,19 @@
                     @endif
                 </div>
 
+                @php
+                    $awaitingPayment = !in_array($order->payment_status, ['paid', 'authorized', 'refunded', 'partially_refunded'], true)
+                        && $order->order_status !== 'cancelled'
+                        && $order->payment_method !== 'cash_on_delivery';
+                @endphp
+                @if ($awaitingPayment)
+                    <div style="text-align: center; margin-top: 24px;">
+                        <a href="{{ url('/pay/' . rawurlencode($order->order_number) . '?contact=' . urlencode($order->customer_email)) }}" class="btn-cta" style="background: #EC268F;">
+                            {{ $order->payment_method === 'bank_transfer' ? 'See How to Pay' : 'Complete Payment' }} &rarr;
+                        </a>
+                    </div>
+                @endif
+
                 <!-- Action Button -->
                 <div style="text-align: center;">
                     <a href="{{ url('/order-tracking?order_number=' . $order->order_number . '&contact=' . urlencode($order->customer_email)) }}" class="btn-cta">

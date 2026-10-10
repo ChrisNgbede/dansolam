@@ -343,6 +343,33 @@ class PayPalPaymentTest extends TestCase
         Http::assertSent(fn ($request) => str_ends_with($request->url(), '/capture') && $request->hasHeader('PayPal-Request-Id', 'capture-PP-1'));
     }
 
+    public function test_unpaid_order_can_be_paid_later_from_the_pay_page(): void
+    {
+        $this->useRealCredentials();
+        $order = $this->makeOrder(150);
+
+        $this->fakePayPal([
+            self::API . '/v2/checkout/orders' => Http::response(['id' => 'PP-LATER', 'status' => 'CREATED', 'links' => [['rel' => 'payer-action', 'href' => 'https://paypal.test/approve']]], 201),
+            self::API . '/v2/checkout/orders/PP-LATER/capture' => Http::response($this->captureResponse('PP-LATER', 'COMPLETED', '150.00', 'USD', $order->order_number), 201),
+        ]);
+
+        $this->postJson('/api/paypal/create-order', ['order_number' => $order->order_number, 'return_to' => 'pay'])->assertOk();
+
+        // PayPal is told to send the customer back to the pay page, not to checkout.
+        Http::assertSent(function ($request) use ($order) {
+            if (!str_ends_with($request->url(), '/v2/checkout/orders')) return false;
+            $context = $request['payment_source']['paypal']['experience_context'] ?? $request['application_context'] ?? [];
+            return str_contains(json_encode($context, JSON_UNESCAPED_SLASHES), '/pay/' . $order->order_number . '?paypal_return=true');
+        });
+
+        $this->postJson('/api/paypal/capture-order', ['paypal_order_id' => 'PP-LATER', 'order_number' => $order->order_number])
+            ->assertOk()->assertJsonPath('data.payment_status', 'paid');
+        $this->assertSame('paid', $order->fresh()->payment_status);
+
+        // Once paid, it cannot be paid again.
+        $this->postJson('/api/paypal/create-order', ['order_number' => $order->order_number, 'return_to' => 'pay'])->assertStatus(400);
+    }
+
     public function test_real_capture_with_wrong_amount_is_not_marked_paid(): void
     {
         $this->useRealCredentials();

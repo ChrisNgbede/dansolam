@@ -181,6 +181,19 @@ class StoreEmailsTest extends TestCase
         $this->assertStringNotContainsString('₦', $html);
     }
 
+    public function test_unpaid_order_emails_link_to_payment(): void
+    {
+        $unpaid = new Order(['order_number' => 'DS-9', 'customer_name' => 'Jane', 'customer_email' => 'jane@example.com', 'total_amount' => 10,
+            'subtotal' => 10, 'delivery_fee' => 0, 'payment_method' => 'paypal', 'payment_status' => 'pending', 'order_status' => 'pending_payment', 'delivery_method' => 'pickup']);
+        $this->assertStringContainsString('/pay/DS-9?contact=jane%40example.com', (new OrderInvoiceMail($unpaid, 'order_placed'))->render());
+
+        $paid = (clone $unpaid)->fill(['payment_status' => 'paid', 'order_status' => 'paid']);
+        $this->assertStringNotContainsString('/pay/DS-9', (new OrderInvoiceMail($paid, 'payment_success'))->render());
+
+        $cod = (clone $unpaid)->fill(['payment_method' => 'cash_on_delivery']);
+        $this->assertStringNotContainsString('/pay/DS-9', (new OrderInvoiceMail($cod, 'order_placed'))->render());
+    }
+
     public function test_store_alerts_fall_back_to_the_sending_address(): void
     {
         EcommerceSetting::where('key', 'support_email')->update(['value' => null]);

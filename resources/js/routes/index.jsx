@@ -33,6 +33,7 @@ const ProductDetails = lazyPage(() => import('../pages/storefront/ProductDetails
 const Cart = lazyPage(() => import('../pages/storefront/Cart'));
 const Checkout = lazyPage(() => import('../pages/storefront/Checkout'));
 const OrderTracking = lazyPage(() => import('../pages/storefront/OrderTracking'));
+const PayOrder = lazyPage(() => import('../pages/storefront/PayOrder'));
 const Account = lazyPage(() => import('../pages/storefront/Account'));
 const PolicyPage = lazyPage(() => import('../pages/storefront/PolicyPage'));
 const Gallery = lazyPage(() => import('../pages/storefront/Gallery'));
@@ -143,6 +144,7 @@ export default function AppRoutes() {
         <Route path="cart" element={<Cart />} />
         <Route path="checkout" element={<Checkout />} />
         <Route path="order-tracking" element={<OrderTracking />} />
+        <Route path="pay/:orderNumber" element={<PayOrder />} />
         <Route path="account" element={<Account />} />
         {/* The old Tips page was retired; its articles live on the blog. */}
         <Route path="pages/tips" element={<Navigate to="/blog" replace />} />
