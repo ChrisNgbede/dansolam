@@ -6,6 +6,7 @@ import AppRoutes from './routes';
 import { ToastProvider, toast } from './components/ui/ToastProvider';
 import AppErrorBoundary from './components/ui/AppErrorBoundary';
 import ImageSkeletons from './components/ui/ImageSkeletons';
+import ActivityIndicator from './components/ui/ActivityIndicator';
 import { restoreSharedSession } from './utils/sessionShare';
 
 const queryClient = new QueryClient({
@@ -29,6 +30,7 @@ if (rootElement) {
             <AppErrorBoundary>
               <ToastProvider>
                 <ImageSkeletons />
+                <ActivityIndicator />
                 <AppRoutes />
               </ToastProvider>
             </AppErrorBoundary>

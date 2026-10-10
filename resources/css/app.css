@@ -2148,3 +2148,58 @@ img[data-skeleton="empty"]::before { content: ''; } /* suppresses alt rendering 
 @media (prefers-reduced-motion: reduce) {
   .field-message-in { animation: none; }
 }
+
+/* Loading feedback after a user action (ActivityIndicator). */
+.activity-bar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 3px;
+  z-index: 2147483000;
+  pointer-events: none;
+  overflow: hidden;
+  background: rgba(93, 62, 133, 0.12);
+  transition: opacity 0.25s ease;
+}
+.activity-bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(90deg, #5D3E85, #EC268F);
+  box-shadow: 0 0 8px rgba(236, 38, 143, 0.45);
+  animation: activity-bar-slide 1.1s ease-in-out infinite;
+}
+.activity-bar.is-done { opacity: 0; }
+.activity-bar.is-done > span { width: 100%; animation: none; }
+@keyframes activity-bar-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+/* The button that started a request: small spinner, no repeat clicks. */
+[data-busy] {
+  cursor: progress !important;
+  pointer-events: none;
+  opacity: 0.75;
+}
+[data-busy="text"]::after {
+  content: '';
+  display: inline-block;
+  flex: none;
+  width: 0.9em;
+  height: 0.9em;
+  margin-left: 0.45em;
+  vertical-align: -0.15em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 9999px;
+  animation: busy-spin 0.7s linear infinite;
+}
+[data-busy="icon"] { animation: busy-pulse 0.9s ease-in-out infinite; }
+@keyframes busy-spin { to { transform: rotate(360deg); } }
+@keyframes busy-pulse { 50% { opacity: 0.4; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .activity-bar > span { animation: none; width: 100%; opacity: 0.7; }
+  [data-busy="text"]::after, [data-busy="icon"] { animation: none; }
+}

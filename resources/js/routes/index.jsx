@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useEffect } from 'react';
+import { useRouteLoading } from '../components/ui/ActivityIndicator';
 import { useQueryClient } from '@tanstack/react-query';
 import { cmsPageQuery } from '../utils/pageQueries';
 
@@ -79,6 +80,7 @@ const PosSessionHistory = lazyPage(() => import('../pages/admin/pos/PosSessionHi
 import RequireAdminAuth from '../components/auth/RequireAdminAuth';
 
 function RouteFallback() {
+  useRouteLoading();
   return (
     <div className="min-h-[100dvh] grid place-items-center" role="status" aria-label="Loading">
       <span className="w-8 h-8 rounded-full border-2 border-[#5D3E85]/20 border-t-[#EC268F] animate-spin" />
