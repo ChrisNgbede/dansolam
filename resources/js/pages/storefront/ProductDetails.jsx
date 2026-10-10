@@ -381,9 +381,9 @@ export default function ProductDetails() {
                   ({product.reviews?.length || 0} reviews)
                 </span>
               </div>
-              {isSoldCountEnabled && (
+              {isSoldCountEnabled && Number(product.total_sold) > 0 && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-bold bg-[#EC268F]/10 text-[#EC268F] border border-[#EC268F]/20  tracking-wide">
-                  🔥 {product.total_sold || 28} sold so far
+                  🔥 {Number(product.total_sold).toLocaleString()} sold so far
                 </span>
               )}
             </div>
