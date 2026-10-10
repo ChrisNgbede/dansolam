@@ -3423,7 +3423,7 @@ class AdminController extends Controller
             $notifications[] = [
                 'type' => 'order',
                 'title' => ($order->payment_status === 'paid' ? 'Paid Order: ' : 'New Order: ') . $order->order_number,
-                'message' => "Order of ₦" . number_format($order->total_amount, 2) . " by {$order->customer_name} (" . ucfirst(str_replace('_', ' ', $order->order_status)) . " via " . strtoupper($order->payment_method) . ")",
+                'message' => "Order of " . \App\Services\StoreMailer::money($order->total_amount) . " by {$order->customer_name} (" . ucfirst(str_replace('_', ' ', $order->order_status)) . " via " . strtoupper($order->payment_method) . ")",
                 'created_at' => $order->created_at->toIso8601String(),
                 'link' => '/admin/orders'
             ];
@@ -4228,27 +4228,18 @@ class AdminController extends Controller
                 ['token' => $token, 'created_at' => now()]
             );
 
-            \App\Services\StoreMailer::apply();
-
-            try {
-                \Illuminate\Support\Facades\Mail::html(
-                    "<div style='font-family: sans-serif; max-width: 600px; margin: auto; padding: 28px; border: 1px solid #ddd; border-radius: 16px; background-color: #f9f9f9; color: #111;'>"
-                    . "<h2 style='color: #5D3E85; margin-top: 0;'>Dansolam Administration Panel</h2>"
-                    . "<p>Hello <strong>" . htmlspecialchars($user->name) . "</strong>,</p>"
-                    . "<p>An administrative password reset was requested for your management account. Use the authorization token below to set a new password:</p>"
-                    . "<div style='text-align: center; margin: 24px 0;'>"
-                    . "<span style='font-size: 28px; font-weight: 900; letter-spacing: 8px; background-color: #181120; color: #FFFFFF; padding: 12px 28px; border-radius: 12px; font-family: monospace;'>{$token}</span>"
-                    . "</div>"
-                    . "<p style='font-size: 12px; color: #666;'>This token is valid for 60 minutes. If you did not request this reset, please review your security settings immediately.</p>"
-                    . "</div>",
-                    function ($message) use ($normalizedEmail) {
-                        $message->to($normalizedEmail)
-                            ->subject('Admin Password Reset Code - Dansolam');
-                    }
-                );
-            } catch (\Throwable $mailEx) {
-                \Illuminate\Support\Facades\Log::warning("Could not dispatch admin password reset email: " . $mailEx->getMessage());
-            }
+            \App\Services\StoreMailer::send($normalizedEmail, new \App\Mail\StoreMessage(
+                subjectLine: 'Admin password reset code - Dansolam',
+                heading: 'Admin password reset',
+                paragraphs: [
+                    'Hello ' . $user->name . ', a password reset was requested for your Dansolam admin account.',
+                    'Enter this code on the admin reset screen to set a new password. It expires in 60 minutes.',
+                    'If you did not request this, someone may be trying to access your account: please review your admin users.',
+                ],
+                buttonText: 'Open admin sign in',
+                buttonUrl: url('/admin/login'),
+                code: $token,
+            ));
         }
 
         return response()->json([
@@ -4360,7 +4351,27 @@ class AdminController extends Controller
             'admin_notes' => 'nullable|string|max:1000',
         ]);
 
+        $previousStatus = $session->status;
         $session->update($validated);
+
+        // Let the customer know when their request is confirmed, declined or completed.
+        $updates = [
+            'approved' => ['Your consultation is confirmed', 'Good news: your consultation with Dansolam is confirmed. We look forward to seeing you.'],
+            'declined' => ['About your consultation request', 'Unfortunately we cannot accommodate your consultation at the requested time. Please reply to this email or book another slot and we will do our best to find a time that suits you.'],
+            'completed' => ['Thank you for visiting Dansolam', 'Thank you for your consultation. If you have any questions about your skincare routine or products, just reply to this email.'],
+        ];
+        if ($session->status !== $previousStatus && isset($updates[$session->status])) {
+            [$heading, $text] = $updates[$session->status];
+            \App\Services\StoreMailer::send($session->email, new \App\Mail\StoreMessage(
+                subjectLine: $heading . ' - Dansolam',
+                heading: $heading,
+                paragraphs: ['Hello ' . $session->name . ',', $text],
+                details: $session->status === 'completed' ? [] : [
+                    'Date' => optional($session->preferred_date ? \Carbon\Carbon::parse($session->preferred_date) : null)?->format('l j F Y'),
+                    'Time' => $session->preferred_time,
+                ],
+            ));
+        }
 
         return response()->json([
             'success' => true,

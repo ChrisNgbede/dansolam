@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Mail\StoreMessage;
+use App\Services\StoreMailer;
+
 use App\Http\Controllers\Controller;
 use App\Models\Ecommerce;
 use App\Models\EcommerceSetting;
@@ -1120,14 +1123,40 @@ class StorefrontController extends Controller
                 OrderItem::create($oItem);
             }
 
-            // Automatically dispatch Order Placed confirmation email
-            try {
-                if (!empty($order->customer_email)) {
-                    Mail::to($order->customer_email)->send(new OrderInvoiceMail($order, 'order_placed'));
+            // Order confirmation to the customer and an alert to the store, sent once the
+            // order is committed so a rolled-back checkout never emails anyone.
+            $orderItemsForEmail = $orderItemsToCreate;
+            DB::afterCommit(function () use ($order, $orderItemsForEmail) {
+                try {
+                    if (!empty($order->customer_email)) {
+                        Mail::to($order->customer_email)->send(new OrderInvoiceMail($order, 'order_placed'));
+                    }
+                } catch (\Throwable $mailEx) {
+                    Log::warning("Could not dispatch order_placed email to {$order->customer_email}: " . $mailEx->getMessage());
                 }
-            } catch (\Throwable $mailEx) {
-                Log::warning("Could not dispatch order_placed email to {$order->customer_email}: " . $mailEx->getMessage());
-            }
+
+                StoreMailer::send(StoreMailer::storeInbox(), new StoreMessage(
+                    subjectLine: "New order #{$order->order_number}: " . StoreMailer::money($order->total_amount),
+                    heading: 'You have a new order',
+                    paragraphs: [$order->payment_method === 'bank_transfer'
+                        ? 'The customer chose bank transfer. Check the payment has arrived before dispatching.'
+                        : 'Payment status will update automatically once the customer completes payment.'],
+                    details: [
+                        'Order' => '#' . $order->order_number,
+                        'Total' => StoreMailer::money($order->total_amount),
+                        'Customer' => trim($order->customer_name . ' · ' . $order->customer_email . ' · ' . $order->customer_phone, ' ·'),
+                        'Items' => collect($orderItemsForEmail)->map(fn ($i) => $i['quantity'] . ' × ' . ($i['product_name'] ?? 'Item'))->implode("\n"),
+                        'Delivery' => $order->delivery_method === 'pickup'
+                            ? 'Pick up'
+                            : implode(', ', array_filter([$order->delivery_address, $order->delivery_city, $order->delivery_country])),
+                        'Payment' => ucwords(str_replace('_', ' ', $order->payment_method)),
+                    ],
+                    buttonText: 'Open order',
+                    buttonUrl: url('/admin/orders/' . $order->id),
+                    replyToAddress: $order->customer_email,
+                    replyToName: $order->customer_name,
+                ));
+            });
 
             // Handle Payment Gateways Initiation (Paystack, Stripe, PayPal, Flutterwave)
             if (in_array($request->payment_method, ['paystack', 'stripe', 'paypal', 'flutterwave'])) {
@@ -1347,6 +1376,8 @@ class StorefrontController extends Controller
                 Log::warning("Could not dispatch invoice email for order #{$order->order_number}: " . $ex->getMessage());
             }
 
+            StoreMailer::paymentReceived($order, $gateway);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Payment verified successfully with ' . ucfirst($gateway) . '.',
@@ -1502,6 +1533,17 @@ class StorefrontController extends Controller
             'updated_at' => now(),
         ]);
 
+        StoreMailer::send($request->email, new StoreMessage(
+            subjectLine: "You're subscribed to Dansolam",
+            heading: 'Thank you for subscribing',
+            paragraphs: [
+                "You're now on the Dansolam list. We'll send you new arrivals, skincare tips and subscriber-only offers, never spam.",
+                'If you did not sign up, you can ignore this email or reply and we will remove you.',
+            ],
+            buttonText: 'Browse the shop',
+            buttonUrl: url('/shop'),
+        ));
+
         return response()->json([
             'success' => true,
             'message' => 'Thank you for subscribing! Keep an eye on your inbox for designer drops.'
@@ -1573,6 +1615,31 @@ class StorefrontController extends Controller
             'subject' => $request->subject,
             'message' => $request->message,
         ]);
+
+        StoreMailer::send($request->email, new StoreMessage(
+            subjectLine: 'We received your message - Dansolam',
+            heading: 'Thanks for getting in touch, ' . strtok(trim($request->name), ' '),
+            paragraphs: [
+                'We have received your message and a member of our team will reply as soon as possible, usually within one working day (Monday to Saturday, 9am to 6pm).',
+                'Here is a copy of what you sent:',
+            ],
+            details: ['Subject' => $request->subject, 'Message' => $request->message],
+        ));
+
+        StoreMailer::send(StoreMailer::storeInbox(), new StoreMessage(
+            subjectLine: 'New enquiry: ' . $request->subject,
+            heading: 'New contact form enquiry',
+            paragraphs: ['Reply to this email to answer ' . $request->name . ' directly.'],
+            details: [
+                'From' => $request->name . ' <' . $request->email . '>',
+                'Subject' => $request->subject,
+                'Message' => $request->message,
+            ],
+            buttonText: 'View enquiries',
+            buttonUrl: url('/admin/inquiries'),
+            replyToAddress: $request->email,
+            replyToName: $request->name,
+        ));
 
         return response()->json([
             'success' => true,
@@ -1693,6 +1760,33 @@ class StorefrontController extends Controller
             'notes' => $validated['notes'] ?? null,
             'status' => 'pending',
         ]);
+
+        $booking = [
+            'Date' => \Carbon\Carbon::parse($validated['preferred_date'])->format('l j F Y'),
+            'Time' => $validated['preferred_time'],
+            'Guests' => (string) ($validated['guests_count'] ?? 1),
+            'Notes' => $validated['notes'] ?? null,
+        ];
+
+        StoreMailer::send($validated['email'], new StoreMessage(
+            subjectLine: 'We received your consultation request - Dansolam',
+            heading: 'Your request is in, ' . strtok(trim($validated['name']), ' '),
+            paragraphs: [
+                'Thank you for booking a consultation with Dansolam. This is a request, not yet a confirmed appointment: we will contact you shortly to confirm the time.',
+            ],
+            details: $booking,
+        ));
+
+        StoreMailer::send(StoreMailer::storeInbox(), new StoreMessage(
+            subjectLine: 'New consultation request from ' . $validated['name'],
+            heading: 'New consultation request',
+            paragraphs: ['Please contact the customer to confirm, then update the request in the admin panel.'],
+            details: ['Name' => $validated['name'], 'Email' => $validated['email'], 'Phone' => $validated['phone']] + $booking,
+            buttonText: 'View requests',
+            buttonUrl: url('/admin/fitting-sessions'),
+            replyToAddress: $validated['email'],
+            replyToName: $validated['name'],
+        ));
 
         return response()->json([
             'success' => true,

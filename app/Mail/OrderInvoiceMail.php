@@ -164,7 +164,8 @@ class OrderInvoiceMail extends Mailable
             with: [
                 'bodyText' => nl2br($bodyText),
                 'order' => $this->order,
-                'themeColor' => $settings['theme_primary_color'] ?? '#5D3E85'
+                'themeColor' => $settings['theme_primary_color'] ?? '#5D3E85',
+                'currency' => $settings['system_currency_symbol'] ?? '£',
             ]
         );
     }
@@ -202,7 +203,7 @@ class OrderInvoiceMail extends Mailable
         ], [
             $this->order->customer_name ?? 'Valued Customer',
             $this->order->order_number ?? '',
-            '₦' . number_format((float)($this->order->total_amount ?? 0), 2),
+            \App\Services\StoreMailer::money($this->order->total_amount ?? 0),
             strtoupper($this->order->payment_status ?? 'PENDING'),
             strtoupper(str_replace('_', ' ', $this->order->order_status ?? 'PENDING')),
             strtoupper($this->order->delivery_method ?? 'DELIVERY'),

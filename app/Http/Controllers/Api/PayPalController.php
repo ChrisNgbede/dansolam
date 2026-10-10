@@ -277,6 +277,8 @@ class PayPalController extends Controller
         } catch (\Throwable $e) {
             Log::warning('PayPal payment email failed: ' . $e->getMessage());
         }
+
+        \App\Services\StoreMailer::paymentReceived($order, 'paypal');
     }
 
     // ---------------------------------------------------------------------

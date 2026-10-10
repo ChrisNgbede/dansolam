@@ -177,7 +177,7 @@
             <!-- Brand Header -->
             <div class="header">
                 <h1>Dansolam</h1>
-                <p>Luxury Skincare & Wellness SHOP</p>
+                <p>Beauty Home</p>
             </div>
             
             <!-- Email Body Content -->
@@ -217,9 +217,9 @@
                                         @endif
                                     </td>
                                     <td style="text-align: center; color: #5D3E85; font-weight: 700;">{{ $item->quantity }}</td>
-                                    <td style="text-align: right;">₦{{ number_format($item->price, 2) }}</td>
+                                    <td style="text-align: right;">{{ $currency }}{{ number_format($item->price, 2) }}</td>
                                     <td style="text-align: right; font-weight: 700; color: #221B2B;">
-                                        ₦{{ number_format($item->price * $item->quantity, 2) }}
+                                        {{ $currency }}{{ number_format($item->price * $item->quantity, 2) }}
                                     </td>
                                 </tr>
                             @endforeach
@@ -232,27 +232,27 @@
                     <table class="summary-table">
                         <tr>
                             <td style="color: #7B6E8A;">Order Subtotal</td>
-                            <td style="text-align: right; font-weight: 600;">₦{{ number_format($order->subtotal, 2) }}</td>
+                            <td style="text-align: right; font-weight: 600;">{{ $currency }}{{ number_format($order->subtotal, 2) }}</td>
                         </tr>
                         @if($order->discount_amount > 0)
                             <tr style="color: #0E703C;">
                                 <td>Discount Applied</td>
-                                <td style="text-align: right; font-weight: 600;">-₦{{ number_format($order->discount_amount, 2) }}</td>
+                                <td style="text-align: right; font-weight: 600;">-{{ $currency }}{{ number_format($order->discount_amount, 2) }}</td>
                             </tr>
                         @endif
                         <tr>
                             <td style="color: #7B6E8A;">Delivery & Handling</td>
-                            <td style="text-align: right; font-weight: 600;">₦{{ number_format($order->delivery_fee, 2) }}</td>
+                            <td style="text-align: right; font-weight: 600;">{{ $currency }}{{ number_format($order->delivery_fee, 2) }}</td>
                         </tr>
                         @if($order->tax_amount > 0)
                             <tr>
                                 <td style="color: #7B6E8A;">Estimated Tax</td>
-                                <td style="text-align: right; font-weight: 600;">₦{{ number_format($order->tax_amount, 2) }}</td>
+                                <td style="text-align: right; font-weight: 600;">{{ $currency }}{{ number_format($order->tax_amount, 2) }}</td>
                             </tr>
                         @endif
                         <tr class="total-row">
                             <td>Total Amount</td>
-                            <td style="text-align: right;">₦{{ number_format($order->total_amount, 2) }}</td>
+                            <td style="text-align: right;">{{ $currency }}{{ number_format($order->total_amount, 2) }}</td>
                         </tr>
                     </table>
                 </div>
@@ -265,7 +265,7 @@
                     @if($order->delivery_method === 'delivery')
                         <strong>Address:</strong> {{ $order->delivery_address }}, {{ $order->delivery_city }}, {{ $order->delivery_state }}, {{ $order->delivery_country }}
                     @else
-                        <strong>Pickup:</strong> Store SHOP Pickup Branch
+                        <strong>Pickup:</strong> Collect from our store
                     @endif
                 </div>
 

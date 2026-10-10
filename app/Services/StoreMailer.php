@@ -3,6 +3,9 @@
 namespace App\Services;
 
 use App\Models\EcommerceSetting;
+use Illuminate\Contracts\Mail\Mailable;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * Points Laravel's mailer at the SMTP account saved under Settings → SMTP, so every
@@ -64,5 +67,70 @@ class StoreMailer
         }
 
         return true;
+    }
+
+    /**
+     * Send without ever breaking the customer's action: a mail failure is logged,
+     * not thrown. Returns whether the message was handed to the mail server.
+     */
+    public static function send(?string $to, Mailable $mailable): bool
+    {
+        if (!$to || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            return false;
+        }
+
+        try {
+            Mail::to($to)->send($mailable);
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning('Email to ' . $to . ' failed (' . class_basename($mailable) . '): ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Where store alerts go (new orders, enquiries, bookings): the support email from
+     * Settings, else the address the store sends from.
+     */
+    public static function storeInbox(): ?string
+    {
+        $settings = EcommerceSetting::whereIn('key', ['admin_notification_email', 'support_email', 'smtp_from_address'])
+            ->pluck('value', 'key');
+
+        foreach (['admin_notification_email', 'support_email', 'smtp_from_address'] as $key) {
+            if (filter_var($settings[$key] ?? null, FILTER_VALIDATE_EMAIL)) {
+                return $settings[$key];
+            }
+        }
+
+        $from = config('mail.from.address');
+        return filter_var($from, FILTER_VALIDATE_EMAIL) && !str_ends_with($from, '@example.com') ? $from : null;
+    }
+
+    /** Format an amount in the store currency, e.g. £12.50. */
+    public static function money(float|int|string|null $amount): string
+    {
+        static $symbol;
+        $symbol ??= EcommerceSetting::where('key', 'system_currency_symbol')->value('value') ?: '£';
+
+        return $symbol . number_format((float) $amount, 2);
+    }
+
+    /** Tell the store a payment has come in for an order. */
+    public static function paymentReceived(object $order, string $gateway): bool
+    {
+        return self::send(self::storeInbox(), new \App\Mail\StoreMessage(
+            subjectLine: "Payment received for order #{$order->order_number}: " . self::money($order->total_amount),
+            heading: 'Payment received',
+            paragraphs: ['This order is paid and ready to be packed.'],
+            details: [
+                'Order' => '#' . $order->order_number,
+                'Amount' => self::money($order->total_amount),
+                'Paid with' => ucwords(str_replace('_', ' ', $gateway)),
+                'Customer' => trim(($order->customer_name ?? '') . ' · ' . ($order->customer_email ?? ''), ' ·'),
+            ],
+            buttonText: 'Open order',
+            buttonUrl: url('/admin/orders/' . $order->id),
+        ));
     }
 }

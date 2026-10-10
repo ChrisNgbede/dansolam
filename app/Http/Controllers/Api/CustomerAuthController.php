@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Mail\StoreMessage;
+use App\Services\StoreMailer;
+
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\CustomerAddress;
@@ -33,6 +36,17 @@ class CustomerAuthController extends Controller
         ]);
 
         $token = $customer->createToken('customer_token')->plainTextToken;
+
+        StoreMailer::send($customer->email, new StoreMessage(
+            subjectLine: 'Welcome to Dansolam Beauty Home',
+            heading: 'Welcome, ' . strtok(trim($customer->name), ' ') . '!',
+            paragraphs: [
+                'Thank you for creating your Dansolam account. You can now check out faster, track your orders and keep a wishlist of your favourites.',
+                'Our skincare is made from natural, plant-based ingredients for a healthy, even glow. If you need help choosing products for your skin, just reply to this email.',
+            ],
+            buttonText: 'Start shopping',
+            buttonUrl: url('/shop'),
+        ));
 
         return response()->json([
             'success' => true,
@@ -388,35 +402,18 @@ class CustomerAuthController extends Controller
             $storeName = $settings['ecommerce_name'] ?? 'Dansolam Beauty Home';
             $resetUrl = url('/reset-password?email=' . urlencode($normalizedEmail) . '&code=' . urlencode($token));
 
-            // Attempt email dispatch
-            try {
-                \Illuminate\Support\Facades\Mail::html(
-                    "<div style='font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: auto; padding: 32px 24px; border: 1px solid #EADBEE; border-radius: 24px; background-color: #FAF7FC; color: #221B2B;'>"
-                    . "<div style='text-align: center; margin-bottom: 24px;'>"
-                    . "<h1 style='color: #5D3E85; font-size: 24px; margin: 0; font-weight: 800;'>{$storeName}</h1>"
-                    . "<span style='font-size: 11px; color: #EC268F; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;'>Password Recovery</span>"
-                    . "</div>"
-                    . "<p style='font-size: 15px; line-height: 1.6; margin-bottom: 16px;'>Hello <strong>" . htmlspecialchars($customer->name) . "</strong>,</p>"
-                    . "<p style='font-size: 14px; line-height: 1.6; color: #555; margin-bottom: 24px;'>We received a request to reset the password for your account. Click the button below to choose a new password directly, or enter the verification code on the reset page:</p>"
-                    . "<div style='text-align: center; margin: 28px 0;'>"
-                    . "<a href='{$resetUrl}' style='background: linear-gradient(135deg, #5D3E85 0%, #EC268F 100%); color: #FFFFFF; text-decoration: none; padding: 14px 32px; font-size: 14px; font-weight: 800; border-radius: 50px; display: inline-block; box-shadow: 0 4px 14px rgba(93,62,133,0.3);'>Reset Your Password</a>"
-                    . "</div>"
-                    . "<div style='background-color: #FFFFFF; border: 1px solid #EADBEE; border-radius: 16px; padding: 16px; text-align: center; margin: 24px 0;'>"
-                    . "<span style='font-size: 11px; color: #888; display: block; font-weight: 700; text-transform: uppercase; margin-bottom: 6px;'>Or use your 6-digit verification code</span>"
-                    . "<span style='font-size: 28px; font-weight: 900; letter-spacing: 8px; color: #5D3E85; font-family: monospace;'>{$token}</span>"
-                    . "</div>"
-                    . "<p style='font-size: 12px; line-height: 1.6; color: #777; margin-top: 24px;'>This link and code will expire in 60 minutes. If you did not initiate this request, no action is required and your account remains completely secure.</p>"
-                    . "<hr style='border: 0; border-top: 1px solid #EADBEE; margin: 24px 0;' />"
-                    . "<p style='font-size: 11px; color: #999; text-align: center; margin: 0;'>&copy; " . date('Y') . " {$storeName}. All rights reserved.</p>"
-                    . "</div>",
-                    function ($message) use ($normalizedEmail, $storeName) {
-                        $message->to($normalizedEmail)
-                            ->subject("Reset Your Password - {$storeName}");
-                    }
-                );
-            } catch (\Throwable $mailEx) {
-                \Illuminate\Support\Facades\Log::warning("Could not dispatch password reset email to {$normalizedEmail}: " . $mailEx->getMessage());
-            }
+            StoreMailer::send($normalizedEmail, new StoreMessage(
+                subjectLine: "Reset your password - {$storeName}",
+                heading: 'Reset your password',
+                paragraphs: [
+                    'Hello ' . $customer->name . ', we received a request to reset the password for your account.',
+                    'Click the button below to choose a new password, or enter this code on the reset page. The link and code expire in 60 minutes.',
+                    'If you did not ask for this, you can ignore this email: your password will not change.',
+                ],
+                buttonText: 'Choose a new password',
+                buttonUrl: $resetUrl,
+                code: $token,
+            ));
         }
 
         // Generic, safe response that prevents user enumeration
@@ -471,6 +468,20 @@ class CustomerAuthController extends Controller
 
         // Invalidate token (single-use protection)
         \DB::table('password_reset_tokens')->where('email', $normalizedEmail)->delete();
+
+        if ($customer) {
+            StoreMailer::send($customer->email, new StoreMessage(
+                subjectLine: 'Your Dansolam password was changed',
+                heading: 'Your password was changed',
+                paragraphs: [
+                    'Hello ' . $customer->name . ', the password for your Dansolam account was just reset.',
+                    'If this was you, there is nothing more to do. If it was not, please reset your password straight away and reply to this email so we can help secure your account.',
+                ],
+                details: ['Changed at' => now()->format('j M Y, H:i')],
+                buttonText: 'Sign in',
+                buttonUrl: url('/account'),
+            ));
+        }
 
         return response()->json([
             'success' => true,
