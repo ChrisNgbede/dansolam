@@ -114,7 +114,8 @@ export function useLiveValidation(values, rules, { fieldMap = {} } = {}) {
     setServerErrors({});
   };
 
-  const formValid = Object.keys(errors).length === 0;
+  // Valid when every rule passes and no server error is still waiting on an edit.
+  const formValid = Object.keys(errors).length === 0 && Object.keys(serverErrors).length === 0;
 
   return { bind, message, stateClass, error, isValid, validateAll, applyServerErrors, reset, formValid, idFor };
 }

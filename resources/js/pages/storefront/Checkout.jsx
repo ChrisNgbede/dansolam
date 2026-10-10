@@ -17,6 +17,14 @@ import { useLiveValidation } from '../../hooks/useLiveValidation';
 import { FieldMessage, PasswordStrength } from '../../components/ui/FieldMessage';
 import * as rules from '../../utils/validators';
 
+const CHECKOUT_PROMPTS = {
+  details: 'Please check the highlighted details.',
+  login: 'Please log in or create an account above to proceed with your order.',
+  shipping: 'Please choose a shipping method.',
+  country: 'Please select your country to see shipping options.',
+  captcha: 'Please complete the security verification challenge before placing your order.',
+};
+
 export default function Checkout() {
   const currencySymbol = getCurrencySymbol();
   const navigate = useNavigate();
@@ -103,6 +111,19 @@ export default function Checkout() {
     state: [rules.required(country ? 'Choose a county, state or region.' : 'Choose a country first.')],
     notes: [rules.maxLength(1000)],
   }, { fieldMap: { customer_name: 'name', customer_phone: 'phone', customer_email: 'email', delivery_address: 'address', delivery_city: 'city', delivery_country: 'country', delivery_state: 'state' } });
+
+  // "Fix this first" prompts above the Place Order button clear themselves as soon
+  // as the customer has fixed what they point at.
+  useEffect(() => {
+    const resolved = {
+      [CHECKOUT_PROMPTS.details]: deliveryV.formValid,
+      [CHECKOUT_PROMPTS.login]: !!customer,
+      [CHECKOUT_PROMPTS.shipping]: !!selectedShipping,
+      [CHECKOUT_PROMPTS.country]: !!country,
+      [CHECKOUT_PROMPTS.captcha]: checkoutCaptchaVerified,
+    };
+    if (resolved[errorMsg]) setErrorMsg('');
+  }, [errorMsg, deliveryV.formValid, customer, selectedShipping, country, checkoutCaptchaVerified]);
   
   // Modal Payment Gateway States
   const [showPaystackModal, setShowPaystackModal] = useState(false);
@@ -316,24 +337,24 @@ export default function Checkout() {
     e.preventDefault();
     
     if (!customer) {
-      setErrorMsg('Please log in or create an account above to proceed with your order.');
+      setErrorMsg(CHECKOUT_PROMPTS.login);
       return;
     }
 
     if (!deliveryV.validateAll()) {
-      setErrorMsg('Please check the highlighted details.');
+      setErrorMsg(CHECKOUT_PROMPTS.details);
       return;
     }
 
     if (!selectedShipping) {
-      setErrorMsg(country ? 'Please choose a shipping method.' : 'Please select your country to see shipping options.');
+      setErrorMsg(country ? CHECKOUT_PROMPTS.shipping : CHECKOUT_PROMPTS.country);
       return;
     }
 
     const isCaptchaEnabled = settings.captcha_enabled === 'true' || settings.captcha_enabled === true;
     const isCheckoutEnabled = settings.captcha_on_checkout === undefined ? true : (settings.captcha_on_checkout === 'true' || settings.captcha_on_checkout === true);
     if (isCaptchaEnabled && isCheckoutEnabled && !checkoutCaptchaVerified) {
-      setErrorMsg('Please complete the security verification challenge before placing your order.');
+      setErrorMsg(CHECKOUT_PROMPTS.captcha);
       return;
     }
     setLoading(true);
@@ -429,7 +450,7 @@ export default function Checkout() {
           navigate(`/order-tracking?order_number=${data.data.order_number}&contact=${encodeURIComponent(email)}&bank_transfer=true`);
         }
       } else {
-        setErrorMsg(deliveryV.applyServerErrors(data.errors) ? 'Please check the highlighted details.' : (data.message || 'Checkout failed. Please verify details.'));
+        setErrorMsg(deliveryV.applyServerErrors(data.errors) ? CHECKOUT_PROMPTS.details : (data.message || 'Checkout failed. Please verify details.'));
         setLoading(false);
       }
     } catch (err) {
