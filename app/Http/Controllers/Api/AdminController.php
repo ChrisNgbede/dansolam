@@ -264,19 +264,8 @@ class AdminController extends Controller
         ]);
 
         try {
-            // Override configuration transiently
-            config([
-                'mail.default' => 'smtp',
-                'mail.mailers.smtp.host' => $request->smtp_host,
-                'mail.mailers.smtp.port' => (int)$request->smtp_port,
-                'mail.mailers.smtp.username' => $request->smtp_username ?? '',
-                'mail.mailers.smtp.password' => $request->smtp_password ?? '',
-                'mail.mailers.smtp.encryption' => $request->smtp_encryption ?? 'tls',
-                'mail.from.address' => $request->smtp_from_address,
-                'mail.from.name' => $request->smtp_from_name,
-            ]);
+            \App\Services\StoreMailer::use($request->only(\App\Services\StoreMailer::KEYS));
 
-            // Attempt to send email
             \Illuminate\Support\Facades\Mail::to($request->recipient_email)->send(
                 new \App\Mail\TestSmtpMail($request->recipient_email)
             );
@@ -285,12 +274,28 @@ class AdminController extends Controller
                 'success' => true,
                 'message' => 'Test email dispatched successfully! Please check your inbox at ' . $request->recipient_email
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'SMTP connection failed: ' . $e->getMessage()
+                'message' => 'SMTP connection failed: ' . $this->explainSmtpError($e->getMessage())
             ], 422);
         }
+    }
+
+    /**
+     * Turn common SMTP failures into a hint the store owner can act on.
+     */
+    private function explainSmtpError(string $error): string
+    {
+        $hint = match (true) {
+            (bool) preg_match('/\b535\b|authenticat|username and password/i', $error) => 'the server rejected the username or password.',
+            (bool) preg_match('/timed out|timeout/i', $error) => 'the server did not answer. Check the host and port, and that the port matches the encryption (465 for SSL, 587 for TLS).',
+            (bool) preg_match('/refused|getaddrinfo|resolve|no such host|Network is unreachable/i', $error) => 'could not reach that host and port. Check the SMTP host name and port.',
+            (bool) preg_match('/certificate|SSL|TLS|crypto/i', $error) => 'the secure connection failed. Try the other encryption option (SSL on 465, TLS on 587).',
+            default => null,
+        };
+
+        return $hint ? ucfirst($hint) . ' (' . trim($error) . ')' : trim($error);
     }
 
     /**
@@ -1153,13 +1158,22 @@ class AdminController extends Controller
             return response()->json(['success' => false, 'message' => 'Ecommerce not found'], 404);
         }
 
-        $settings = $request->all();
-        foreach ($settings as $key => $value) {
-            EcommerceSetting::updateOrCreate(
-                ['ecommerce_id' => $ecommerce->id, 'key' => $key],
-                ['value' => $value]
-            );
-        }
+        // Only write settings that changed: the panel posts every field on each save.
+        $current = EcommerceSetting::where('ecommerce_id', $ecommerce->id)->pluck('value', 'key');
+        DB::transaction(function () use ($request, $ecommerce, $current) {
+            foreach ($request->all() as $key => $value) {
+                if (is_array($value)) {
+                    $value = json_encode($value);
+                }
+                if ($current->has($key) && (string) $current[$key] === (string) $value) {
+                    continue;
+                }
+                EcommerceSetting::updateOrCreate(
+                    ['ecommerce_id' => $ecommerce->id, 'key' => $key],
+                    ['value' => $value]
+                );
+            }
+        });
         Cache::forget('storefront.instagram.feed');
 
         return response()->json([
@@ -4214,24 +4228,7 @@ class AdminController extends Controller
                 ['token' => $token, 'created_at' => now()]
             );
 
-            // Configure dynamic SMTP from settings if available
-            $settingsRaw = \App\Models\EcommerceSetting::all();
-            $settings = [];
-            foreach ($settingsRaw as $s) {
-                $settings[$s->key] = $s->value;
-            }
-            if (!empty($settings['smtp_host'])) {
-                config([
-                    'mail.default' => 'smtp',
-                    'mail.mailers.smtp.host' => $settings['smtp_host'],
-                    'mail.mailers.smtp.port' => (int)($settings['smtp_port'] ?? 587),
-                    'mail.mailers.smtp.username' => $settings['smtp_username'] ?? '',
-                    'mail.mailers.smtp.password' => $settings['smtp_password'] ?? '',
-                    'mail.mailers.smtp.encryption' => $settings['smtp_encryption'] ?? 'tls',
-                    'mail.from.address' => $settings['smtp_from_address'] ?? 'noreply@dansolam.com',
-                    'mail.from.name' => $settings['smtp_from_name'] ?? 'Dansolam Admin Panel',
-                ]);
-            }
+            \App\Services\StoreMailer::apply();
 
             try {
                 \Illuminate\Support\Facades\Mail::html(

@@ -356,18 +356,7 @@ class CustomerAuthController extends Controller
             $settings[$s->key] = $s->value;
         }
 
-        if (!empty($settings['smtp_host'])) {
-            config([
-                'mail.default' => 'smtp',
-                'mail.mailers.smtp.host' => $settings['smtp_host'],
-                'mail.mailers.smtp.port' => (int)($settings['smtp_port'] ?? 587),
-                'mail.mailers.smtp.username' => $settings['smtp_username'] ?? '',
-                'mail.mailers.smtp.password' => $settings['smtp_password'] ?? '',
-                'mail.mailers.smtp.encryption' => $settings['smtp_encryption'] ?? 'tls',
-                'mail.from.address' => $settings['smtp_from_address'] ?? 'noreply@dansolam.com',
-                'mail.from.name' => $settings['smtp_from_name'] ?? ($settings['ecommerce_name'] ?? 'Dansolam Beauty Home'),
-            ]);
-        }
+        \App\Services\StoreMailer::use($settings, $settings['ecommerce_name'] ?? null);
 
         return $settings;
     }

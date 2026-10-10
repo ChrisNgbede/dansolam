@@ -493,27 +493,45 @@ export default function AdminSettings() {
       system_domestic_country: systemDomesticCountry,
     };
 
+    // The host is occasionally slow or briefly unavailable; one quiet retry covers
+    // that, since saving the same values twice is harmless.
+    const save = () => apiFetch('/api/admin/settings', { method: 'PUT', body: JSON.stringify(payload) });
+    const readJson = (res) => res.json().catch(() => null);
+    const isTransient = (res) => res.status >= 500;
+
     try {
-      const res = await apiFetch('/api/admin/settings', {
-        method: 'PUT',
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
+      let res;
+      try {
+        res = await save();
+        if (isTransient(res)) throw new Error(`HTTP ${res.status}`);
+      } catch {
+        await new Promise((r) => setTimeout(r, 1500));
+        res = await save();
+      }
+      const data = await readJson(res);
       setSaveLoading(false);
 
-      if (data.success) {
+      if (res.ok && data?.success) {
         setSaveSuccess(true);
         systemToast.success(data.message || 'Settings saved successfully.');
         queryClient.invalidateQueries(['admin-settings-panel', 'settings']);
-        
+
         // Auto fade success message
         setTimeout(() => setSaveSuccess(false), 4000);
+      } else if (res.status === 401) {
+        systemToast.error('Your session has expired. Please sign in again to save settings.');
+      } else if (res.status === 403) {
+        systemToast.error(data?.message || 'Your account is not allowed to change these settings.');
+      } else if (res.status === 422 && data?.errors) {
+        systemToast.error(Object.values(data.errors).flat()[0] || data.message);
+      } else if (data?.message) {
+        systemToast.error(data.message);
       } else {
-        systemToast.error(data.message || 'Settings save failed');
+        systemToast.error(`The server could not save your settings right now (HTTP ${res.status}). Nothing was changed. Please try again in a moment.`);
       }
-    } catch (e) {
+    } catch {
       setSaveLoading(false);
-      systemToast.error('Connection error saving settings');
+      systemToast.error('Could not reach the server to save your settings. Check your internet connection and try again.');
     }
   };
 
@@ -542,14 +560,16 @@ export default function AdminSettings() {
           recipient_email: testEmailRecipient,
         })
       });
-      const data = await res.json();
-      if (res.ok && data.success) {
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success) {
         systemToast.success(data.message);
+      } else if (res.status === 422 && data?.errors) {
+        systemToast.error(Object.values(data.errors).flat()[0] || data.message);
       } else {
-        systemToast.error(data.message || 'Failed to dispatch test email.');
+        systemToast.error(data?.message || `The server could not send the test email right now (HTTP ${res.status}). Please try again.`);
       }
     } catch (err) {
-      systemToast.error('Connection error sending test email. Check your network or settings.');
+      systemToast.error('Could not reach the server to send the test email. Check your internet connection and try again.');
     } finally {
       setTestEmailLoading(false);
     }

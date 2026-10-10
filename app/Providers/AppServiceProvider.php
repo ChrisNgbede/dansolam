@@ -11,7 +11,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Use the SMTP account saved in admin settings for every email, when one is set.
+        $this->app->afterResolving('mail.manager', function () {
+            try {
+                \App\Services\StoreMailer::apply();
+            } catch (\Throwable $e) {
+                // No database yet (install/migrations): keep the .env mailer.
+            }
+        });
     }
 
     /**
