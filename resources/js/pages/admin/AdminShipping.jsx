@@ -4,12 +4,15 @@ import { Plus, Edit, Trash2, X, Loader2, Truck, Store, Star } from 'lucide-react
 import { apiFetch } from '../../hooks/useAuth';
 import { getCurrencySymbol } from '../../utils/currency';
 import SearchableSelect from '../../components/ui/SearchableSelect';
+import MultiSearchSelect from '../../components/ui/MultiSearchSelect';
 
 /**
- * Shipping methods, set up the way the old store had them: each method is a
- * fixed charge that applies to a zone (UK / International / everywhere) and a
- * range of item quantities. Customers choose one of the methods that apply to
- * their order; checkout re-checks the choice and charges this amount.
+ * Shipping methods: each is a fixed charge for a zone (UK / International /
+ * everywhere). A method can also target products and/or categories, and set a
+ * quantity condition (between, less than, at most, more than, at least, exactly)
+ * on every item in the bag or just the targeted ones. Customers choose one of the
+ * methods that apply to their order; checkout re-checks the choice and charges
+ * this amount.
  */
 
 const ZONES = [
@@ -19,12 +22,29 @@ const ZONES = [
 ];
 const ZONE_LABEL = { uk: 'UK', international: 'International', all: 'Everywhere' };
 
+const CONDITIONS = [
+  { value: 'between', label: 'Between (range)', symbol: '' },
+  { value: 'lt', label: 'Less than', symbol: '<' },
+  { value: 'lte', label: 'At most (≤)', symbol: '≤' },
+  { value: 'gt', label: 'More than', symbol: '>' },
+  { value: 'gte', label: 'At least (≥)', symbol: '≥' },
+  { value: 'eq', label: 'Exactly', symbol: '=' },
+];
+const CONDITION_WORDS = { lt: 'fewer than', lte: 'at most', gt: 'more than', gte: 'at least', eq: 'exactly' };
+
 const EMPTY = {
   name: '',
   rate: '0',
   zone: 'uk',
   min_quantity: '1',
   max_quantity: '',
+  product_ids: [],
+  category_ids: [],
+  target_match: 'any',
+  quantity_basis: 'bag',
+  quantity_condition: 'between',
+  quantity_value: '',
+  overrides_others: false,
   description: '',
   is_default: false,
   is_pickup: false,
@@ -32,13 +52,29 @@ const EMPTY = {
   sort_order: '0',
 };
 
-function quantityText(min, max) {
+function quantityText(min, max, noun = 'items') {
   const lo = min ?? null;
   const hi = max ?? null;
-  if (lo !== null && hi !== null) return lo === hi ? `${lo} item${lo === 1 ? '' : 's'}` : `${lo}–${hi} items`;
-  if (lo !== null) return `${lo}+ items`;
-  if (hi !== null) return `up to ${hi} items`;
-  return 'Any quantity';
+  if (lo !== null && hi !== null) return lo === hi ? `${lo} ${noun}` : `${lo}–${hi} ${noun}`;
+  if (lo !== null) return `${lo}+ ${noun}`;
+  if (hi !== null) return `up to ${hi} ${noun}`;
+  return `any number of ${noun}`;
+}
+
+/** Plain-English summary of when a method applies. */
+function describeRule(m, productNames = {}, categoryNames = {}) {
+  const products = (m.product_ids || []).map((id) => productNames[id] || `product #${id}`);
+  const categories = (m.category_ids || []).map((id) => categoryNames[id] || `category #${id}`);
+  const targeted = products.length + categories.length > 0;
+  const noun = targeted && m.quantity_basis === 'matching' ? 'of those items' : 'items in the bag';
+  const condition = m.quantity_condition || 'between';
+  const qty = condition === 'between'
+    ? quantityText(m.min_quantity ?? null, m.max_quantity ?? null, noun)
+    : `${CONDITION_WORDS[condition]} ${m.quantity_value ?? '?'} ${noun}`;
+  if (!targeted) return qty.charAt(0).toUpperCase() + qty.slice(1);
+  const list = [...categories.map((c) => `${c} (category)`), ...products].join(', ');
+  const when = m.target_match === 'all' ? `Only ${list} in the bag` : `Bag contains ${list}`;
+  return `${when} · ${qty}${m.overrides_others ? ' · replaces general methods' : ''}`;
 }
 
 const inputClass = 'px-3 py-2 rounded-lg border text-xs bg-white text-gray-800 w-full focus:outline-none';
@@ -56,6 +92,23 @@ export default function AdminShipping() {
     queryFn: () => apiFetch('/api/admin/shipping-rates').then((res) => res.json()),
   });
   const methods = data?.data || [];
+
+  const { data: productsRes } = useQuery({
+    queryKey: ['admin-products'],
+    queryFn: () => apiFetch('/api/admin/products').then((res) => res.json()),
+    staleTime: 60_000,
+  });
+  const { data: categoriesRes } = useQuery({
+    queryKey: ['admin-categories'],
+    queryFn: () => apiFetch('/api/admin/categories').then((res) => res.json()),
+    staleTime: 60_000,
+  });
+  const productList = Array.isArray(productsRes?.data) ? productsRes.data : (productsRes?.data?.data || []);
+  const categoryList = categoriesRes?.data || [];
+  const productNames = Object.fromEntries(productList.map((p) => [p.id, p.name]));
+  const categoryNames = Object.fromEntries(categoryList.map((c) => [c.id, c.name]));
+  const productOptions = productList.map((p) => ({ value: p.id, label: p.name, hint: p.sku || '' }));
+  const categoryOptions = categoryList.map((c) => ({ value: c.id, label: c.name, hint: c.parent?.name ? `in ${c.parent.name}` : '' }));
 
   const save = useMutation({
     mutationFn: async (payload) => {
@@ -97,6 +150,13 @@ export default function AdminShipping() {
       zone: method.zone || 'all',
       min_quantity: method.min_quantity == null ? '' : String(method.min_quantity),
       max_quantity: method.max_quantity == null ? '' : String(method.max_quantity),
+      product_ids: method.product_ids || [],
+      category_ids: method.category_ids || [],
+      target_match: method.target_match || 'any',
+      quantity_basis: method.quantity_basis || 'bag',
+      quantity_condition: method.quantity_condition || 'between',
+      quantity_value: method.quantity_value == null ? '' : String(method.quantity_value),
+      overrides_others: !!method.overrides_others,
       description: method.description || '',
       is_default: !!method.is_default,
       is_pickup: !!method.is_pickup,
@@ -110,8 +170,15 @@ export default function AdminShipping() {
       name: f.name.trim(),
       rate: Number(f.rate || 0),
       zone: f.zone,
-      min_quantity: f.min_quantity === '' ? null : Number(f.min_quantity),
-      max_quantity: f.max_quantity === '' ? null : Number(f.max_quantity),
+      min_quantity: f.quantity_condition !== 'between' || f.min_quantity === '' ? null : Number(f.min_quantity),
+      max_quantity: f.quantity_condition !== 'between' || f.max_quantity === '' ? null : Number(f.max_quantity),
+      product_ids: f.product_ids.map(Number),
+      category_ids: f.category_ids.map(Number),
+      target_match: f.target_match,
+      quantity_basis: f.quantity_basis,
+      quantity_condition: f.quantity_condition,
+      quantity_value: f.quantity_condition === 'between' || f.quantity_value === '' ? null : Number(f.quantity_value),
+      overrides_others: f.overrides_others,
       description: f.description.trim() || null,
       is_default: f.is_default,
       is_pickup: f.is_pickup,
@@ -136,8 +203,8 @@ export default function AdminShipping() {
         <div>
           <h1 className="font-serif font-bold text-gray-900 text-2xl">Shipping methods</h1>
           <p className="text-xs text-gray-500 mt-1 max-w-2xl">
-            Each method is a fixed charge for a zone and a range of item quantities. At checkout, customers see only the
-            methods that match their country and number of items, and choose one.
+            Each method is a fixed charge for a zone. It can also target products or categories and set a quantity
+            condition. At checkout, customers see only the methods that match their country and bag, and choose one.
           </p>
         </div>
         <button type="button" onClick={openCreate} className="admin-btn-primary self-start sm:self-auto inline-flex items-center gap-1.5">
@@ -175,7 +242,7 @@ export default function AdminShipping() {
                   {m.description && <div className="text-gray-500 mt-0.5">{m.description}</div>}
                 </td>
                 <td className="px-4 py-3 text-gray-700">{ZONE_LABEL[m.zone] || 'Everywhere'}</td>
-                <td className="px-4 py-3 text-gray-700">{quantityText(m.min_quantity, m.max_quantity)}</td>
+                <td className="px-4 py-3 text-gray-700 max-w-xs">{describeRule(m, productNames, categoryNames)}</td>
                 <td className="px-4 py-3 text-right font-semibold text-gray-900">
                   {parseFloat(m.rate) === 0 ? 'Free' : `${currency}${parseFloat(m.rate).toFixed(2)}`}
                 </td>
@@ -209,7 +276,7 @@ export default function AdminShipping() {
 
       {form && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-xl w-full shadow-2xl flex flex-col">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[92dvh] shadow-2xl flex flex-col">
             <div className="p-5 border-b border-gray-100 flex items-center justify-between">
               <h3 className="font-serif font-bold text-gray-900 text-lg">{editingId ? 'Edit shipping method' : 'Add shipping method'}</h3>
               <button type="button" onClick={() => setForm(null)} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg cursor-pointer" aria-label="Close"><X className="w-5 h-5" /></button>
@@ -234,19 +301,86 @@ export default function AdminShipping() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Products & categories */}
+              <fieldset className="flex flex-col gap-3 rounded-xl border border-gray-200 p-4">
+                <legend className="px-1 text-[11px] font-bold text-gray-700">Products & categories (optional)</legend>
+                <p className="text-[11px] text-gray-500 -mt-1">Leave both empty for a general method that applies to any bag.</p>
                 <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Minimum items</label>
-                  <input type="number" min="0" value={form.min_quantity} onChange={set('min_quantity')} className={inputClass} placeholder="No minimum" />
+                  <label className={labelClass} htmlFor="ship-categories">Categories</label>
+                  <MultiSearchSelect id="ship-categories" options={categoryOptions} value={form.category_ids} onChange={(v) => setForm((f) => ({ ...f, category_ids: v }))} placeholder="Search categories…" />
+                  <span className="text-[10px] text-gray-400">A category includes its sub-categories.</span>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Maximum items</label>
-                  <input type="number" min="0" value={form.max_quantity} onChange={set('max_quantity')} className={inputClass} placeholder="No maximum" />
+                  <label className={labelClass} htmlFor="ship-products">Products</label>
+                  <MultiSearchSelect id="ship-products" options={productOptions} value={form.product_ids} onChange={(v) => setForm((f) => ({ ...f, product_ids: v }))} placeholder="Search products…" />
                 </div>
-              </div>
+                {(form.product_ids.length + form.category_ids.length) > 0 && (
+                  <>
+                    <div className="flex flex-col gap-1.5">
+                      <span className={labelClass}>Applies when</span>
+                      {[
+                        ['any', 'The bag contains any of these'],
+                        ['all', 'Every item in the bag is one of these'],
+                      ].map(([value, label]) => (
+                        <label key={value} className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                          <input type="radio" name="target_match" value={value} checked={form.target_match === value} onChange={set('target_match')} className="w-4 h-4 accent-[#5D3E85]" />
+                          {label}
+                        </label>
+                      ))}
+                    </div>
+                    <label className="flex items-start gap-2 text-xs text-gray-700 cursor-pointer">
+                      <input type="checkbox" checked={form.overrides_others} onChange={set('overrides_others')} className="w-4 h-4 mt-0.5 accent-[#5D3E85]" />
+                      <span>Replace general methods: when this method applies, hide methods that don't target products or categories.</span>
+                    </label>
+                  </>
+                )}
+              </fieldset>
+
+              {/* Quantity condition */}
+              <fieldset className="flex flex-col gap-3 rounded-xl border border-gray-200 p-4">
+                <legend className="px-1 text-[11px] font-bold text-gray-700">Quantity condition</legend>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5">
+                    <label className={labelClass}>Condition</label>
+                    <SearchableSelect value={form.quantity_condition} onChange={set('quantity_condition')} className={inputClass}>
+                      {CONDITIONS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                    </SearchableSelect>
+                  </div>
+                  {(form.product_ids.length + form.category_ids.length) > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Count</label>
+                      <SearchableSelect value={form.quantity_basis} onChange={set('quantity_basis')} className={inputClass}>
+                        <option value="bag">Every item in the bag</option>
+                        <option value="matching">Only the selected products/categories</option>
+                      </SearchableSelect>
+                    </div>
+                  )}
+                </div>
+                {form.quantity_condition === 'between' ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Minimum items</label>
+                      <input type="number" min="0" value={form.min_quantity} onChange={set('min_quantity')} className={inputClass} placeholder="No minimum" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className={labelClass}>Maximum items</label>
+                      <input type="number" min="0" value={form.max_quantity} onChange={set('max_quantity')} className={inputClass} placeholder="No maximum" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1.5 sm:w-1/2">
+                    <label className={labelClass}>Number of items *</label>
+                    <input required type="number" min="0" value={form.quantity_value} onChange={set('quantity_value')} className={inputClass} placeholder="e.g. 3" />
+                  </div>
+                )}
+              </fieldset>
               <p className="text-[11px] text-gray-500 -mt-2">
-                Applies to: <strong>{quantityText(form.min_quantity === '' ? null : Number(form.min_quantity), form.max_quantity === '' ? null : Number(form.max_quantity))}</strong>
-                {' '}in <strong>{ZONE_LABEL[form.zone]}</strong>.
+                Applies in <strong>{ZONE_LABEL[form.zone]}</strong> when: <strong>{describeRule({
+                  ...form,
+                  min_quantity: form.min_quantity === '' ? null : Number(form.min_quantity),
+                  max_quantity: form.max_quantity === '' ? null : Number(form.max_quantity),
+                  quantity_value: form.quantity_value === '' ? null : Number(form.quantity_value),
+                }, productNames, categoryNames)}</strong>.
               </p>
 
               <div className="flex flex-col gap-1.5">

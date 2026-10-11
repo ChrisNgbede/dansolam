@@ -14,6 +14,13 @@ class ShippingRate extends Model
         'zone',
         'min_quantity',
         'max_quantity',
+        'product_ids',
+        'category_ids',
+        'target_match',
+        'quantity_basis',
+        'quantity_condition',
+        'quantity_value',
+        'overrides_others',
         'description',
         'is_default',
         'is_pickup',
@@ -34,6 +41,10 @@ class ShippingRate extends Model
     ];
 
     protected $casts = [
+        'product_ids' => 'array',
+        'category_ids' => 'array',
+        'quantity_value' => 'integer',
+        'overrides_others' => 'boolean',
         'rate' => 'decimal:2',
         'is_active' => 'boolean',
         'min_weight' => 'decimal:2',

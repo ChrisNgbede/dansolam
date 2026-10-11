@@ -53,8 +53,23 @@ export default function AdminLayout() {
   // (outside .admin-shell) without touching the storefront's own dark mode.
   useEffect(() => {
     document.documentElement.classList.toggle('admin-dark', isDarkMode);
+    // `dark` follows the admin's own setting here, not the storefront theme.
+    document.documentElement.classList.toggle('dark', isDarkMode);
     return () => document.documentElement.classList.remove('admin-dark');
   }, [isDarkMode]);
+
+  // The page template applies the storefront theme to the whole document; inside the
+  // admin that leaked storefront dark styles into admin screens (e.g. see-through
+  // modals) even with admin dark mode off. Set it aside here, restore it on leaving.
+  useEffect(() => {
+    const root = document.documentElement;
+    const storefrontDark = root.classList.contains('storefront-dark');
+    root.classList.remove('storefront-dark');
+    return () => {
+      root.classList.toggle('storefront-dark', storefrontDark);
+      root.classList.toggle('dark', storefrontDark);
+    };
+  }, []);
 
   const toggleDarkMode = () => {
     setIsDarkMode(prev => {

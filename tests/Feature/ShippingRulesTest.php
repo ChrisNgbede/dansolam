@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
 use App\Models\Ecommerce;
 use App\Models\Order;
 use App\Models\Product;
@@ -175,5 +176,145 @@ class ShippingRulesTest extends TestCase
         $this->app['auth']->forgetGuards();
         $this->checkout('United Kingdom', 1, $method)->assertOk();
         $this->assertEquals(7.5, (float) Order::latest('id')->first()->delivery_fee);
+    }
+
+    // ------------------------------------------------------------ product / category rules
+
+    private function product(string $name, ?Category $category = null): Product
+    {
+        $product = Product::create([
+            'ecommerce_id' => Ecommerce::first()->id, 'name' => $name, 'slug' => \Illuminate\Support\Str::slug($name) . '-' . uniqid(),
+            'sku' => strtoupper(uniqid()), 'price' => 10, 'stock_quantity' => 100, 'status' => 'published', 'has_variants' => false,
+        ]);
+        if ($category) $product->categories()->attach($category->id);
+        return $product;
+    }
+
+    private function rule(array $attrs): ShippingRate
+    {
+        return ShippingRate::create(array_merge([
+            'zone' => 'all', 'rate' => 9, 'type' => 'flat', 'calculation_method' => 'flat', 'applicability' => 'global',
+            'sales_channel' => 'storefront', 'is_active' => true, 'shipping_zone_type' => 'all', 'sort_order' => 50,
+        ], $attrs));
+    }
+
+    private function namesFor(string $country, array $cart): array
+    {
+        return app(ShippingCalculator::class)->eligible($country, $cart)->pluck('name')->all();
+    }
+
+    public function test_category_rule_applies_when_the_bag_contains_that_category(): void
+    {
+        $perfumes = Category::create(['name' => 'Perfumes', 'slug' => 'perfumes']);
+        $oud = Category::create(['name' => 'Oud', 'slug' => 'oud', 'parent_id' => $perfumes->id]);
+        $perfume = $this->product('Rose Perfume', $oud); // sub-category counts
+        $this->rule(['name' => 'Fragrance courier', 'category_ids' => [$perfumes->id]]);
+
+        $this->assertContains('Fragrance courier', $this->namesFor('United Kingdom', [['product_id' => $perfume->id, 'quantity' => 1], ['product_id' => $this->product->id, 'quantity' => 1]]));
+        $this->assertNotContains('Fragrance courier', $this->namesFor('United Kingdom', [['product_id' => $this->product->id, 'quantity' => 2]]));
+    }
+
+    public function test_all_items_rule_needs_every_item_to_match(): void
+    {
+        $soap = $this->product('Black Soap');
+        $this->rule(['name' => 'Soap-only post', 'product_ids' => [$soap->id], 'target_match' => 'all']);
+
+        $this->assertContains('Soap-only post', $this->namesFor('United Kingdom', [['product_id' => $soap->id, 'quantity' => 3]]));
+        $this->assertNotContains('Soap-only post', $this->namesFor('United Kingdom', [['product_id' => $soap->id, 'quantity' => 3], ['product_id' => $this->product->id, 'quantity' => 1]]));
+    }
+
+    public function test_quantity_conditions_on_matching_items(): void
+    {
+        $soap = $this->product('Black Soap');
+        $cart = fn (int $soaps) => [['product_id' => $soap->id, 'quantity' => $soaps], ['product_id' => $this->product->id, 'quantity' => 5]];
+
+        foreach ([
+            ['lt', 3, [1, 2], [3, 4]],
+            ['lte', 3, [1, 3], [4]],
+            ['gt', 3, [4, 9], [1, 3]],
+            ['gte', 3, [3, 4], [2]],
+            ['eq', 3, [3], [2, 4]],
+        ] as [$condition, $value, $yes, $no]) {
+            ShippingRate::where('name', 'like', 'Soap %')->delete();
+            $this->rule(['name' => "Soap {$condition}", 'product_ids' => [$soap->id], 'quantity_basis' => 'matching', 'quantity_condition' => $condition, 'quantity_value' => $value]);
+            foreach ($yes as $n) $this->assertContains("Soap {$condition}", $this->namesFor('United Kingdom', $cart($n)), "{$condition} {$value} should allow {$n}");
+            foreach ($no as $n) $this->assertNotContains("Soap {$condition}", $this->namesFor('United Kingdom', $cart($n)), "{$condition} {$value} should refuse {$n}");
+        }
+    }
+
+    public function test_bag_quantity_counts_every_item(): void
+    {
+        $soap = $this->product('Black Soap');
+        $this->rule(['name' => 'Soap big bag', 'product_ids' => [$soap->id], 'quantity_basis' => 'bag', 'quantity_condition' => 'gte', 'quantity_value' => 5]);
+
+        // 1 soap + 4 others = 5 items in the bag.
+        $this->assertContains('Soap big bag', $this->namesFor('United Kingdom', [['product_id' => $soap->id, 'quantity' => 1], ['product_id' => $this->product->id, 'quantity' => 4]]));
+        $this->assertNotContains('Soap big bag', $this->namesFor('United Kingdom', [['product_id' => $soap->id, 'quantity' => 1], ['product_id' => $this->product->id, 'quantity' => 3]]));
+    }
+
+    public function test_targeted_rule_can_replace_general_methods(): void
+    {
+        $perfume = $this->product('Oud Perfume');
+        $this->rule(['name' => 'Fragrance only', 'product_ids' => [$perfume->id], 'overrides_others' => true]);
+
+        $names = $this->namesFor('United Kingdom', [['product_id' => $perfume->id, 'quantity' => 1]]);
+        $this->assertSame(['Fragrance only'], $names);
+
+        // Bags without the perfume still see the general methods.
+        $this->assertSame(['Uk Shipping (1-3 Items)', 'Pick Up'], $this->namesFor('United Kingdom', [['product_id' => $this->product->id, 'quantity' => 1]]));
+    }
+
+    public function test_checkout_enforces_product_rules_and_charges_them(): void
+    {
+        $perfume = $this->product('Oud Perfume');
+        $rule = $this->rule(['name' => 'Fragrance only', 'rate' => 12.5, 'product_ids' => [$perfume->id], 'overrides_others' => true]);
+        $payload = fn (int $productId, int $methodId) => [
+            'customer_name' => 'Jane Doe', 'customer_email' => 'jane@example.com', 'customer_phone' => '+447700900000',
+            'delivery_address' => '1 High Street', 'delivery_city' => 'London', 'delivery_postcode' => 'SW1A 1AA', 'delivery_state' => 'Greater London',
+            'delivery_country' => 'United Kingdom', 'payment_method' => 'bank_transfer', 'shipping_rate_id' => $methodId,
+            'items' => [['product_id' => $productId, 'quantity' => 1]],
+        ];
+
+        // The general method is replaced for this bag, so it is refused.
+        $this->postJson('/api/checkout', $payload($perfume->id, $this->method('Uk Shipping (1-3 Items)')->id))->assertStatus(422);
+        $this->postJson('/api/checkout', $payload($perfume->id, $rule->id))->assertOk();
+        $this->assertEquals(12.5, (float) Order::latest('id')->first()->delivery_fee);
+
+        // And it is not available for a bag without the perfume.
+        $this->postJson('/api/checkout', $payload($this->product->id, $rule->id))->assertStatus(422);
+    }
+
+    public function test_storefront_gets_the_targeting_it_needs(): void
+    {
+        $cat = Category::create(['name' => 'Oils', 'slug' => 'oils']);
+        $oil = $this->product('Argan Oil', $cat);
+        $this->rule(['name' => 'Oil post', 'category_ids' => [$cat->id], 'quantity_condition' => 'gt', 'quantity_value' => 2]);
+
+        $row = collect($this->getJson('/api/shipping-rates')->assertOk()->json('data'))->firstWhere('name', 'Oil post');
+        $this->assertSame([$oil->id], $row['target_product_ids']);
+        $this->assertSame('gt', $row['quantity_condition']);
+        $this->assertNull(collect($this->getJson('/api/shipping-rates')->json('data'))->firstWhere('name', 'Pick Up')['target_product_ids']);
+    }
+
+    public function test_admin_saves_targeting_and_conditions(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $cat = Category::create(['name' => 'Oils', 'slug' => 'oils']);
+
+        $this->postJson('/api/admin/shipping-rates', [
+            'name' => 'Oils over 2', 'rate' => 4, 'zone' => 'uk', 'category_ids' => [$cat->id], 'product_ids' => [$this->product->id],
+            'target_match' => 'any', 'quantity_basis' => 'matching', 'quantity_condition' => 'gt', 'quantity_value' => 2,
+            'min_quantity' => 1, 'max_quantity' => 3, 'overrides_others' => true, 'is_active' => true,
+        ])->assertCreated();
+
+        $saved = ShippingRate::where('name', 'Oils over 2')->first();
+        $this->assertSame([$cat->id], $saved->category_ids);
+        $this->assertSame('gt', $saved->quantity_condition);
+        $this->assertNull($saved->min_quantity); // not used with a single-number condition
+        $this->assertTrue($saved->overrides_others);
+
+        // A single-number condition needs its number.
+        $this->postJson('/api/admin/shipping-rates', ['name' => 'Bad', 'rate' => 1, 'zone' => 'uk', 'quantity_condition' => 'lt'])
+            ->assertStatus(422)->assertJsonValidationErrors('quantity_value');
     }
 }

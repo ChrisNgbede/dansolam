@@ -255,9 +255,7 @@ class StorefrontController extends Controller
     public function getShippingRates()
     {
         // Everything the storefront needs to show the same options checkout will accept.
-        $rates = app(\App\Services\ShippingCalculator::class)->activeMethods()
-            ->map(fn ($rate) => $rate->only(['id', 'name', 'zone', 'min_quantity', 'max_quantity', 'rate', 'description', 'is_default', 'is_pickup', 'sort_order', 'is_active']))
-            ->values();
+        $rates = app(\App\Services\ShippingCalculator::class)->storefrontData();
         return response()->json([
             'success' => true,
             'data' => $rates
@@ -940,15 +938,17 @@ class StorefrontController extends Controller
             }
 
             // Shipping: the customer's chosen method must apply to this cart's
-            // quantity and delivery country; its fixed charge is what we bill.
-            $totalQuantity = (int) collect($request->items)->sum('quantity');
+            // products, quantities and delivery country; its fixed charge is what we bill.
+            $cartForShipping = collect($request->items)
+                ->map(fn ($item) => ['product_id' => (int) $item['product_id'], 'quantity' => (int) $item['quantity']])
+                ->all();
             $shippingMethod = app(\App\Services\ShippingCalculator::class)
-                ->resolve((int) $request->shipping_rate_id, $request->delivery_country, $totalQuantity);
+                ->resolve((int) $request->shipping_rate_id, $request->delivery_country, $cartForShipping);
 
             if (!$shippingMethod) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'That shipping option isn\'t available for your country and number of items. Please choose another.',
+                    'message' => 'That shipping option isn\'t available for the items in your bag and your country. Please choose another.',
                 ], 422);
             }
 

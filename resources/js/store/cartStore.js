@@ -1,16 +1,45 @@
 import { create } from 'zustand';
 
 // Same rules as App\Services\ShippingCalculator: UK is the United Kingdom only;
-// every other country (incl. Jersey, Guernsey, Isle of Man) is International.
+// every other country (incl. Jersey, Guernsey, Isle of Man) is International;
+// methods can target products/categories with quantity conditions.
 const UK_NAMES = ['united kingdom', 'uk', 'u.k.', 'gb', 'great britain', 'britain', 'england', 'scotland', 'wales', 'northern ireland'];
 export const isUkCountry = (country) => UK_NAMES.includes(String(country || '').trim().toLowerCase());
 
-export const shippingMethodApplies = (method, country, quantity) => {
+const quantityPasses = (method, quantity) => {
+  const value = method.quantity_value == null ? null : Number(method.quantity_value);
+  switch (method.quantity_condition || 'between') {
+    case 'lt': return value == null || quantity < value;
+    case 'lte': return value == null || quantity <= value;
+    case 'gt': return value == null || quantity > value;
+    case 'gte': return value == null || quantity >= value;
+    case 'eq': return value == null || quantity === value;
+    default:
+      return (method.min_quantity == null || quantity >= Number(method.min_quantity))
+        && (method.max_quantity == null || quantity <= Number(method.max_quantity));
+  }
+};
+
+// Mirrors ShippingCalculator::matches(). `items` is the bag: [{ product_id, quantity }].
+export const shippingMethodApplies = (method, country, items) => {
   const zone = method.zone || 'all';
   if (zone !== 'all' && zone !== (isUkCountry(country) ? 'uk' : 'international')) return false;
-  if (method.min_quantity != null && quantity < Number(method.min_quantity)) return false;
-  if (method.max_quantity != null && quantity > Number(method.max_quantity)) return false;
-  return true;
+
+  const bag = (items || []).filter((i) => Number(i.quantity) > 0);
+  const bagQuantity = bag.reduce((sum, i) => sum + Number(i.quantity), 0);
+  if (bagQuantity < 1) return false;
+
+  let quantity = bagQuantity;
+  const targets = Array.isArray(method.target_product_ids) ? method.target_product_ids.map(Number) : null;
+  if (targets) {
+    const matching = bag.filter((i) => targets.includes(Number(i.product_id)));
+    if (matching.length === 0) return false;
+    if ((method.target_match || 'any') === 'all' && matching.length !== bag.length) return false;
+    if ((method.quantity_basis || 'bag') === 'matching') {
+      quantity = matching.reduce((sum, i) => sum + Number(i.quantity), 0);
+    }
+  }
+  return quantityPasses(method, quantity);
 };
 
 export const useCartStore = create((set, get) => {
@@ -178,12 +207,17 @@ export const useCartStore = create((set, get) => {
 
     getEligibleShipping: () => {
       const country = get().deliveryCountry;
-      const quantity = get().getItemCount();
+      const items = get().items;
       // Without a country we can't tell UK from International.
-      if (!country || quantity < 1) return [];
-      return (get().shippingRates || [])
-        .filter((method) => method.is_active !== false && shippingMethodApplies(method, country, quantity))
+      if (!country || get().getItemCount() < 1) return [];
+      let eligible = (get().shippingRates || [])
+        .filter((method) => method.is_active !== false && shippingMethodApplies(method, country, items))
         .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0) || parseFloat(a.rate) - parseFloat(b.rate));
+      // A targeted method set to replace the general ones hides them for this bag.
+      if (eligible.some((m) => m.overrides_others && Array.isArray(m.target_product_ids))) {
+        eligible = eligible.filter((m) => Array.isArray(m.target_product_ids));
+      }
+      return eligible;
     },
 
     // The chosen method if it still applies, else the default for this cart.

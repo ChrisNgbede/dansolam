@@ -40,6 +40,7 @@
     /* B Night Surfaces */
     --color-night-bg: #17101F;
     --color-night-surface: #1E1528;
+    --color-surface-dark: #1E1528; /* dark cards and dialogs (was referenced but undefined: see-through modals) */
     --color-night-elevated: #231B30;
     --color-night-deep: #100A16;
     --color-night-border: rgba(243, 239, 246, 0.08);
@@ -2202,4 +2203,15 @@ img[data-skeleton="empty"]::before { content: ''; } /* suppresses alt rendering 
 @media (prefers-reduced-motion: reduce) {
   .activity-bar > span { animation: none; width: 100%; opacity: 0.7; }
   [data-busy="text"]::after, [data-busy="icon"] { animation: none; }
+}
+
+/* Inputs that sit inside a composite control (e.g. the multi-select's search box)
+   take the control's look, not the global field styling. */
+html :is(.admin-shell, .fixed, body) input[data-plain-input][data-plain-input] {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+  border-radius: 0 !important;
 }

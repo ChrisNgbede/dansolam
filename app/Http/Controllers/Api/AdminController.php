@@ -3529,12 +3529,34 @@ class AdminController extends Controller
             'zone' => 'required|in:all,uk,international',
             'min_quantity' => 'nullable|integer|min:0',
             'max_quantity' => 'nullable|integer|min:0|gte:min_quantity',
+            'product_ids' => 'nullable|array',
+            'product_ids.*' => 'integer|exists:products,id',
+            'category_ids' => 'nullable|array',
+            'category_ids.*' => 'integer|exists:categories,id',
+            'target_match' => 'nullable|in:any,all',
+            'quantity_basis' => 'nullable|in:bag,matching',
+            'quantity_condition' => 'nullable|in:' . implode(',', \App\Services\ShippingCalculator::CONDITIONS),
+            'quantity_value' => 'nullable|integer|min:0|required_if:quantity_condition,lt,lte,gt,gte,eq',
+            'overrides_others' => 'boolean',
             'description' => 'nullable|string|max:500',
             'is_default' => 'boolean',
             'is_pickup' => 'boolean',
             'is_active' => 'boolean',
             'sort_order' => 'nullable|integer|min:0|max:10000',
         ]);
+
+        // Empty selections mean "no product/category target".
+        $data['product_ids'] = array_values(array_unique(array_map('intval', $data['product_ids'] ?? []))) ?: null;
+        $data['category_ids'] = array_values(array_unique(array_map('intval', $data['category_ids'] ?? []))) ?: null;
+        $data['target_match'] = $data['target_match'] ?? 'any';
+        $data['quantity_basis'] = $data['quantity_basis'] ?? 'bag';
+        $data['quantity_condition'] = $data['quantity_condition'] ?? 'between';
+        $data['overrides_others'] = (bool) ($data['overrides_others'] ?? false);
+        if ($data['quantity_condition'] !== 'between') {
+            // A single-number condition doesn't use the range.
+            $data['min_quantity'] = null;
+            $data['max_quantity'] = null;
+        }
 
         return $data + [
             'type' => 'flat',
