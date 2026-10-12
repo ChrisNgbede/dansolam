@@ -53,7 +53,7 @@ export default function PayPalCardFields({
         const fieldStyle = {
           input: {
             'font-size': '13px',
-            'font-family': 'Quicksand, system-ui, sans-serif',
+            'font-family': 'Manrope, system-ui, sans-serif',
             'font-weight': '500',
             color: '#221B2B',
             padding: '11px 14px',
