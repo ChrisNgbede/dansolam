@@ -20,6 +20,9 @@ use Illuminate\Support\Facades\DB;
  *     least, or exactly a number;
  *   - a targeted method can replace the general ones: when it applies, methods
  *     with no product/category target are hidden;
+ *   - "charge per item": the charge is multiplied by the units the method covers
+ *     (its targeted items, or every item in the bag for a general method), e.g.
+ *     3 units at £5 = £15; otherwise the charge is a single flat amount;
  *   - the customer chooses one of the methods that apply.
  *
  * The storefront runs the same rules (cartStore.shippingMethodApplies) on data from
@@ -170,6 +173,32 @@ class ShippingCalculator
     }
 
     /**
+     * Units a method covers: its targeted items, or every item for a general method.
+     */
+    public function unitsCovered(ShippingRate $method, int|array $cart): int
+    {
+        $items = self::normaliseCart($cart);
+        $targets = $this->targetProductIds($method);
+        if ($targets !== null) {
+            $items = array_filter($items, fn ($item) => $item['product_id'] !== null && in_array($item['product_id'], $targets, true));
+        }
+        return (int) array_sum(array_column($items, 'quantity'));
+    }
+
+    /**
+     * What this method charges for the cart: the flat charge, or the charge per item
+     * multiplied by the units it covers.
+     */
+    public function chargeFor(ShippingRate $method, int|array $cart): float
+    {
+        $rate = (float) $method->rate;
+        if (!$method->charge_per_item) {
+            return round($rate, 2);
+        }
+        return round($rate * $this->unitsCovered($method, $cart), 2);
+    }
+
+    /**
      * Methods the customer can choose for this country and cart.
      */
     public function eligible(?string $country, int|array $cart): Collection
@@ -219,7 +248,7 @@ class ShippingCalculator
     {
         return $this->activeMethods()->map(fn (ShippingRate $rate) => $rate->only([
             'id', 'name', 'zone', 'min_quantity', 'max_quantity', 'rate', 'description', 'is_default', 'is_pickup', 'sort_order', 'is_active',
-            'target_match', 'quantity_basis', 'quantity_condition', 'quantity_value', 'overrides_others',
+            'target_match', 'quantity_basis', 'quantity_condition', 'quantity_value', 'overrides_others', 'charge_per_item',
         ]) + ['target_product_ids' => $this->targetProductIds($rate)])->values();
     }
 }

@@ -3538,6 +3538,7 @@ class AdminController extends Controller
             'quantity_condition' => 'nullable|in:' . implode(',', \App\Services\ShippingCalculator::CONDITIONS),
             'quantity_value' => 'nullable|integer|min:0|required_if:quantity_condition,lt,lte,gt,gte,eq',
             'overrides_others' => 'boolean',
+            'charge_per_item' => 'boolean',
             'description' => 'nullable|string|max:500',
             'is_default' => 'boolean',
             'is_pickup' => 'boolean',
@@ -3552,6 +3553,7 @@ class AdminController extends Controller
         $data['quantity_basis'] = $data['quantity_basis'] ?? 'bag';
         $data['quantity_condition'] = $data['quantity_condition'] ?? 'between';
         $data['overrides_others'] = (bool) ($data['overrides_others'] ?? false);
+        $data['charge_per_item'] = (bool) ($data['charge_per_item'] ?? false);
         if ($data['quantity_condition'] !== 'between') {
             // A single-number condition doesn't use the range.
             $data['min_quantity'] = null;

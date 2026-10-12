@@ -952,13 +952,15 @@ class StorefrontController extends Controller
                 ], 422);
             }
 
-            $deliveryFee = round((float) $shippingMethod->rate, 2);
+            $calculator = app(\App\Services\ShippingCalculator::class);
+            $deliveryFee = $calculator->chargeFor($shippingMethod, $cartForShipping);
             $deliveryMethod = $shippingMethod->is_pickup ? 'pickup' : 'delivery';
             $appliedShippingDetails = [[
                 'id' => $shippingMethod->id,
                 'name' => $shippingMethod->name,
-                'rate' => $deliveryFee,
-                'type' => 'flat',
+                'rate' => round((float) $shippingMethod->rate, 2),
+                'type' => $shippingMethod->charge_per_item ? 'per_item' : 'flat',
+                'units' => $shippingMethod->charge_per_item ? $calculator->unitsCovered($shippingMethod, $cartForShipping) : null,
                 'amount' => $deliveryFee,
             ]];
 

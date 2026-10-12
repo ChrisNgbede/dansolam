@@ -45,6 +45,7 @@ const EMPTY = {
   quantity_condition: 'between',
   quantity_value: '',
   overrides_others: false,
+  charge_per_item: false,
   description: '',
   is_default: false,
   is_pickup: false,
@@ -157,6 +158,7 @@ export default function AdminShipping() {
       quantity_condition: method.quantity_condition || 'between',
       quantity_value: method.quantity_value == null ? '' : String(method.quantity_value),
       overrides_others: !!method.overrides_others,
+      charge_per_item: !!method.charge_per_item,
       description: method.description || '',
       is_default: !!method.is_default,
       is_pickup: !!method.is_pickup,
@@ -179,6 +181,7 @@ export default function AdminShipping() {
       quantity_condition: f.quantity_condition,
       quantity_value: f.quantity_condition === 'between' || f.quantity_value === '' ? null : Number(f.quantity_value),
       overrides_others: f.overrides_others,
+      charge_per_item: f.charge_per_item,
       description: f.description.trim() || null,
       is_default: f.is_default,
       is_pickup: f.is_pickup,
@@ -245,6 +248,7 @@ export default function AdminShipping() {
                 <td className="px-4 py-3 text-gray-700 max-w-xs">{describeRule(m, productNames, categoryNames)}</td>
                 <td className="px-4 py-3 text-right font-semibold text-gray-900">
                   {parseFloat(m.rate) === 0 ? 'Free' : `${currency}${parseFloat(m.rate).toFixed(2)}`}
+                  {m.charge_per_item && parseFloat(m.rate) > 0 && <span className="block text-[10px] font-semibold text-gray-500">per item</span>}
                 </td>
                 <td className="px-4 py-3">
                   <button
@@ -290,7 +294,7 @@ export default function AdminShipping() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className={labelClass}>Shipping charge ({currency}) *</label>
+                  <label className={labelClass}>{form.charge_per_item ? `Charge per item (${currency}) *` : `Shipping charge (${currency}) *`}</label>
                   <input required type="number" min="0" step="0.01" value={form.rate} onChange={set('rate')} className={inputClass} />
                 </div>
                 <div className="flex flex-col gap-1.5">
@@ -300,6 +304,17 @@ export default function AdminShipping() {
                   </SearchableSelect>
                 </div>
               </div>
+
+              <label className="flex items-start gap-2.5 rounded-xl border border-gray-200 p-3.5 text-xs text-gray-700 cursor-pointer">
+                <input type="checkbox" checked={form.charge_per_item} onChange={set('charge_per_item')} className="w-4 h-4 mt-0.5 accent-[#5D3E85]" />
+                <span>
+                  <strong className="block text-gray-900">Charge per item</strong>
+                  Multiply the charge by the number of items this method covers: the selected products/categories, or every item in the bag when none are selected.
+                  {form.charge_per_item && Number(form.rate) > 0 && (
+                    <span className="block mt-1 text-[#5D3E85] font-semibold">e.g. 3 items × {currency}{Number(form.rate).toFixed(2)} = {currency}{(3 * Number(form.rate)).toFixed(2)}</span>
+                  )}
+                </span>
+              </label>
 
               {/* Products & categories */}
               <fieldset className="flex flex-col gap-3 rounded-xl border border-gray-200 p-4">

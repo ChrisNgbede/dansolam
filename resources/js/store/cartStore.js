@@ -42,6 +42,20 @@ export const shippingMethodApplies = (method, country, items) => {
   return quantityPasses(method, quantity);
 };
 
+// Mirrors ShippingCalculator::unitsCovered() / chargeFor().
+export const shippingUnitsCovered = (method, items) => {
+  const bag = (items || []).filter((i) => Number(i.quantity) > 0);
+  const targets = Array.isArray(method.target_product_ids) ? method.target_product_ids.map(Number) : null;
+  const covered = targets ? bag.filter((i) => targets.includes(Number(i.product_id))) : bag;
+  return covered.reduce((sum, i) => sum + Number(i.quantity), 0);
+};
+
+export const shippingChargeFor = (method, items) => {
+  const rate = parseFloat(method?.rate || 0);
+  const amount = method?.charge_per_item ? rate * shippingUnitsCovered(method, items) : rate;
+  return Math.round(amount * 100) / 100;
+};
+
 export const useCartStore = create((set, get) => {
   // Helper to load cart from localStorage
   const loadInitialCart = () => {
@@ -237,7 +251,7 @@ export const useCartStore = create((set, get) => {
       if (coupon && coupon.type === 'free_delivery') {
         return [{ name: `${method.name} (free with coupon)`, amount: 0 }];
       }
-      return [{ name: method.name, amount: Math.round(parseFloat(method.rate || 0) * 100) / 100 }];
+      return [{ name: method.name, amount: shippingChargeFor(method, get().items) }];
     },
 
     getDeliveryFee: () => get().getAppliedShippingRates().reduce((sum, r) => sum + r.amount, 0),

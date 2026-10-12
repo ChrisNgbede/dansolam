@@ -317,4 +317,80 @@ class ShippingRulesTest extends TestCase
         $this->postJson('/api/admin/shipping-rates', ['name' => 'Bad', 'rate' => 1, 'zone' => 'uk', 'quantity_condition' => 'lt'])
             ->assertStatus(422)->assertJsonValidationErrors('quantity_value');
     }
+
+    // ------------------------------------------------------------ charge per item
+
+    private function chargeFor(string $methodName, array $cart): float
+    {
+        $calc = app(ShippingCalculator::class);
+        return $calc->chargeFor(ShippingRate::where('name', $methodName)->firstOrFail(), $cart);
+    }
+
+    public function test_per_item_charge_multiplies_by_units_of_the_targeted_item(): void
+    {
+        $soap = $this->product('Black Soap');
+        $this->rule(['name' => 'Soap post', 'rate' => 5, 'charge_per_item' => true, 'product_ids' => [$soap->id]]);
+
+        foreach ([1 => 5.0, 3 => 15.0, 10 => 50.0] as $units => $expected) {
+            $cart = [['product_id' => $soap->id, 'quantity' => $units], ['product_id' => $this->product->id, 'quantity' => 2]];
+            $this->assertSame($expected, $this->chargeFor('Soap post', $cart), "{$units} soaps");
+        }
+    }
+
+    public function test_per_item_charge_counts_every_targeted_product(): void
+    {
+        $oils = Category::create(['name' => 'Oils', 'slug' => 'oils']);
+        $argan = $this->product('Argan Oil', $oils);
+        $shea = $this->product('Shea Oil', $oils);
+        $this->rule(['name' => 'Oil post', 'rate' => 2.5, 'charge_per_item' => true, 'category_ids' => [$oils->id]]);
+
+        // 2 argan + 1 shea = 3 oils (the cream is not counted) => 3 x 2.50
+        $this->assertSame(7.5, $this->chargeFor('Oil post', [
+            ['product_id' => $argan->id, 'quantity' => 2], ['product_id' => $shea->id, 'quantity' => 1], ['product_id' => $this->product->id, 'quantity' => 4],
+        ]));
+    }
+
+    public function test_general_per_item_method_counts_the_whole_bag(): void
+    {
+        $this->rule(['name' => 'Per item everywhere', 'rate' => 1.2, 'charge_per_item' => true]);
+        $this->assertSame(4.8, $this->chargeFor('Per item everywhere', [['product_id' => $this->product->id, 'quantity' => 4]]));
+    }
+
+    public function test_methods_without_per_item_keep_their_flat_charge(): void
+    {
+        $this->assertSame(10.0, $this->chargeFor('Uk Shipping (4 Items and above)', [['product_id' => $this->product->id, 'quantity' => 9]]));
+        $this->assertSame(0.0, $this->chargeFor('Pick Up', [['product_id' => $this->product->id, 'quantity' => 9]]));
+    }
+
+    public function test_checkout_bills_the_per_item_charge(): void
+    {
+        $soap = $this->product('Black Soap');
+        $rule = $this->rule(['name' => 'Soap post', 'rate' => 5, 'charge_per_item' => true, 'product_ids' => [$soap->id], 'overrides_others' => true]);
+
+        $this->postJson('/api/checkout', [
+            'customer_name' => 'Jane Doe', 'customer_email' => 'jane@example.com', 'customer_phone' => '+447700900000',
+            'delivery_address' => '1 High Street', 'delivery_city' => 'London', 'delivery_postcode' => 'SW1A 1AA', 'delivery_state' => 'Greater London',
+            'delivery_country' => 'United Kingdom', 'payment_method' => 'bank_transfer', 'shipping_rate_id' => $rule->id,
+            'items' => [['product_id' => $soap->id, 'quantity' => 3]],
+        ])->assertOk();
+
+        $order = Order::latest('id')->first();
+        $this->assertEquals(15.00, (float) $order->delivery_fee);
+        $this->assertEquals(45.00, (float) $order->total_amount); // 3 x £10 + 3 x £5
+        $applied = is_array($order->applied_shipping) ? $order->applied_shipping : json_decode($order->applied_shipping, true);
+        $this->assertSame('per_item', $applied[0]['type']);
+        $this->assertSame(3, $applied[0]['units']);
+    }
+
+    public function test_storefront_and_admin_handle_the_switch(): void
+    {
+        Sanctum::actingAs(User::factory()->create());
+        $this->postJson('/api/admin/shipping-rates', ['name' => 'Per item UK', 'rate' => 3, 'zone' => 'uk', 'charge_per_item' => true, 'is_active' => true])->assertCreated();
+        $this->assertTrue(ShippingRate::where('name', 'Per item UK')->first()->charge_per_item);
+
+        $this->app['auth']->forgetGuards();
+        $rows = collect($this->getJson('/api/shipping-rates')->json('data'));
+        $this->assertTrue($rows->firstWhere('name', 'Per item UK')['charge_per_item']);
+        $this->assertFalse($rows->firstWhere('name', 'Pick Up')['charge_per_item']);
+    }
 }

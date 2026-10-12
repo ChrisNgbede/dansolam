@@ -5,7 +5,7 @@ import { toast as systemToast } from '../../components/ui/ToastProvider';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, CreditCard, Landmark, CheckCircle, Loader2, Banknote, User, Lock, Mail, Phone, ShieldCheck, LogIn, UserPlus, Check, Sparkles, AlertCircle } from 'lucide-react';
-import { useCartStore } from '../../store/cartStore';
+import { useCartStore, shippingChargeFor, shippingUnitsCovered } from '../../store/cartStore';
 import { useAuth } from '../../hooks/useAuth';
 import SEO from '../../components/seo/SEO';
 import CheckoutStepper from '../../components/storefront/CheckoutStepper';
@@ -1019,7 +1019,11 @@ export default function Checkout() {
                     <div role="radiogroup" aria-label="Shipping method" className="flex flex-col gap-2">
                       {eligibleShipping.map((method) => {
                         const checked = selectedShipping?.id === method.id;
-                        const price = parseFloat(method.rate || 0);
+                        const price = shippingChargeFor(method, items);
+                        const units = shippingUnitsCovered(method, items);
+                        const perItemNote = method.charge_per_item
+                          ? `${currencySymbol}${parseFloat(method.rate || 0).toFixed(2)} × ${units} item${units === 1 ? '' : 's'}`
+                          : null;
                         return (
                           <label
                             key={method.id}
@@ -1044,8 +1048,11 @@ export default function Checkout() {
                                 )}
                               </span>
                             </span>
-                            <span className={`shrink-0 text-sm font-extrabold ${price === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-[#221B2B] dark:text-[#F3EFF6]'}`}>
-                              {price === 0 ? 'Free' : `${currencySymbol}${price.toFixed(2)}`}
+                            <span className="shrink-0 flex flex-col items-end">
+                              <span className={`text-sm font-extrabold ${price === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-[#221B2B] dark:text-[#F3EFF6]'}`}>
+                                {price === 0 ? 'Free' : `${currencySymbol}${price.toFixed(2)}`}
+                              </span>
+                              {perItemNote && price > 0 && <span className="text-[10px] font-semibold text-gray-500 dark:text-[#9B8EA9]">{perItemNote}</span>}
                             </span>
                           </label>
                         );

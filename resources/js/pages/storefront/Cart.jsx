@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Plus, Minus, Trash2, ArrowRight, ShoppingBag, Percent, Truck, HelpCircle, ShieldCheck } from 'lucide-react';
 import { useCardQuickView } from '../../components/storefront/QuickViewProvider';
-import { useCartStore, isUkCountry } from '../../store/cartStore';
+import { useCartStore, isUkCountry, shippingChargeFor, shippingUnitsCovered } from '../../store/cartStore';
 import SEO from '../../components/seo/SEO';
 import CheckoutStepper from '../../components/storefront/CheckoutStepper';
 import { getCurrencySymbol } from '../../utils/currency';
@@ -444,14 +444,21 @@ export default function Cart() {
                   <div className="flex flex-col gap-1.5" role="radiogroup" aria-label="Shipping method">
                     {eligibleShipping.map((method) => {
                       const checked = selectedShipping?.id === method.id;
-                      const price = parseFloat(method.rate || 0);
+                      const price = shippingChargeFor(method, items);
+                      const units = shippingUnitsCovered(method, items);
+                      const perItemNote = method.charge_per_item
+                        ? `${currencySymbol}${parseFloat(method.rate || 0).toFixed(2)} × ${units} item${units === 1 ? '' : 's'}`
+                        : null;
                       return (
                         <label key={method.id} className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border cursor-pointer text-xs ${checked ? 'border-[#5D3E85] dark:border-[#EC268F] bg-[#5D3E85]/5 dark:bg-white/5' : 'border-gray-200 dark:border-white/15'}`}>
                           <span className="flex items-center gap-2 min-w-0">
                             <input type="radio" name="cart_shipping" checked={checked} onChange={() => setShippingMethodId(method.id)} className="accent-[#5D3E85] shrink-0" />
                             <span className="truncate text-[#221B2B] dark:text-[#F3EFF6] font-semibold" title={method.description || method.name}>{method.name}</span>
                           </span>
-                          <span className="shrink-0 font-bold">{price === 0 ? 'Free' : `${currencySymbol}${price.toFixed(2)}`}</span>
+                          <span className="shrink-0 font-bold text-right">
+                            {price === 0 ? 'Free' : `${currencySymbol}${price.toFixed(2)}`}
+                            {perItemNote && price > 0 && <span className="block text-[10px] font-semibold text-gray-500 dark:text-[#9B8EA9]">{perItemNote}</span>}
+                          </span>
                         </label>
                       );
                     })}
