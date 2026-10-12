@@ -49,7 +49,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     @php
-        $fontsHref = 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..800&family=Manrope:wght@400;500;600;700;800&display=swap';
+        $fontsHref = 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..800&family=Quicksand:wght@300..700&display=swap';
     @endphp
     <link rel="preload" as="style" href="{{ $fontsHref }}">
     <link rel="stylesheet" href="{{ $fontsHref }}" media="print" onload="this.media='all'">

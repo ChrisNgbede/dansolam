@@ -338,8 +338,8 @@ export default function AdminLogin() {
                       required
                       value={resetToken}
                       onChange={e => setResetToken(e.target.value)}
-                      className="px-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] text-gray-800 font-bold w-full font-mono text-center tracking-widest text-base"
-                      placeholder="000000"
+                      className="px-4 py-3 rounded-full border border-gray-200 focus:outline-none focus:border-[#5D3E85] text-xs bg-[#FAF7FC] text-gray-800 font-bold w-full font-mono text-center text-base"
+                      placeholder="Code"
                     />
                   </div>
 

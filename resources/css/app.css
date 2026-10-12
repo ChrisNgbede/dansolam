@@ -10,8 +10,8 @@
 
 @theme {
   
-    --font-sans: 'Manrope', 'Outfit', ui-sans-serif, system-ui, sans-serif;
-    --font-manrope: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+    --font-sans: 'Quicksand', 'Outfit', ui-sans-serif, system-ui, sans-serif;
+    --font-manrope: 'Quicksand', ui-sans-serif, system-ui, sans-serif; /* kept for existing font-manrope classes */
     --font-serif: 'Fraunces', 'Playfair Display', Georgia, serif;
     --font-fraunces: 'Fraunces', 'Playfair Display', Georgia, serif;
     --font-instrument: 'Fraunces', 'Playfair Display', Georgia, serif;
@@ -1154,7 +1154,7 @@ svg[class*="fill-red"],
   border-left-color: #EC268F;
 }
 .policy-prose-content h3{
-  font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Quicksand', ui-sans-serif, system-ui, sans-serif;
   font-size: 1rem;
   font-weight: 800;
   color: #5D3E85;
@@ -1219,10 +1219,10 @@ svg[class*="fill-red"],
   font-family: 'Fraunces', 'Playfair Display', Georgia, serif;
 }
 .font-manrope{
-  font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Quicksand', ui-sans-serif, system-ui, sans-serif;
 }
 .font-outfit{
-  font-family: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  font-family: 'Quicksand', ui-sans-serif, system-ui, sans-serif;
 }
 /* Smooth Fade In Reveal */
 @keyframes fadeInScale{

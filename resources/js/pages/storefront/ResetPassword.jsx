@@ -203,8 +203,8 @@ export default function ResetPassword() {
                     maxLength={6}
                     value={token}
                     onChange={e => setToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    className={`px-4 py-3 rounded-full border-2 border-[#D4C3E2] dark:border-white/20 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C] text-gray-800 dark:text-[#F3EFF6] font-bold w-full font-mono text-center tracking-widest text-base shadow-xs transition-colors ${codeRejected ? FIELD_ERROR_CLASS : v.stateClass('token')}`}
-                    placeholder="000000"
+                    className={`px-4 py-3 rounded-full border-2 border-[#D4C3E2] dark:border-white/20 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs bg-[#FAF7FC] dark:bg-[#140D1C] text-gray-800 dark:text-[#F3EFF6] font-bold w-full font-mono text-center text-base shadow-xs transition-colors ${codeRejected ? FIELD_ERROR_CLASS : v.stateClass('token')}`}
+                    placeholder="Code"
                   />
                   {codeRejected ? (
                     <div className="flex flex-col gap-1.5 px-1 field-message-in" role="alert">
