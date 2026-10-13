@@ -187,15 +187,14 @@ export default function AdminBrands() {
   );
 
   return (
-    <div className="flex-1 p-6 md:p-8 flex flex-col gap-6 max-w-7xl mx-auto w-full">
+    <div className="flex flex-col gap-6 w-full">
       {/* Header Block */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="font-serif text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <Award className="w-6 h-6 text-rose-500" />
             Featured Brands
           </h2>
-          <p className="text-xs text-gray-450 mt-1">Manage partner brands display marquee for the storefront landing page.</p>
+          <p className="text-xs text-gray-500 mt-1">Manage partner brands display marquee for the storefront landing page.</p>
         </div>
         <button
           onClick={handleOpenAdd}

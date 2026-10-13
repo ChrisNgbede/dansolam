@@ -61,6 +61,7 @@ export default function TablePaginationControls({
           <SearchableSelect
             value={pageSize}
             onChange={(e) => onPageSizeChange(parseInt(e.target.value))}
+            aria-label="Rows per page"
             className="px-3 py-1 rounded-full border border-gray-200 dark:border-gray-700 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold cursor-pointer text-xs transition-all"
           >
             <option value="5">5</option>
@@ -85,6 +86,7 @@ export default function TablePaginationControls({
             type="button"
             disabled={currentPage === 1}
             onClick={() => onPageChange(currentPage - 1)}
+            aria-label="Previous page"
             className="p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-650 dark:text-gray-300 disabled:opacity-40 disabled:hover:bg-white dark:disabled:hover:bg-gray-800 transition-colors cursor-pointer"
           >
             <ChevronLeft className="w-3.5 h-3.5" />
@@ -103,6 +105,8 @@ export default function TablePaginationControls({
                 key={idx}
                 type="button"
                 onClick={() => onPageChange(p)}
+                aria-label={`Page ${p}`}
+                aria-current={currentPage === p ? 'page' : undefined}
                 className={`px-3 py-1 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
                   currentPage === p
                     ? 'border-primary bg-primary text-white shadow-sm'
@@ -118,6 +122,7 @@ export default function TablePaginationControls({
             type="button"
             disabled={currentPage === totalPages}
             onClick={() => onPageChange(currentPage + 1)}
+            aria-label="Next page"
             className="p-1.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-650 dark:text-gray-300 disabled:opacity-40 disabled:hover:bg-white dark:disabled:hover:bg-gray-800 transition-colors cursor-pointer"
           >
             <ChevronRight className="w-3.5 h-3.5" />
@@ -133,6 +138,7 @@ export default function TablePaginationControls({
             max={totalPages}
             value={jumpInput}
             onChange={(e) => setJumpInput(e.target.value)}
+            aria-label="Go to page number"
             className="w-12 px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-xl text-center text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 focus:outline-none focus:border-primary font-bold text-xs"
           />
           <button

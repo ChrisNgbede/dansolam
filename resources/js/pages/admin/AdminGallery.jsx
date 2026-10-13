@@ -309,7 +309,7 @@ export default function AdminGallery() {
         <div className="flex items-center gap-2">
           <button
             onClick={openBulkModal}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+            className="admin-btn-secondary gap-1.5"
           >
             <Upload className="w-4 h-4" />
             Bulk Upload
@@ -911,7 +911,7 @@ export default function AdminGallery() {
               <button
                 onClick={handleBulkUpload}
                 disabled={bulkUploading || bulkFiles.length === 0}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                className="admin-btn-primary gap-1.5 disabled:opacity-50"
               >
                 {bulkUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> Uploading...</> : <><Upload className="w-4 h-4" /> Upload {bulkFiles.length} Image(s)</>}
               </button>

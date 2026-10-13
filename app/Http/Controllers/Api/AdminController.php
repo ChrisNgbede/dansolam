@@ -369,6 +369,37 @@ class AdminController extends Controller
                 ];
             })->values();
 
+        // Daily series for the dashboard's KPI sparklines (last 14 days, zero-filled).
+        $since = now()->subDays(13)->startOfDay();
+        $dayKeys = collect(range(0, 13))->map(fn ($i) => $since->copy()->addDays($i)->format('Y-m-d'));
+        $paidDaily = Order::where('payment_status', 'paid')->where('created_at', '>=', $since)
+            ->selectRaw('DATE(created_at) as d, SUM(total_amount) as revenue, COUNT(*) as orders')
+            ->groupBy(DB::raw('DATE(created_at)'))->get()->keyBy('d');
+        $unitsDaily = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('orders.payment_status', 'paid')->where('orders.created_at', '>=', $since)
+            ->selectRaw('DATE(orders.created_at) as d, SUM(order_items.quantity) as units')
+            ->groupBy(DB::raw('DATE(orders.created_at)'))->pluck('units', 'd');
+        $customersDaily = \App\Models\Customer::where('created_at', '>=', $since)
+            ->selectRaw('DATE(created_at) as d, COUNT(*) as n')->groupBy(DB::raw('DATE(created_at)'))->pluck('n', 'd');
+        $sparklines = [
+            'days' => $dayKeys->values(),
+            'revenue' => $dayKeys->map(fn ($d) => (float) ($paidDaily[$d]->revenue ?? 0))->values(),
+            'orders' => $dayKeys->map(fn ($d) => (int) ($paidDaily[$d]->orders ?? 0))->values(),
+            'units' => $dayKeys->map(fn ($d) => (int) ($unitsDaily[$d] ?? 0))->values(),
+            'customers' => $dayKeys->map(fn ($d) => (int) ($customersDaily[$d] ?? 0))->values(),
+        ];
+        $unitsSold = (int) OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('orders.payment_status', 'paid')->sum('order_items.quantity');
+
+        // Revenue for each of the last 7 months, including months with no sales.
+        $monthStart = now()->startOfMonth()->subMonths(6);
+        $revenueByMonth = Order::where('payment_status', 'paid')->where('created_at', '>=', $monthStart)->get()
+            ->groupBy(fn ($order) => $order->created_at->format('Y-m'))->map(fn ($group) => (float) $group->sum('total_amount'));
+        $monthlyRevenue = collect(range(0, 6))->map(function ($i) use ($monthStart, $revenueByMonth) {
+            $month = $monthStart->copy()->addMonths($i);
+            return ['month' => $month->format('M'), 'year' => $month->format('Y'), 'total' => (float) ($revenueByMonth[$month->format('Y-m')] ?? 0)];
+        })->values();
+
         // Monthly sales trend (past 6 months)
         $monthlySalesRaw = Order::where('payment_status', 'paid')
             ->where('created_at', '>=', now()->subMonths(6))
@@ -489,6 +520,9 @@ class AdminController extends Controller
                 'category_splits' => $categorySplits,
                 'payment_splits' => $paymentSplits,
                 'monthly_sales' => $monthlySales,
+                'monthly_revenue' => $monthlyRevenue,
+                'sparklines' => $sparklines,
+                'units_sold' => $unitsSold,
                 'financials' => [
                     'modules' => ['expenses' => $expensesEnabled, 'purchases' => $purchasesEnabled],
                     'cogs' => $cogs,

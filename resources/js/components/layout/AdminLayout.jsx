@@ -11,6 +11,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch, useAuth } from '../../hooks/useAuth';
 import { getAdminToken } from '../auth/RequireAdminAuth';
 import ModalStandard from '../ui/ModalStandard';
+import AdminA11y from '../ui/AdminA11y';
 
 export default function AdminLayout() {
   const navigate = useNavigate();
@@ -234,528 +235,243 @@ export default function AdminLayout() {
       return location.pathname === sub.to;
     };
 
+    // One nav item: icon in a ring, label, optional count badge (reference design).
+    const itemClass = (active) => `group flex items-center rounded-full text-[13px] font-semibold transition-colors ${
+      isCollapsed ? 'justify-center w-12 h-12 mx-auto p-0' : 'gap-3 pl-1.5 pr-3 py-1.5'
+    } ${active ? 'admin-nav-active text-white' : 'text-[#CFC7DB] hover:bg-white/[0.06] hover:text-white'}`;
+    const ring = (active) => `relative w-9 h-9 shrink-0 rounded-full grid place-items-center border transition-colors ${
+      active ? 'border-white/30 bg-white/15' : 'border-white/15 group-hover:border-white/35'
+    }`;
+    const badgeFor = (label) => (
+      label === 'Orders' ? alertCounts.orders : label === 'Inquiries' ? alertCounts.inquiries : label === 'Reviews' ? alertCounts.reviews : 0
+    );
+    const Badge = ({ count, dot }) => (count > 0 ? (
+      dot
+        ? <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full bg-[#D01B79] text-white text-[9px] font-bold grid place-items-center ring-2 ring-[#120C18]">{count}</span>
+        : <span className="ml-auto min-w-5 h-5 px-1.5 rounded-full bg-[#D01B79] text-white text-[10px] font-bold grid place-items-center">{count}</span>
+    ) : null);
+    const Tooltip = ({ children }) => (isCollapsed ? (
+      <span className="absolute left-[3.75rem] bg-[#1F1729] text-white text-[11px] font-semibold px-2.5 py-1.5 rounded-lg shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap border border-white/10">{children}</span>
+    ) : null);
+
+    const Group = ({ label, icon: Icon, active, expanded, onToggle, children: subs }) => (
+      <div className="relative group/menu">
+        {isCollapsed ? (
+          <>
+            <button type="button" className={`${itemClass(active)} relative`} aria-label={label}>
+              <span className={ring(active)}><Icon className="w-4 h-4" /></span>
+            </button>
+            <div className="absolute left-[3.75rem] top-0 bg-[#1F1729] border border-white/10 rounded-2xl shadow-xl p-1.5 opacity-0 pointer-events-none group-hover/menu:opacity-100 group-hover/menu:pointer-events-auto transition-opacity z-50 flex flex-col gap-0.5 min-w-[150px]">
+              <span className="px-3 pt-1 pb-1.5 text-[10px] uppercase tracking-wider text-[#B8AEC4] font-bold">{label}</span>
+              {subs}
+            </div>
+          </>
+        ) : (
+          <>
+            <button type="button" onClick={onToggle} aria-expanded={expanded} className={`w-full ${itemClass(active)}`}>
+              <span className={ring(active)}><Icon className="w-4 h-4" /></span>
+              <span className="flex-1 text-left">{label}</span>
+              <ChevronDown className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+            </button>
+            <div className={`grid transition-all duration-200 ${expanded ? 'grid-rows-[1fr] opacity-100 mt-1 mb-1' : 'grid-rows-[0fr] opacity-0'}`}>
+              <div className="overflow-hidden flex flex-col gap-0.5 pl-[3.1rem] pr-1">{subs}</div>
+            </div>
+          </>
+        )}
+      </div>
+    );
+    const subLink = (sub) => {
+      const active = isSubActive(sub);
+      return (
+        <Link
+          key={sub.to}
+          to={sub.to}
+          onClick={onLinkClick}
+          className={`px-3 py-2 text-[12px] rounded-full font-semibold transition-colors ${active ? 'bg-white/12 text-white' : 'text-[#B8AEC4] hover:text-white hover:bg-white/[0.06]'}`}
+        >
+          {sub.label}
+        </Link>
+      );
+    };
+
     return (
       <>
         {links.map((link) => {
           const active = isActive(link.to);
           const Icon = link.icon;
+          const count = badgeFor(link.label);
           return (
-            <Link
-              key={link.to}
-              to={link.to}
-              onClick={onLinkClick}
-              title={isCollapsed ? link.label : ''}
-              className={`flex items-center rounded-xl text-xs font-semibold transition-all relative group ${
-                isCollapsed 
-                  ? 'justify-center p-2.5 mx-auto w-10 h-10 my-0.5' 
-                  : 'gap-3 px-4 py-2.5 my-0.5'
-              } ${
-                active
-                  ? 'active-glass shadow-sm text-white hover:text-white'
-                  : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
-              }`}
-            >
-              <div className="relative shrink-0">
-                <Icon className={`w-4 h-4 transition-transform group-hover:scale-110 ${active ? 'text-white' : `${link.color} group-hover:text-white`}`} />
-                {isCollapsed && (
-                  <>
-                    {link.label === 'Orders' && alertCounts.orders > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-emerald-500 rounded-full text-[7px] font-bold text-white flex items-center justify-center">
-                        {alertCounts.orders}
-                      </span>
-                    )}
-                    {link.label === 'Inquiries' && alertCounts.inquiries > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-lime-600 rounded-full text-[7px] font-bold text-white flex items-center justify-center">
-                        {alertCounts.inquiries}
-                      </span>
-                    )}
-                    {link.label === 'Reviews' && alertCounts.reviews > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-yellow-500 rounded-full text-[7px] font-bold text-white flex items-center justify-center">
-                        {alertCounts.reviews}
-                      </span>
-                    )}
-                  </>
-                )}
-              </div>
-              {!isCollapsed && (
-                <span className="flex-1 flex items-center justify-between">
-                  <span className={`${active ? 'text-white' : 'group-hover:text-white'} transition-colors`}>{link.label}</span>
-                  {link.label === 'Orders' && alertCounts.orders > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-2 bg-emerald-500 text-white">
-                      {alertCounts.orders}
-                    </span>
-                  )}
-                  {link.label === 'Inquiries' && alertCounts.inquiries > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-2 bg-lime-650 text-white">
-                      {alertCounts.inquiries}
-                    </span>
-                  )}
-                  {link.label === 'Reviews' && alertCounts.reviews > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-2 bg-yellow-505 text-white">
-                      {alertCounts.reviews}
-                    </span>
-                  )}
-                </span>
-              )}
-              {/* Collapse Hover Tooltip */}
-              {isCollapsed && (
-                <div className="absolute left-16 bg-gray-900 text-white text-[10px] font-bold px-2.5 py-1.5 rounded-lg shadow-xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-50 whitespace-nowrap border border-gray-800">
-                  {link.label}
-                </div>
-              )}
+            <Link key={link.to} to={link.to} onClick={onLinkClick} aria-current={active ? 'page' : undefined} className={`${itemClass(active)} relative`}>
+              <span className={ring(active)}>
+                <Icon className="w-4 h-4" />
+                {isCollapsed && <Badge count={count} dot />}
+              </span>
+              {!isCollapsed && <span className="truncate">{link.label}</span>}
+              {!isCollapsed && <Badge count={count} />}
+              <Tooltip>{link.label}</Tooltip>
             </Link>
           );
         })}
 
-        {/* CMS parent menu */}
-        <div className="relative group">
-          {isCollapsed ? (
-            <div className="flex flex-col items-center">
-              <button className={`flex items-center justify-center p-2.5 mx-auto w-10 h-10 my-0.5 rounded-xl transition-all ${isCmsActive ? 'active-glass shadow-sm text-white hover:text-white' : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'}`} title="CMS">
-                <FileText className={`w-4 h-4 ${isCmsActive ? 'text-white' : 'text-rose-450 group-hover:text-white'}`} />
-              </button>
-              <div className="absolute left-16 top-0 bg-gray-900 border border-gray-800 rounded-lg shadow-xl py-1.5 px-1 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity z-50 flex flex-col gap-0.5 min-w-[130px]">
-                <div className="px-2.5 py-1 text-[10px] uppercase tracking-wider text-gray-500 font-bold border-b border-gray-800 mb-1">CMS</div>
-                {subCms.map((sub) => {
-                  const active = isSubActive(sub);
-                  return <Link key={sub.to} to={sub.to} onClick={onLinkClick} className={`px-3 py-1.5 text-xs rounded font-medium transition-all ${active ? 'active-glass font-semibold text-white hover:text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white'}`}>{sub.label}</Link>;
-                })}
-              </div>
-            </div>
-          ) : (
-            <div>
-              <button onClick={() => setCmsExpanded((value) => !value)} className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 my-0.5 rounded-xl text-xs font-semibold transition-all group ${isCmsActive ? 'active-glass shadow-sm text-white hover:text-white' : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'}`}>
-                <span className="flex items-center gap-3"><FileText className={`w-4 h-4 transition-transform group-hover:scale-110 ${isCmsActive ? 'text-white' : 'text-rose-450 group-hover:text-white'}`} /><span className={`${isCmsActive ? 'text-white' : 'group-hover:text-white'} transition-colors`}>CMS</span></span>
-                {cmsExpanded ? <ChevronDown className={`w-3.5 h-3.5 ${isCmsActive ? 'text-white' : 'group-hover:text-white'} transition-colors`} /> : <ChevronRight className={`w-3.5 h-3.5 ${isCmsActive ? 'text-white' : 'group-hover:text-white'} transition-colors`} />}
-              </button>
-              <div className={`transition-all duration-200 overflow-hidden ${cmsExpanded ? 'max-h-48 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'}`}>
-                <div className="pl-6 flex flex-col border-l border-gray-800 ml-6 gap-0.5">
-                  {subCms.map((sub) => {
-                    const active = isSubActive(sub);
-                    return <Link key={sub.to} to={sub.to} onClick={onLinkClick} className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-all ${active ? 'active-glass font-bold text-white hover:text-white' : 'text-gray-400 hover:bg-gray-800/40 hover:text-white'}`}>{sub.label}</Link>;
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Settings parent menu */}
-        <div className="relative group">
-          {isCollapsed ? (
-            /* Collapsed Parent Menu Icon */
-            <div className="flex flex-col items-center">
-              <button
-                className={`flex items-center justify-center p-2.5 mx-auto w-10 h-10 my-0.5 rounded-xl text-xs font-semibold transition-all relative group ${
-                  isSettingsActive
-                    ? 'active-glass shadow-sm text-white hover:text-white'
-                    : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
-                }`}
-              >
-                <Settings className={`w-4 h-4 shrink-0 transition-transform ${isSettingsActive ? 'text-white' : 'text-gray-400 group-hover:text-white'} group-hover:scale-110`} />
-              </button>
-              
-              {/* Hover Popover containing children */}
-              <div className="absolute left-16 top-0 bg-gray-900 border border-gray-800 rounded-lg shadow-xl py-1.5 px-1 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-150 z-50 flex flex-col gap-0.5 min-w-[120px]">
-                <div className="px-2.5 py-1 text-[10px] uppercase tracking-wider text-gray-500 font-bold border-b border-gray-800 mb-1">
-                  Settings
-                </div>
-                {subSettings.map(sub => {
-                  const subActive = isSubActive(sub);
-                  return (
-                    <Link
-                      key={sub.to}
-                      to={sub.to}
-                      onClick={onLinkClick}
-                      className={`px-3 py-1.5 text-xs rounded transition-colors text-left font-medium block ${
-                        subActive 
-                          ? 'active-glass font-semibold text-white hover:text-white' 
-                          : 'text-gray-300 hover:bg-gray-800 hover:text-white'
-                      }`}
-                    >
-                      {sub.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            /* Expanded Parent Menu */
-            <div>
-              <button
-                onClick={() => setSettingsExpanded(prev => !prev)}
-                className={`w-full flex items-center justify-between gap-3 px-4 py-2.5 my-0.5 rounded-xl text-xs font-semibold transition-all relative group ${
-                  isSettingsActive
-                    ? 'active-glass shadow-sm text-white hover:text-white'
-                    : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Settings className={`w-4 h-4 shrink-0 transition-transform ${isSettingsActive ? 'text-white' : 'text-gray-400 group-hover:text-white'} group-hover:scale-110`} />
-                  <span className={`${isSettingsActive ? 'text-white' : 'group-hover:text-white'} transition-colors`}>Settings</span>
-                </div>
-                {settingsExpanded ? (
-                  <ChevronDown className={`w-3.5 h-3.5 transition-transform shrink-0 ${isSettingsActive ? 'text-white' : 'group-hover:text-white opacity-90'}`} />
-                ) : (
-                  <ChevronRight className={`w-3.5 h-3.5 transition-transform shrink-0 ${isSettingsActive ? 'text-white' : 'group-hover:text-white opacity-90'}`} />
-                )}
-              </button>
-              
-              {/* Dropdown Children items */}
-              <div 
-                className={`transition-all duration-200 ease-in-out overflow-hidden ${
-                  settingsExpanded ? 'max-h-40 opacity-100 mt-1 mb-2' : 'max-h-0 opacity-0'
-                }`}
-              >
-                <div className="pl-6 flex flex-col border-l border-gray-800 ml-6 gap-0.5">
-                  {subSettings.map(sub => {
-                    const subActive = isSubActive(sub);
-                    return (
-                      <Link
-                        key={sub.to}
-                        to={sub.to}
-                        onClick={onLinkClick}
-                        className={`px-3 py-1.5 text-[11px] font-medium rounded-md transition-all ${
-                          subActive
-                            ? 'active-glass font-bold text-white hover:text-white'
-                            : 'text-gray-400 hover:bg-gray-800/40 hover:text-white'
-                        }`}
-                      >
-                        {sub.label}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <Group label="CMS" icon={FileText} active={isCmsActive} expanded={cmsExpanded} onToggle={() => setCmsExpanded((v) => !v)}>
+          {subCms.map(subLink)}
+        </Group>
+        <Group label="Settings" icon={Settings} active={isSettingsActive} expanded={settingsExpanded} onToggle={() => setSettingsExpanded((v) => !v)}>
+          {subSettings.map(subLink)}
+        </Group>
       </>
     );
   };
 
-  return (
-    <div className={`admin-shell flex bg-gray-50 min-h-screen text-gray-800 font-sans animate-fade-in ${isDarkMode ? 'dark bg-gray-950 text-gray-100' : ''}`}>
-      <ModalStandard />
-      <style>{`
-        /* Systematic Visible Borders for All Admin Inputs & Dropdowns (Pages, Views & Modals) */
-        .admin-shell input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
-        .admin-shell select,
-        .admin-shell textarea,
-        .admin-shell .rich-editor,
-        .admin-shell [contenteditable="true"],
-        .fixed input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
-        .fixed select,
-        .fixed textarea,
-        .fixed .rich-editor,
-        .fixed [contenteditable="true"],
-        div[role="dialog"] input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
-        div[role="dialog"] select,
-        div[role="dialog"] textarea {
-          border: 1.5px solid #94A3B8 !important; /* Visible high-definition slate-400 border */
-          background-color: #FFFFFF !important;
-          color: #0F172A !important;
-          border-radius: 0.625rem !important;
-          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
-        }
+  // Page name for the header, from the current route.
+  const sectionTitle = (() => {
+    const path = location.pathname;
+    const named = [
+      ['/admin/products/new', 'New product'], ['/admin/products', 'Products'], ['/admin/collections', 'Collections'],
+      ['/admin/orders', 'Orders'], ['/admin/pos', 'Point of Sale'], ['/admin/expenses', 'Expenses'], ['/admin/purchases', 'Purchases'],
+      ['/admin/coupons', 'Coupons'], ['/admin/discounts', 'Discounts'], ['/admin/customers', 'Customers'], ['/admin/newsletter', 'Newsletter'],
+      ['/admin/reviews', 'Reviews'], ['/admin/inventory', 'Inventory'], ['/admin/invoices', 'Invoices'], ['/admin/inquiries', 'Inquiries'],
+      ['/admin/fitting-sessions', 'Consultations'], ['/admin/brands', 'Brands'], ['/admin/users', 'Users'], ['/admin/reports', 'Reports'],
+      ['/admin/hero', 'Hero'], ['/admin/pages', 'Pages'], ['/admin/articles', 'Blog'], ['/admin/gallery', 'Gallery'],
+      ['/admin/settings', 'Settings'], ['/admin/taxes', 'Taxes'], ['/admin/shipping', 'Shipping'], ['/admin/profile', 'Profile'],
+    ];
+    if (path === '/admin' || path === '/admin/') return 'Dashboard';
+    return (named.find(([prefix]) => path.startsWith(prefix)) || [null, 'Admin'])[1];
+  })();
 
-        .admin-shell input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]):focus,
-        .admin-shell select:focus,
-        .admin-shell textarea:focus,
-        .fixed input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]):focus,
-        .fixed select:focus,
-        .fixed textarea:focus,
-        div[role="dialog"] input:focus,
-        div[role="dialog"] select:focus,
-        div[role="dialog"] textarea:focus {
-          outline: none !important;
-          border-color: #5D3E85 !important;
-          box-shadow: 0 0 0 3px rgba(93, 62, 133, 0.22) !important;
-        }
+  // Brand mark + name (sidebar and mobile drawer).
+  const Brand = ({ compact = false }) => (
+    <div className={`flex items-center gap-3 min-w-0 ${compact ? 'justify-center' : ''}`}>
+      <span className="w-10 h-10 rounded-2xl bg-white grid place-items-center overflow-hidden shrink-0 shadow-sm">
+        {settings.logo_url
+          ? <img loading="lazy" decoding="async" src={settings.logo_url} alt="" className="w-full h-full object-contain p-1" />
+          : <span className="text-[#5D3E85] font-extrabold text-lg">{(ecommerce.name || 'D')[0]}</span>}
+      </span>
+      {!compact && (
+        <span className="min-w-0 text-left">
+          <span className="block text-white font-extrabold text-[17px] leading-tight truncate">{ecommerce.name}</span>
+          <span className="block text-[11px] font-semibold text-[#B8AEC4] leading-tight">Admin panel</span>
+        </span>
+      )}
+    </div>
+  );
 
-        .admin-shell.dark, html.admin-dark .admin-shell {
-          background-color: #030712 !important;
-          color: #f3f4f6 !important;
-        }
-        .admin-shell.dark header, 
-        .admin-shell.dark .bg-white {
-          background-color: #09090b !important;
-          color: #f3f4f6 !important;
-          border-color: #18181b !important;
-        }
-        .admin-shell.dark .border-gray-150,
-        .admin-shell.dark .border-gray-200,
-        .admin-shell.dark .border-gray-250,
-        .admin-shell.dark .border-gray-100 {
-          border-color: #1f2937 !important;
-        }
-        .admin-shell.dark .admin-shell input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
-        .admin-shell.dark .admin-shell select,
-        .admin-shell.dark .admin-shell textarea,
-        .admin-shell.dark .admin-shell .rich-editor,
-        .admin-shell.dark .admin-shell [contenteditable="true"],
-        .admin-shell.dark .fixed input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
-        .admin-shell.dark .fixed select,
-        .admin-shell.dark .fixed textarea,
-        .admin-shell.dark div[role="dialog"] input,
-        .admin-shell.dark div[role="dialog"] select,
-        .admin-shell.dark div[role="dialog"] textarea {
-          border: 1.5px solid #64748B !important;
-          background-color: #1f2937 !important;
-          color: #f3f4f6 !important;
-          border-color: #64748B !important;
-        }
-        .admin-shell.dark input::placeholder, 
-        .admin-shell.dark textarea::placeholder,
-        .admin-shell.dark .text-gray-400,
-        .admin-shell.dark .text-gray-450,
-        .admin-shell.dark .text-gray-500,
-        .admin-shell.dark .text-gray-550 {
-          color: #cbd5e1 !important;
-        }
-        .admin-shell.dark .text-gray-600,
-        .admin-shell.dark .text-gray-650,
-        .admin-shell.dark .text-gray-700,
-        .admin-shell.dark .text-gray-800,
-        .admin-shell.dark .text-gray-850,
-        .admin-shell.dark .text-gray-900,
-        .admin-shell.dark .text-gray-950 {
-          color: #f3f4f6 !important;
-        }
-        .admin-shell.dark .hover\:bg-gray-50:hover, 
-        .admin-shell.dark .hover\:bg-gray-55:hover,
-        .admin-shell.dark .hover\:bg-gray-50\/50:hover {
-          background-color: #1f2937 !important;
-        }
-        .admin-shell.dark table th {
-          background-color: #1f2937 !important;
-          color: #9ca3af !important;
-        }
-        .admin-shell.dark tr {
-          border-color: #1f2937 !important;
-        }
-        .admin-shell.dark .custom-sidebar-scroll::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.15) !important;
-        }
-        .custom-sidebar-scroll::-webkit-scrollbar {
-          width: 5px;
-        }
-        .custom-sidebar-scroll::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-sidebar-scroll::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 99px;
-        }
-        .custom-sidebar-scroll::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.2);
-        }
-
-        /* Sidebar Nav hover and active text and icons must always remain pure white */
-        aside a:hover,
-        aside a:hover *,
-        aside button:hover,
-        aside button:hover * {
-          color: #ffffff !important;
-        }
-        aside .active-glass,
-        aside .active-glass * {
-          color: #ffffff !important;
-        }
-      `}</style>
-
-      {/* 1. Desktop Sidebar (Floating Layout) */}
-      <aside className={`bg-[#09090b] text-gray-300 hidden md:flex flex-col shrink-0 h-[calc(100vh-2rem)] sticky top-4 my-4 ml-4 rounded-2xl transition-all duration-300 z-20 border border-gray-800/60 ${
-        isCollapsed ? 'w-20' : 'w-60'
-      }`}>
-        {/* Brand Header */}
-        <div className={`h-16 border-b border-gray-800 flex items-center shrink-0 justify-between transition-all ${
-          isCollapsed ? 'px-4 justify-center' : 'px-6'
-        }`}>
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-8 h-8 rounded-xl overflow-hidden shrink-0 shadow-sm flex items-center justify-center bg-transparent">
-              {settings.logo_url ? (
-                <img loading="lazy" decoding="async" src={settings.logo_url} alt="Logo" className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-white font-bold text-sm">👑</span>
-              )}
+  // Signed-in user card with its menu (sidebar footer and mobile drawer).
+  const UserCard = ({ compact = false, onNavigate = () => {} }) => (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setAvatarDropdownOpen((v) => !v)}
+        aria-expanded={avatarDropdownOpen}
+        aria-label="Account menu"
+        className={`w-full flex items-center gap-3 rounded-full border border-white/15 hover:border-white/30 transition-colors ${compact ? 'p-1 justify-center' : 'p-1.5 pr-2'}`}
+      >
+        <span className="w-10 h-10 rounded-full bg-gradient-to-br from-[#7A4DB3] to-[#D01B79] text-white grid place-items-center font-bold text-sm shrink-0">{getInitials(admin?.name)}</span>
+        {!compact && (
+          <>
+            <span className="flex-1 min-w-0 text-left">
+              <span className="block text-white text-[13px] font-semibold truncate">{admin?.name || 'Admin user'}</span>
+              <span className="block text-[11px] text-[#B8AEC4] truncate">{admin?.role?.name || 'Owner'}</span>
+            </span>
+            <span className="w-7 h-7 rounded-full bg-white/10 grid place-items-center shrink-0"><ChevronDown className={`w-4 h-4 text-white transition-transform ${avatarDropdownOpen ? 'rotate-180' : ''}`} /></span>
+          </>
+        )}
+      </button>
+      {avatarDropdownOpen && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setAvatarDropdownOpen(false)} />
+          <div className={`absolute bottom-full mb-2 z-50 w-56 rounded-2xl bg-[#1F1729] border border-white/10 shadow-2xl p-1.5 text-[13px] ${compact ? 'left-0' : 'left-0 right-0 w-auto'}`}>
+            <div className="px-3 py-2 border-b border-white/10 mb-1">
+              <p className="font-semibold text-white truncate">{admin?.name || 'Admin user'}</p>
+              <p className="text-[11px] text-[#B8AEC4] truncate">{admin?.email}</p>
             </div>
-            {!isCollapsed && (
-              <div className="animate-fade-in text-left">
-                <h1 className="font-serif font-bold text-xs leading-none text-white uppercase tracking-wider">
-                  {ecommerce.name}
-                </h1>
-                <span className="text-[9px] text-gray-500 font-bold block mt-0.5">Management Panel</span>
-              </div>
-            )}
+            <Link to="/admin/profile" onClick={() => { setAvatarDropdownOpen(false); onNavigate(); }} className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[#E7E1EF] hover:bg-white/10">
+              <Settings className="w-4 h-4" /> Profile settings
+            </Link>
+            <a href="/" target="_blank" rel="noopener noreferrer" onClick={() => { setAvatarDropdownOpen(false); onNavigate(); }} className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-[#E7E1EF] hover:bg-white/10">
+              <ArrowLeft className="w-4 h-4" /> View storefront
+            </a>
+            <button type="button" onClick={() => { setAvatarDropdownOpen(false); onNavigate(); handleLogout(); }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[#FCA5C9] hover:bg-white/10 text-left">
+              <LogOut className="w-4 h-4" /> Log out
+            </button>
           </div>
-          {!isCollapsed && (
-            <button
-              onClick={() => {
-                setIsCollapsed(prev => {
-                  const val = !prev;
-                  localStorage.setItem('dansolam_sidebar_collapsed', val ? 'true' : 'false');
-                  return val;
-                });
-              }}
-              className="p-1 text-gray-500 hover:text-white hover:bg-gray-850 rounded-lg transition-colors cursor-pointer block"
-              title="Collapse Sidebar"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-          )}
-          {isCollapsed && (
-            <button
-              onClick={() => {
-                setIsCollapsed(prev => {
-                  const val = !prev;
-                  localStorage.setItem('dansolam_sidebar_collapsed', val ? 'true' : 'false');
-                  return val;
-                });
-              }}
-              className="p-1.5 text-gray-500 hover:text-white hover:bg-gray-850 rounded-lg transition-colors cursor-pointer mx-auto mt-2"
-              title="Expand Sidebar"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+        </>
+      )}
+    </div>
+  );
 
-        {/* Navigation links with custom scrollbar */}
-        <nav className="flex-1 p-3 flex flex-col gap-0.5 overflow-y-auto custom-sidebar-scroll">
+  const roundBtn = 'w-11 h-11 rounded-full grid place-items-center bg-white/80 dark:bg-white/[0.06] border border-[#E2DCEB] dark:border-white/10 text-[#3B3347] dark:text-[#E7E1EF] hover:bg-white dark:hover:bg-white/10 transition-colors cursor-pointer relative';
+
+  return (
+    <div className={`admin-shell flex min-h-screen font-sans animate-fade-in ${isDarkMode ? 'dark' : ''}`}>
+      <ModalStandard />
+      <AdminA11y />
+
+      {/* Desktop sidebar */}
+      <aside className={`admin-sidebar hidden md:flex flex-col shrink-0 h-[calc(100vh-2rem)] sticky top-4 my-4 ml-4 rounded-[28px] transition-all duration-300 z-20 ${isCollapsed ? 'w-[5.5rem]' : 'w-64'}`} aria-label="Admin navigation">
+        <div className={`flex items-center shrink-0 pt-6 pb-5 ${isCollapsed ? 'flex-col gap-3 px-3' : 'justify-between px-5'}`}>
+          <Brand compact={isCollapsed} />
+          <button
+            type="button"
+            onClick={() => setIsCollapsed((prev) => { const val = !prev; localStorage.setItem('dansolam_sidebar_collapsed', val ? 'true' : 'false'); return val; })}
+            className="w-8 h-8 rounded-full grid place-items-center text-[#B8AEC4] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          </button>
+        </div>
+        <nav className={`flex-1 flex flex-col gap-1 overflow-y-auto custom-sidebar-scroll ${isCollapsed ? 'px-2' : 'px-4'}`}>
           {renderNavLinks()}
         </nav>
-
-        {/* Fixed Footer section */}
-        <div className={`p-4 border-t border-gray-800 bg-[#09090b] shrink-0 flex flex-col gap-2 rounded-b-2xl ${
-          isCollapsed ? 'items-center' : ''
-        }`}>
-          <a
-            href="/"
-            target="_blank"
-            rel="noopener noreferrer"
-            title={isCollapsed ? "View Storefront" : ""}
-            className={`flex items-center rounded-xl text-xs font-bold text-indigo-400 bg-indigo-950/40 hover:bg-indigo-900/40 border border-indigo-900/30 transition-all shadow-sm ${
-              isCollapsed ? 'justify-center w-10 h-10 p-0 relative group' : 'w-full gap-3 px-4 py-2.5'
-            }`}
-          >
-            <ArrowLeft className="w-4 h-4 text-indigo-400 shrink-0" />
-            {!isCollapsed && <span>View Storefront</span>}
-            {isCollapsed && (
-              <div className="absolute left-16 bg-indigo-900 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
-                View Storefront
-              </div>
-            )}
-          </a>
-          <button
-            onClick={handleLogout}
-            title={isCollapsed ? "Log Out" : ""}
-            className={`flex items-center rounded-xl text-xs font-bold text-rose-400 bg-rose-950/40 hover:bg-rose-900/40 border border-rose-900/30 transition-all cursor-pointer shadow-sm ${
-              isCollapsed ? 'justify-center w-10 h-10 p-0 relative group' : 'w-full gap-3 px-4 py-2.5'
-            }`}
-          >
-            <LogOut className="w-4 h-4 text-rose-455 shrink-0" />
-            {!isCollapsed && <span>Log Out</span>}
-            {isCollapsed && (
-              <div className="absolute left-16 bg-rose-900 text-white text-[10px] font-bold px-2 py-1 rounded shadow-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
-                Log Out
-              </div>
-            )}
-          </button>
+        <div className={`shrink-0 pt-3 pb-5 ${isCollapsed ? 'px-2' : 'px-4'}`}>
+          <UserCard compact={isCollapsed} />
         </div>
       </aside>
 
-      {/* Mobile Slide-out Drawer */}
+      {/* Mobile drawer */}
       {mobileSidebarOpen && (
         <>
-          {/* Backdrop overlay */}
-          <div 
-            onClick={() => setMobileSidebarOpen(false)}
-            className="fixed inset-0 bg-black/60 z-40 md:hidden animate-fade-in"
-          />
-          {/* Drawer container */}
-          <aside className="fixed inset-y-0 left-0 w-60 bg-[#09090b] text-gray-300 z-50 md:hidden flex flex-col shadow-2xl animate-slide-in h-screen border-r border-gray-800">
-            {/* Header */}
-            <div className="h-16 px-6 border-b border-gray-800 flex items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0 shadow-sm flex items-center justify-center bg-primary">
-                  {settings.logo_url ? (
-                    <img loading="lazy" decoding="async" src={settings.logo_url} alt="Logo" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-white font-bold text-sm">👑</span>
-                  )}
-                </div>
-                <div className="text-left">
-                  <h1 className="font-semibold text-sm leading-none text-white">{ecommerce.name}</h1>
-                  <span className="text-[10px] text-gray-500">Management Panel</span>
-                </div>
-              </div>
-              <button 
-                onClick={() => setMobileSidebarOpen(false)}
-                className="p-1 text-gray-400 hover:text-white cursor-pointer"
-              >
+          <div onClick={() => setMobileSidebarOpen(false)} className="fixed inset-0 bg-black/60 z-40 md:hidden animate-fade-in" />
+          <aside className="admin-sidebar fixed inset-y-0 left-0 w-[17rem] max-w-[85vw] z-50 md:hidden flex flex-col shadow-2xl animate-slide-in h-[100dvh] rounded-r-[28px]" aria-label="Admin navigation">
+            <div className="flex items-center justify-between gap-3 px-5 pt-6 pb-5 shrink-0">
+              <Brand />
+              <button type="button" onClick={() => setMobileSidebarOpen(false)} className="w-9 h-9 rounded-full grid place-items-center text-[#CFC7DB] hover:text-white hover:bg-white/10 cursor-pointer" aria-label="Close menu">
                 <X className="w-5 h-5" />
               </button>
             </div>
-
-            {/* Navigation links */}
-            <nav className="flex-1 p-4 flex flex-col gap-1 overflow-y-auto custom-sidebar-scroll">
+            <nav className="flex-1 px-4 flex flex-col gap-1 overflow-y-auto custom-sidebar-scroll">
               {renderNavLinks(() => setMobileSidebarOpen(false))}
             </nav>
-
-            {/* Fixed Footer section */}
-            <div className="p-4 border-t border-gray-800 bg-[#09090b] shrink-0 flex flex-col gap-2.5">
-              <a
-                href="/"
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setMobileSidebarOpen(false)}
-                className="flex w-full items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-indigo-400 bg-indigo-950/40 hover:bg-indigo-900/40 border border-indigo-900/30 transition-all shadow-sm"
-              >
-                <ArrowLeft className="w-4 h-4 text-indigo-400" />
-                View Storefront
-              </a>
-              <button
-                onClick={() => {
-                  setMobileSidebarOpen(false);
-                  handleLogout();
-                }}
-                className="flex w-full items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-rose-450 bg-rose-950/40 hover:bg-rose-900/40 border border-rose-900/30 transition-all cursor-pointer shadow-sm"
-              >
-                <LogOut className="w-4 h-4 text-rose-455" />
-                Log Out
-              </button>
+            <div className="px-4 pt-3 pb-5 shrink-0">
+              <UserCard onNavigate={() => setMobileSidebarOpen(false)} />
             </div>
           </aside>
         </>
       )}
 
-      {/* 2. Main content container */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#F5F6F8] dark:bg-gray-950">
-        {/* Floating Top Header */}
-        <header className="mx-4 md:mx-6 mt-4 h-16 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl px-6 flex items-center justify-between z-10 shrink-0 gap-4 shadow-sm">
-          <div className="flex items-center gap-4 flex-1">
-            {/* Mobile Menu Trigger */}
-            <button
-              onClick={() => setMobileSidebarOpen(true)}
-              className="p-1.5 text-gray-500 hover:text-gray-950 dark:hover:text-white md:hidden cursor-pointer rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-            >
+      {/* Main column */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="admin-header px-4 md:px-6 pt-4 md:pt-6 pb-1 flex items-center justify-between gap-3 z-10 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <button type="button" onClick={() => setMobileSidebarOpen(true)} className={`${roundBtn} md:hidden`} aria-label="Open menu">
               <Menu className="w-5 h-5" />
             </button>
+            <span className="text-[12px] font-bold uppercase tracking-[0.12em] text-[#5F566B] dark:text-[#B8AEC4] truncate">
+              {sectionTitle}
+            </span>
+          </div>
 
-            {/* Search Input Shortcut (Pill Shaped) */}
-            <div className="relative hidden sm:flex items-center w-80">
-              <Search className="w-4 h-4 text-slate-400 dark:text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10 shrink-0" />
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <div className="relative hidden sm:flex items-center w-56 lg:w-80">
+              <Search className="w-4 h-4 text-[#5F566B] dark:text-[#B8AEC4] absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none z-10" aria-hidden="true" />
               <input
-                type="text"
-                placeholder="Search admin (orders, items...)"
+                type="search"
+                placeholder="Search orders, products, customers"
+                aria-label="Search admin"
                 value={searchQuery}
-                onChange={e => {
-                  setSearchQuery(e.target.value);
-                  setShowSearchDropdown(true);
-                }}
+                onChange={e => { setSearchQuery(e.target.value); setShowSearchDropdown(true); }}
                 onFocus={() => setShowSearchDropdown(true)}
-                className="w-full !pl-10 !pr-4 !py-2 border border-slate-300 dark:border-gray-700 !rounded-full focus:outline-none focus:border-primary text-xs bg-white text-gray-800 dark:bg-gray-800 dark:text-gray-100 transition-all focus:ring-2 focus:ring-primary/20"
+                className="admin-search w-full h-11 pl-11! pr-4! rounded-full! text-[13px]"
               />
 
               {/* Floating Dropdown Results */}
@@ -876,24 +592,21 @@ export default function AdminLayout() {
                 </>
               )}
             </div>
-          </div>
-          
-          <div className="flex items-center gap-4 shrink-0">
-            {/* Icons Shortcuts */}
-            <div className="flex items-center gap-1 sm:gap-2">
-              {/* Notifications Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setNotificationsOpen(!notificationsOpen)}
-                  className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer relative block"
-                >
-                  {notifications.length > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-primary text-[8px] font-bold text-white flex items-center justify-center rounded-full animate-bounce">
-                      {notifications.length}
-                    </span>
-                  )}
-                  <Bell className="w-4 h-4" />
-                </button>
+
+            <button type="button" onClick={toggleDarkMode} className={roundBtn} aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}>
+              {isDarkMode ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+            </button>
+
+            <div className="relative">
+              <button type="button" onClick={() => setNotificationsOpen(!notificationsOpen)} className={roundBtn} aria-label={`Notifications${notifications.length ? `, ${notifications.length} new` : ''}`}>
+                <Bell className="w-[18px] h-[18px]" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-[#DC2626] text-white text-[10px] font-bold grid place-items-center ring-2 ring-[var(--adm-canvas)]">
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+
                 {notificationsOpen && (
                   <>
                     <div className="fixed inset-0 z-20" onClick={() => setNotificationsOpen(false)}></div>
@@ -938,76 +651,11 @@ export default function AdminLayout() {
                     </div>
                   </>
                 )}
-              </div>
-
-              <button 
-                onClick={toggleDarkMode}
-                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer relative block"
-                title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              >
-                {isDarkMode ? <Sun className="w-4 h-4 text-amber-500 animate-spin-slow" /> : <Moon className="w-4 h-4 text-indigo-500" />}
-              </button>
-              <button className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer hidden xs:block">
-                <Inbox className="w-4 h-4" />
-              </button>
-              <button className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer hidden sm:block">
-                <HelpCircle className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Avatar Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setAvatarDropdownOpen(!avatarDropdownOpen)}
-                className="flex items-center gap-2 focus:outline-none cursor-pointer group"
-              >
-                <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs border border-primary/20 hover:bg-primary/20 transition-colors uppercase">
-                  {getInitials(admin?.name)}
-                </div>
-                <div className="hidden md:flex flex-col text-left">
-                  <span className="text-xs font-semibold text-gray-850 dark:text-gray-250 leading-none group-hover:text-gray-950 dark:group-hover:text-white">
-                    {admin?.name || "Admin User"}
-                  </span>
-                  <span className="text-[9px] text-gray-450 mt-0.5">
-                    Role: {admin?.role?.name || "Owner"}
-                  </span>
-                </div>
-              </button>
-              {avatarDropdownOpen && (
-                <>
-                  <div className="fixed inset-0 z-20" onClick={() => setAvatarDropdownOpen(false)}></div>
-                  <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-150 rounded-2xl shadow-xl py-1.5 z-30 animate-scale-up text-xs dark:bg-gray-800 dark:border-gray-750">
-                    <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700 mb-1 text-left">
-                      <p className="font-bold text-gray-800 dark:text-gray-200">{admin?.name || "Admin User"}</p>
-                      <p className="text-[10px] text-gray-400">{admin?.email || "admin@dansolam.com"}</p>
-                    </div>
-                    <Link
-                      to="/admin/profile"
-                      onClick={() => setAvatarDropdownOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-gray-655 dark:text-gray-300 hover:bg-gray-55 dark:hover:bg-gray-700/50 font-medium transition-colors text-left"
-                    >
-                      <Settings className="w-3.5 h-3.5 text-gray-400" />
-                      Profile Settings
-                    </Link>
-                    <button
-                      onClick={() => {
-                        setAvatarDropdownOpen(false);
-                        handleLogout();
-                      }}
-                      className="flex w-full items-center gap-2 px-4 py-2 text-red-655 hover:bg-red-50 dark:hover:bg-red-950/20 font-medium text-left transition-colors cursor-pointer border-t border-gray-100 dark:border-gray-700 mt-1"
-                    >
-                      <LogOut className="w-3.5 h-3.5 text-rose-500" />
-                      Log Out
-                    </button>
-                  </div>
-                </>
-              )}
             </div>
           </div>
         </header>
 
-        {/* Page content outlet */}
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto max-w-[1600px] w-full mx-auto">
+        <main className="flex-1 px-4 md:px-6 pt-3 pb-8 overflow-y-auto max-w-[1600px] w-full mx-auto">
           <Outlet />
         </main>
       </div>

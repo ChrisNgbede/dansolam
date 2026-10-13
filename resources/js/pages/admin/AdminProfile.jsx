@@ -71,7 +71,7 @@ export default function AdminProfile() {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl mx-auto py-4">
+    <div className="flex flex-col gap-6 max-w-3xl w-full">
       {/* Title block */}
       <div>
         <h1 className="font-serif font-bold text-2xl text-gray-900 dark:text-white flex items-center gap-2">

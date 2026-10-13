@@ -827,11 +827,11 @@ html.admin-dark .admin-shell main button.border-gray-300:hover{
   background-color: var(--color-bg-neutral-dark) !important;
 }
 /* Force explicit white text for primary, gradient, and brand action buttons in admin shell */
-.admin-shell main button.text-white,
-.admin-shell main button[class*="text-white"],
+/* Exact class match: [class*="text-white"] also caught dark:text-white and
+   hover:text-white, turning those buttons' text white in light mode. */
+.admin-shell main button[class~="text-white"],
 .admin-shell main button[class*="bg-gradient"],
-.admin-shell main button.text-white *,
-.admin-shell main button[class*="text-white"] *,
+.admin-shell main button[class~="text-white"] *,
 .admin-shell main button[class*="bg-gradient"] * {
   color: #ffffff !important;
 }
@@ -2214,4 +2214,222 @@ html :is(.admin-shell, .fixed, body) input[data-plain-input][data-plain-input] {
   padding: 0 !important;
   min-height: 0 !important;
   border-radius: 0 !important;
+}
+
+/* ===========================================================================
+   ADMIN DESIGN SYSTEM (reference: dark pill sidebar, lavender canvas, white
+   rounded cards, soft table header row, outlined status pills).
+   Dansolam brand: plum #5D3E85, fuchsia #D01B79/#EC268F, gold #E5C158; Manrope.
+   Contrast targets (WCAG 2.1 AA): text >= 4.5:1, large text and UI parts >= 3:1.
+   =========================================================================== */
+:root {
+  --adm-canvas: #EEEAF5;
+  --adm-surface: #FFFFFF;
+  --adm-surface-2: #F6F3FA;   /* table header row, subtle fills */
+  --adm-border: #E4DDEE;      /* decorative card borders */
+  --adm-field-border: #8C8299;/* form field boundary: 3.6:1 on white */
+  --adm-text: #17101F;        /* 18:1 on white */
+  --adm-text-2: #3B3347;      /* 11:1 on white */
+  --adm-muted: #5F566B;       /* 6.9:1 on white, 6.0:1 on canvas */
+  --adm-primary: #5D3E85;     /* white text on it: 8.6:1 */
+  --adm-primary-hover: #4A2B68;
+  --adm-accent: #7A4DB3;      /* nav pill: white text 5.9:1 */
+  --adm-pink: #D01B79;        /* badges: white text 4.9:1 */
+  --adm-sidebar: #120C18;
+  --adm-focus: #7A4DB3;
+}
+html.admin-dark {
+  --adm-canvas: #0D0912;
+  --adm-surface: #19131F;
+  --adm-surface-2: #221A2A;
+  --adm-border: #2E2537;
+  --adm-field-border: #8E84A0; /* 5.4:1 on #19131F */
+  --adm-text: #F5F1F9;
+  --adm-text-2: #E2DBEA;
+  --adm-muted: #B8AEC4;        /* 8.6:1 on #19131F */
+  --adm-sidebar: #07050A;
+  --adm-focus: #C4A4F0;
+}
+
+/* Shell */
+html body:has(.admin-shell) { background: var(--adm-canvas); }
+.admin-shell { background: var(--adm-canvas) !important; color: var(--adm-text-2) !important; }
+.admin-shell .admin-sidebar { background: var(--adm-sidebar); color: #CFC7DB; }
+.admin-shell .admin-nav-active,
+.admin-shell .admin-nav-active:hover { background: var(--adm-accent) !important; color: #fff !important; box-shadow: 0 10px 24px -12px rgba(122, 77, 179, .9); }
+.admin-shell .custom-sidebar-scroll::-webkit-scrollbar { width: 5px; }
+.admin-shell .custom-sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+.admin-shell .custom-sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 99px; }
+.admin-shell .custom-sidebar-scroll { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.14) transparent; }
+html .admin-shell .admin-search {
+  background: var(--adm-surface) !important;
+  border: 1px solid var(--adm-field-border) !important;
+  color: var(--adm-text) !important;
+  box-shadow: none !important;
+}
+html .admin-shell .admin-search::placeholder { color: var(--adm-muted) !important; opacity: 1; }
+
+/* Visible keyboard focus everywhere in the admin. */
+.admin-shell :is(a, button, [role="button"], [role="tab"], summary):focus-visible,
+html.admin-dark :is(a, button):focus-visible {
+  outline: 2px solid var(--adm-focus) !important;
+  outline-offset: 2px !important;
+}
+
+/* Cards: rounded white panels on the lavender canvas. */
+html .admin-shell main :is(.bg-white, [class*="dark:bg-gray-900"]):is([class*="rounded-xl"], [class*="rounded-2xl"], [class*="rounded-3xl"], [class*="rounded-[2"]):not(button):not(a):not(input):not(select):not(textarea):not([role="dialog"]) {
+  background-color: var(--adm-surface) !important;
+  border-radius: 22px !important;
+  border: 1px solid var(--adm-border) !important;
+  box-shadow: 0 1px 2px rgba(23, 16, 31, .04), 0 12px 32px -22px rgba(23, 16, 31, .22) !important;
+}
+
+/* Typography: page titles and section headings in the brand sans. */
+html .admin-shell .font-serif { font-family: var(--font-sans) !important; }
+html .admin-shell main :is(h1, h2):is(.text-2xl, .text-3xl, [class*="md:text-3xl"]) {
+  font-family: var(--font-sans) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  font-size: clamp(1.5rem, 1.15rem + 1.1vw, 2rem) !important;
+  line-height: 1.15 !important;
+  color: var(--adm-text) !important;
+}
+html .admin-shell main h3 { font-family: var(--font-sans); letter-spacing: -0.01em; }
+
+/* Readable secondary text (light mode): Tailwind gray-300/400 fail AA on white. */
+html:not(.admin-dark) .admin-shell main :is(.text-gray-300, .text-gray-350, .text-gray-400, .text-gray-450, .text-slate-400, .text-zinc-400),
+html:not(.admin-dark) .admin-shell [role="dialog"] :is(.text-gray-300, .text-gray-400, .text-gray-450),
+html:not(.admin-dark) .admin-shell .fixed.inset-0 :is(.text-gray-300, .text-gray-400, .text-gray-450) {
+  color: var(--adm-muted) !important;
+}
+html:not(.admin-dark) .admin-shell main :is(.text-gray-500, .text-gray-550) { color: #5A5266 !important; }
+html .admin-shell :is(input, textarea)::placeholder { color: var(--adm-muted) !important; opacity: 1; }
+
+/* Status colours dark enough for small text on white (light mode). */
+html:not(.admin-dark) .admin-shell main :is(.text-green-500, .text-green-600) { color: #15803D !important; }
+html:not(.admin-dark) .admin-shell main :is(.text-emerald-500, .text-emerald-600) { color: #047857 !important; }
+html:not(.admin-dark) .admin-shell main :is(.text-amber-500, .text-amber-600, .text-yellow-500, .text-yellow-600) { color: #A15C07 !important; }
+html:not(.admin-dark) .admin-shell main :is(.text-orange-500, .text-orange-600) { color: #C2410C !important; }
+html:not(.admin-dark) .admin-shell main :is(.text-red-400, .text-red-500, .text-rose-400, .text-rose-500) { color: #B91C1C !important; }
+html:not(.admin-dark) .admin-shell main :is(.text-blue-400, .text-blue-500) { color: #1D4ED8 !important; }
+html:not(.admin-dark) .admin-shell main :is(.text-pink-400, .text-pink-500, [class*="text-[#EC268F]"]) { color: #BE1A78 !important; }
+html:not(.admin-dark) .admin-shell main :is(.text-purple-400, .text-purple-500, .text-indigo-400, .text-indigo-500, .text-violet-500) { color: #5B21B6 !important; }
+html:not(.admin-dark) .admin-shell main :is(.text-teal-500, .text-cyan-500, .text-cyan-600) { color: #0F766E !important; }
+html:not(.admin-dark) .admin-shell main :is(.text-lime-500, .text-lime-600) { color: #4D7C0F !important; }
+
+/* Status pills: outlined, like the reference (Pending / Complete / Cancel). */
+html .admin-shell main span:is(.rounded-full, [class*="rounded-full"]):is(
+  [class*="bg-green-50"], [class*="bg-green-100"], [class*="bg-emerald-50"], [class*="bg-emerald-100"],
+  [class*="bg-amber-50"], [class*="bg-amber-100"], [class*="bg-yellow-50"], [class*="bg-yellow-100"],
+  [class*="bg-red-50"], [class*="bg-red-100"], [class*="bg-rose-50"], [class*="bg-rose-100"],
+  [class*="bg-orange-50"], [class*="bg-blue-50"], [class*="bg-blue-100"], [class*="bg-purple-50"], [class*="bg-indigo-50"],
+  [class*="bg-gray-100"], [class*="bg-slate-100"]) {
+  background: transparent !important;
+  border: 1px solid color-mix(in srgb, currentColor 45%, transparent) !important;
+  padding-block: .2rem !important;
+  padding-inline: .65rem !important;
+  font-weight: 600 !important;
+}
+
+/* Tables: soft rounded header row, roomy rows, readable text. */
+html .admin-shell main table { border-collapse: separate !important; border-spacing: 0 !important; }
+html .admin-shell main thead tr { background: transparent !important; }
+html .admin-shell main thead th {
+  background: var(--adm-surface-2) !important;
+  color: var(--adm-muted) !important;
+  font-size: .78rem !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  border-bottom: 0 !important;
+  padding: .85rem 1rem !important;
+  white-space: nowrap;
+}
+html .admin-shell main thead th:first-child { border-radius: 14px 0 0 14px; }
+html .admin-shell main thead th:last-child { border-radius: 0 14px 14px 0; }
+html .admin-shell main tbody td {
+  color: var(--adm-text-2) !important;
+  font-size: .82rem !important;
+  border-bottom: 1px solid var(--adm-border) !important;
+  padding: .9rem 1rem !important;
+}
+html .admin-shell main tbody tr:last-child td { border-bottom: 0 !important; }
+html .admin-shell main tbody tr:hover td { background: color-mix(in srgb, var(--adm-surface-2) 60%, transparent); }
+
+/* Buttons */
+html .admin-shell .admin-btn-primary,
+html .admin-shell .admin-btn-secondary { border-radius: 9999px !important; padding: .65rem 1.15rem; font-size: .8rem; }
+html .admin-shell .admin-btn-primary { background: var(--adm-primary) !important; border-color: var(--adm-primary) !important; color: #fff !important; }
+html .admin-shell .admin-btn-primary:hover:not(:disabled) { background: var(--adm-primary-hover) !important; }
+html .admin-shell .admin-btn-secondary { background: var(--adm-surface) !important; color: var(--adm-text-2) !important; border: 1px solid var(--adm-field-border) !important; }
+
+/* Form fields (pages and modals): clear 3:1 boundary, brand focus ring. */
+html .admin-shell :is(input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not([type="color"]):not([data-plain-input]), select, textarea),
+html.admin-dark :is([role="dialog"], .fixed.inset-0) :is(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not([data-plain-input]), select, textarea) {
+  border: 1px solid var(--adm-field-border) !important;
+  background-color: var(--adm-surface) !important;
+  color: var(--adm-text) !important;
+  border-radius: 12px;
+  box-shadow: none !important;
+}
+html .admin-shell :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]):focus {
+  outline: none !important;
+  border-color: var(--adm-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-accent) 30%, transparent) !important;
+}
+html .admin-shell :is(input[type="checkbox"], input[type="radio"]) { accent-color: var(--adm-primary); }
+html.admin-dark .admin-shell :is(input[type="checkbox"], input[type="radio"]) { accent-color: #C4A4F0; }
+
+/* Dark mode surfaces */
+html.admin-dark .admin-shell main :is(h1, h2, h3, h4) { color: var(--adm-text) !important; }
+html.admin-dark .admin-shell main :is(.text-gray-900, .text-gray-800, .text-gray-950) { color: var(--adm-text) !important; }
+html.admin-dark .admin-shell main :is(.text-gray-700, .text-gray-600) { color: var(--adm-text-2) !important; }
+html.admin-dark .admin-shell main :is(.text-gray-500, .text-gray-400, .text-gray-450, .text-gray-300) { color: var(--adm-muted) !important; }
+
+@media (max-width: 767px) {
+  html .admin-shell main thead th, html .admin-shell main tbody td { padding: .75rem .8rem !important; }
+}
+
+/* Dashboard widgets */
+.adm-card { box-shadow: 0 1px 2px rgba(23, 16, 31, .04), 0 12px 32px -22px rgba(23, 16, 31, .22); }
+html.admin-dark .adm-card { box-shadow: none; }
+.adm-hatch {
+  background-color: color-mix(in srgb, var(--adm-surface-2) 70%, transparent);
+  background-image: repeating-linear-gradient(135deg, color-mix(in srgb, var(--adm-muted) 22%, transparent) 0 3px, transparent 3px 9px);
+}
+
+/* Icon-only buttons keep their size: an older rule gives every admin button pill
+   padding, which squeezed small icon buttons' icons to a few pixels. */
+html .admin-shell main button:has(> svg:only-child):not(#adm-x),
+html .admin-shell [role="dialog"] button:has(> svg:only-child):not(#adm-x) { padding: .45rem !important; }
+html .admin-shell main button:has(> svg:only-child):is([class*="w-7"], [class*="w-8"], [class*="w-9"], [class*="w-10"], [class*="w-11"], [class*="w-12"]):not(#adm-x) { padding: 0 !important; }
+html .admin-shell main button:has(> svg:only-child) > svg { flex-shrink: 0; }
+html .admin-shell main button.adm-round:not(#adm-x) {
+  padding: 0 !important;
+  border: 1px solid var(--adm-border) !important;
+  background: transparent !important;
+  color: var(--adm-text-2) !important;
+}
+html .admin-shell main button.adm-round:not(#adm-x):hover { background: var(--adm-surface-2) !important; }
+
+/* Contrast: brand and status fills behind white text (WCAG AA 4.5:1). */
+html .admin-shell :is([class~="bg-[#EC268F]"], [class~="bg-pink-500"], [class~="bg-pink-600"]) { background-color: #D01B79 !important; }
+html .admin-shell :is([class~="hover:bg-[#EC268F]"], [class~="hover:bg-[#c9166f]"]):hover { background-color: #B5156A !important; }
+html .admin-shell :is([class~="bg-emerald-500"], [class~="bg-emerald-600"], [class~="bg-green-500"], [class~="bg-green-600"], [class~="bg-teal-600"]):is([class~="text-white"], :has(> .text-white)) { background-color: #047857 !important; }
+html .admin-shell :is([class~="bg-amber-500"], [class~="bg-amber-400"], [class~="bg-yellow-500"], [class~="bg-orange-500"]):is([class~="text-white"]):not(#adm-x),
+html .admin-shell :is([class~="bg-amber-500"], [class~="bg-amber-400"], [class~="bg-yellow-500"], [class~="bg-orange-500"]):is([class~="text-white"]):not(#adm-x) * { background-color: #B45309 !important; color: #fff !important; }
+html .admin-shell :is([class~="bg-amber-500"], [class~="bg-amber-400"], [class~="bg-yellow-500"], [class~="bg-orange-500"]):is([class~="text-white"]):not(#adm-x) * { background-color: transparent !important; }
+html .admin-shell :is([class~="bg-red-500"], [class~="bg-rose-500"], [class~="bg-red-400"]):is([class~="text-white"]) { background-color: #DC2626 !important; }
+html .admin-shell :is([class~="bg-blue-500"], [class~="bg-sky-500"], [class~="bg-cyan-500"]):is([class~="text-white"]) { background-color: #1D4ED8 !important; }
+/* Inactive rows: tinted instead of see-through, so their text stays readable. */
+html .admin-shell main tr.adm-row-inactive td { background: var(--adm-surface-2) !important; color: var(--adm-muted) !important; }
+/* Light fills keep dark text in dark mode (the dark-mode text rules lighten gray-900). */
+html.admin-dark .admin-shell :is([class*="bg-yellow-3"], [class*="bg-yellow-4"], [class*="bg-amber-3"], [class*="bg-amber-4"], [class*="bg-lime-3"], [class*="bg-lime-4"]):not(#adm-x),
+html.admin-dark .admin-shell :is([class*="bg-yellow-3"], [class*="bg-yellow-4"], [class*="bg-amber-3"], [class*="bg-amber-4"], [class*="bg-lime-3"], [class*="bg-lime-4"]):not(#adm-x) * { color: #17101F !important; }
+/* Dropdown triggers and multi-selects need the same visible 3:1 boundary as inputs. */
+html .admin-shell button[aria-haspopup="listbox"]:not(#adm-x),
+html.admin-dark :is([role="dialog"], .fixed.inset-0) button[aria-haspopup="listbox"]:not(#adm-x) {
+  background-color: var(--adm-surface) !important;
+  border: 1px solid var(--adm-field-border) !important;
+  color: var(--adm-text) !important;
 }

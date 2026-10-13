@@ -235,7 +235,7 @@ export default function AdminShipping() {
               <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400">No shipping methods yet.</td></tr>
             )}
             {methods.map((m) => (
-              <tr key={m.id} className={`border-t border-gray-100 ${m.is_active ? '' : 'opacity-50'}`}>
+              <tr key={m.id} className={`border-t border-gray-100 ${m.is_active ? '' : 'adm-row-inactive'}`}>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2 font-semibold text-gray-900">
                     {m.is_pickup ? <Store className="w-3.5 h-3.5 text-gray-400" /> : <Truck className="w-3.5 h-3.5 text-gray-400" />}

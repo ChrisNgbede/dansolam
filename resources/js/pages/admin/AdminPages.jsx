@@ -222,12 +222,12 @@ export default function AdminPages() {
   };
 
   return (
-    <div className="flex-1 p-6 md:p-8 flex flex-col gap-6 max-w-7xl mx-auto w-full">
+    <div className="flex flex-col gap-6 w-full">
       {/* Header Block */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="font-serif text-2xl font-bold text-gray-800">Content Management System (CMS)</h2>
-          <p className="text-xs text-gray-450 mt-1">Manage storefront pages, beauty tips, custom policy pages, and interactive FAQs.</p>
+          <h2 className="font-serif text-2xl font-bold text-gray-800">Pages & FAQs</h2>
+          <p className="text-xs text-gray-500 mt-1">Manage storefront pages, custom policy pages, and FAQs.</p>
         </div>
         
         {activeTab === 'pages' ? (

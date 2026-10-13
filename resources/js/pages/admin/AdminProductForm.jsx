@@ -287,7 +287,7 @@ export default function AdminProductForm() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto">
       <Link to="/admin/products" className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-900 transition-colors self-start">
         <ArrowLeft className="w-3.5 h-3.5" />
         Back to Products
@@ -295,12 +295,12 @@ export default function AdminProductForm() {
 
       <div>
         <h2 className="font-serif font-bold text-2xl text-gray-900">
-          {isEdit ? 'Edit Designer Product' : 'Create New Product'}
+          {isEdit ? 'Edit product' : 'Create new product'}
         </h2>
         <p className="text-xs text-gray-400 mt-1">Specify sizing metrics, stock variants, prices, and imagery.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm flex flex-col gap-6 max-w-3xl">
+      <form onSubmit={handleSubmit} className="bg-white border border-gray-200 rounded-xl p-6 sm:p-8 shadow-sm flex flex-col gap-6 w-full">
         
         {/* Core fields */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -535,9 +535,9 @@ export default function AdminProductForm() {
                     <label
                       key={t.id}
                       style={{
-                        backgroundColor: active ? t.bg_color : '#ffffff',
-                        color: active ? t.text_color : '#6b7280',
-                        borderColor: active ? t.bg_color : '#e5e7eb'
+                        backgroundColor: active ? t.bg_color : 'var(--adm-surface)',
+                        color: active ? t.text_color : 'var(--adm-muted)',
+                        borderColor: active ? t.bg_color : 'var(--adm-field-border)'
                       }}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase cursor-pointer select-none transition-all border shadow-sm"
                     >

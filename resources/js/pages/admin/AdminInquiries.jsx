@@ -68,12 +68,12 @@ export default function AdminInquiries() {
   };
 
   return (
-    <div className="flex-1 p-6 md:p-8 flex flex-col gap-6 max-w-7xl mx-auto w-full">
+    <div className="flex flex-col gap-6 w-full">
       {/* Header Block */}
-      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex justify-between items-center">
+      <div className="flex justify-between items-center">
         <div>
           <h2 className="font-serif text-2xl font-bold text-gray-800">Contact Inquiries</h2>
-          <p className="text-xs text-gray-450 mt-1">Review contact inquiries submitted by storefront users.</p>
+          <p className="text-xs text-gray-500 mt-1">Review contact inquiries submitted by storefront users.</p>
         </div>
       </div>
 

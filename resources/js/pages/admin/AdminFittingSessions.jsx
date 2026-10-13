@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import { apiFetch } from '../../hooks/useAuth';
 import { toast } from '../../components/ui/ToastProvider';
 import {
   Calendar,
@@ -35,10 +35,10 @@ export default function AdminFittingSessions() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['admin-fitting-sessions', page, search, statusFilter],
     queryFn: async () => {
-      const res = await axios.get('/api/admin/fitting-sessions', {
-        params: { page, search, status: statusFilter, per_page: 15 },
-      });
-      return res.data;
+      const params = new URLSearchParams({ page, search: search || '', status: statusFilter || '', per_page: 15 });
+      const res = await apiFetch(`/api/admin/fitting-sessions?${params}`);
+      if (!res.ok) throw new Error('Failed to load');
+      return res.json();
     },
     keepPreviousData: true,
   });
@@ -46,8 +46,10 @@ export default function AdminFittingSessions() {
   // Update status mutation
   const updateMutation = useMutation({
     mutationFn: async ({ id, status, admin_notes }) => {
-      const res = await axios.put(`/api/admin/fitting-sessions/${id}`, { status, admin_notes });
-      return res.data;
+      const res = await apiFetch(`/api/admin/fitting-sessions/${id}`, { method: 'PUT', body: JSON.stringify({ status, admin_notes }) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw Object.assign(new Error(data.message || 'Failed to update fitting session'), { response: { data } });
+      return data;
     },
     onSuccess: (data) => {
       toast.success(data.message || 'Fitting session updated');
@@ -63,8 +65,10 @@ export default function AdminFittingSessions() {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      const res = await axios.delete(`/api/admin/fitting-sessions/${id}`);
-      return res.data;
+      const res = await apiFetch(`/api/admin/fitting-sessions/${id}`, { method: 'DELETE' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw Object.assign(new Error(data.message || 'Failed to delete fitting session'), { response: { data } });
+      return data;
     },
     onSuccess: (data) => {
       toast.success(data.message || 'Fitting session deleted');

@@ -134,11 +134,11 @@ export default function SearchableSelect({
         onClick={() => !disabled && setOpen((v) => !v)}
         onKeyDown={onKeyDown}
         data-searchable-select=""
-        className={`${className} text-left flex items-center justify-between gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed`}
+        className={`${className} text-left flex items-center justify-between gap-2 cursor-pointer disabled:text-[#5F566B] dark:text-[#B8AEC4] disabled:cursor-not-allowed`}
         {...rest}
       >
-        <span className={`truncate ${current ? '' : 'opacity-60'}`}>{current?.label || placeholder}</span>
-        <ChevronDown className={`w-4 h-4 shrink-0 opacity-60 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+        <span className={`truncate ${current ? '' : 'text-[#5F566B] dark:text-[#B8AEC4]'}`}>{current?.label || placeholder}</span>
+        <ChevronDown className={`w-4 h-4 shrink-0 text-[#5F566B] dark:text-[#B8AEC4] transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
       </button>
       {/* Keeps native form validation and any FormData reads working. */}
       <input type="hidden" name={name} value={value ?? ''} required={required} />

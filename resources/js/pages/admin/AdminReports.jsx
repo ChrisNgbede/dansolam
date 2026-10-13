@@ -126,10 +126,10 @@ export default function AdminReports() {
           <p className="text-xs text-gray-400 mt-1">Generate insights and export data as CSV or printable PDF.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={handleExportCsv} disabled={exporting || reportData.length === 0} className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50">
+          <button onClick={handleExportCsv} disabled={exporting || reportData.length === 0} className="admin-btn-secondary gap-1.5 disabled:opacity-50">
             {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Export CSV
           </button>
-          <button onClick={handleExportPdf} disabled={reportData.length === 0} className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5 shadow-sm transition-all cursor-pointer disabled:opacity-50">
+          <button onClick={handleExportPdf} disabled={reportData.length === 0} className="admin-btn-primary gap-1.5 disabled:opacity-50">
             <FileText className="w-4 h-4" /> Print / PDF
           </button>
         </div>
