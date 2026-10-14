@@ -76,12 +76,6 @@ export default function AdminOrders() {
   const [errorMsg, setErrorMsg] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
-  // PayPal Refund state
-  const [showRefundModal, setShowRefundModal] = useState(false);
-  const [refundingOrder, setRefundingOrder] = useState(null);
-  const [refundAmount, setRefundAmount] = useState('');
-  const [refundNote, setRefundNote] = useState('');
-  const [refundLoading, setRefundLoading] = useState(false);
 
   // Fetch all orders
   const { data: ordersRes, isLoading } = useQuery({
@@ -284,13 +278,6 @@ export default function AdminOrders() {
     setItems(newLines);
   };
 
-  const handleOpenRefundModal = (order) => {
-    setRefundingOrder(order);
-    setRefundAmount(order.total_amount);
-    setRefundNote(`Refund for order #${order.order_number}`);
-    setShowRefundModal(true);
-  };
-
   const handlePaypalAuthorizationAction = async (order, action) => {
     const question = action === 'capture'
       ? `Collect the held PayPal payment for order #${order.order_number}?`
@@ -310,34 +297,6 @@ export default function AdminOrders() {
       }
     } catch (err) {
       systemToast.error('Network error contacting PayPal.');
-    }
-  };
-
-  const handleExecutePaypalRefund = async (e) => {
-    e.preventDefault();
-    if (!refundingOrder) return;
-    setRefundLoading(true);
-    try {
-      const res = await apiFetch('/api/admin/paypal/refund', {
-        method: 'POST',
-        body: JSON.stringify({
-          order_id: refundingOrder.id,
-          amount: refundAmount ? parseFloat(refundAmount) : null,
-          note: refundNote
-        })
-      });
-      const data = await res.json();
-      setRefundLoading(false);
-      if (data.success) {
-        systemToast.success(data.message || 'PayPal refund issued successfully!');
-        setShowRefundModal(false);
-        queryClient.invalidateQueries(['admin-orders']);
-      } else {
-        systemToast.error(data.message || 'PayPal refund failed.');
-      }
-    } catch (err) {
-      setRefundLoading(false);
-      systemToast.error('Error executing PayPal refund.');
     }
   };
 
@@ -570,15 +529,6 @@ export default function AdminOrders() {
                               Void
                             </button>
                           </>
-                        )}
-                        {ord.payment_method === 'paypal' && ['paid', 'partially_refunded'].includes(ord.payment_status) && (
-                          <button
-                            onClick={() => handleOpenRefundModal(ord)}
-                            className="px-2 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 text-[10px] font-bold rounded-md transition-all cursor-pointer flex items-center gap-1"
-                            title="Refund PayPal Payment"
-                          >
-                            <span>PayPal Refund</span>
-                          </button>
                         )}
                         <button
                           onClick={() => handleOpenEdit(ord)}
@@ -1181,89 +1131,6 @@ export default function AdminOrders() {
         </div>
       )}
 
-      {/* PAYPAL REFUND MODAL */}
-      {showRefundModal && refundingOrder && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 md:p-6">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-5 border border-gray-100 animate-scale-up">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-sm">
-                  P
-                </div>
-                <h3 className="font-serif font-bold text-gray-900 text-lg">PayPal Payment Refund</h3>
-              </div>
-              <button onClick={() => setShowRefundModal(false)} className="text-gray-400 hover:text-gray-600 cursor-pointer">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="bg-blue-50/70 border border-blue-150 rounded-xl p-3.5 text-xs text-blue-900 flex flex-col gap-1.5">
-              <div className="flex justify-between font-semibold">
-                <span>Order Number:</span>
-                <span className="font-mono text-blue-700">#{refundingOrder.order_number}</span>
-              </div>
-              <div className="flex justify-between font-semibold">
-                <span>Total Order Amount:</span>
-                <span className="font-bold text-gray-900">{currencySymbol}{parseFloat(refundingOrder.total_amount).toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between text-[11px] text-gray-600 pt-1 border-t border-blue-200/50">
-                <span>Customer:</span>
-                <span>{refundingOrder.customer_name} ({refundingOrder.customer_email})</span>
-              </div>
-            </div>
-
-            <form onSubmit={handleExecutePaypalRefund} className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-500 font-bold uppercase">Refund Amount ({currencySymbol}) *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  max={refundingOrder.total_amount}
-                  required
-                  value={refundAmount}
-                  onChange={e => setRefundAmount(e.target.value)}
-                  className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-amber-500 text-sm bg-white font-bold text-gray-900"
-                />
-                <span className="text-[10px] text-gray-400">Specify partial or full refund amount to issue via PayPal REST API.</span>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] text-gray-500 font-bold uppercase">Reason / Note to Payer</label>
-                <input
-                  type="text"
-                  value={refundNote}
-                  onChange={e => setRefundNote(e.target.value)}
-                  className="px-3.5 py-2 rounded-xl border border-gray-200 focus:outline-none focus:border-amber-500 text-xs bg-white"
-                  placeholder="Reason for refund..."
-                />
-              </div>
-
-              <div className="flex justify-end gap-2.5 border-t border-gray-100 pt-4 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowRefundModal(false)}
-                  className="px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-600 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={refundLoading}
-                  className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
-                >
-                  {refundLoading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Executing Refund via PayPal...
-                    </>
-                  ) : 'Process PayPal Refund'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

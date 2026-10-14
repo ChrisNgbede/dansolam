@@ -22,10 +22,12 @@ import {
   User,
   Phone,
   Mail,
-  MapPin
+  MapPin,
+  Undo2,
+  X
 } from 'lucide-react';
 import { apiFetch } from '../../hooks/useAuth';
-import SearchableSelect from '../../components/ui/SearchableSelect';
+import OrderStatusPanel from '../../components/admin/OrderStatusPanel';
 
 export default function AdminOrderDetails() {
   const currencySymbol = getCurrencySymbol();
@@ -33,11 +35,14 @@ export default function AdminOrderDetails() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [orderStatus, setOrderStatus] = useState('');
-  const [paymentStatus, setPaymentStatus] = useState('');
   const [updateLoading, setUpdateLoading] = useState(false);
   const [emailLoading, setEmailLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  // PayPal refund
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundNote, setRefundNote] = useState('');
+  const [refundLoading, setRefundLoading] = useState(false);
 
   // Normalize phone for WhatsApp URL (handles Nigerian 070... -> 23470...)
   const formatPhoneForWhatsApp = (rawPhone) => {
@@ -91,14 +96,6 @@ export default function AdminOrderDetails() {
 
   const order = orderRes?.data;
 
-  // Load current statuses on fetch
-  useEffect(() => {
-    if (order) {
-      setOrderStatus(order.order_status);
-      setPaymentStatus(order.payment_status);
-    }
-  }, [order]);
-
   // Update Status mutation
   const updateStatusMutation = useMutation({
     mutationFn: (updatedStatus) => {
@@ -122,38 +119,6 @@ export default function AdminOrderDetails() {
       systemToast.error('Network error updating order status: ' + err.message);
     }
   });
-
-  const isDelivered = order?.order_status === 'delivered';
-
-  const handleUpdateSubmit = (e) => {
-    if (e) e.preventDefault();
-    if (isDelivered) {
-      systemToast.error('This order has already been delivered and finalized. Its fulfillment status cannot be modified.');
-      return;
-    }
-    setUpdateLoading(true);
-    updateStatusMutation.mutate({
-      order_status: orderStatus,
-      payment_status: paymentStatus
-    });
-  };
-
-  const handleQuickStatusUpdate = (newOrderStatus, newPaymentStatus = null) => {
-    if (isDelivered) {
-      systemToast.error('This order has already been delivered and finalized. Its fulfillment status cannot be modified.');
-      return;
-    }
-    setUpdateLoading(true);
-    setOrderStatus(newOrderStatus);
-    const payload = { order_status: newOrderStatus };
-    if (newPaymentStatus) {
-      setPaymentStatus(newPaymentStatus);
-      payload.payment_status = newPaymentStatus;
-    } else {
-      payload.payment_status = paymentStatus;
-    }
-    updateStatusMutation.mutate(payload);
-  };
 
   const handleDownloadInvoice = async () => {
     setPdfLoading(true);
@@ -190,6 +155,41 @@ export default function AdminOrderDetails() {
       systemToast.error('Error sending email: ' + e.message);
     } finally {
       setEmailLoading(false);
+    }
+  };
+
+  const openRefundModal = () => {
+    setRefundAmount('');
+    setRefundNote(`Refund for order #${order.order_number}`);
+    setShowRefundModal(true);
+  };
+
+  const handleExecutePaypalRefund = async (e) => {
+    e.preventDefault();
+    setRefundLoading(true);
+    try {
+      const res = await apiFetch('/api/admin/paypal/refund', {
+        method: 'POST',
+        body: JSON.stringify({
+          order_id: order.id,
+          // Blank = refund the whole remaining balance.
+          amount: refundAmount ? parseFloat(refundAmount) : null,
+          note: refundNote
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        systemToast.success(data.message || 'PayPal refund issued successfully!');
+        setShowRefundModal(false);
+        queryClient.invalidateQueries(['admin-order-details', id]);
+        queryClient.invalidateQueries(['admin-orders']);
+      } else {
+        systemToast.error(data.message || 'PayPal refund failed.');
+      }
+    } catch (err) {
+      systemToast.error('Error executing PayPal refund.');
+    } finally {
+      setRefundLoading(false);
     }
   };
 
@@ -245,6 +245,12 @@ export default function AdminOrderDetails() {
         return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300';
     }
   };
+
+  const paypalPayment = (order.payments || []).find(p => p.gateway === 'paypal');
+  const paypalCapture = paypalPayment?.gateway_response?.capture;
+  const paypalRefunds = paypalPayment?.gateway_response?.refunds || [];
+  const refundedSoFar = paypalRefunds.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+  const canRefund = order.payment_method === 'paypal' && ['paid', 'partially_refunded'].includes(order.payment_status);
 
   const trackingUrl = `${window.location.origin}/order-tracking?order_number=${order.order_number}&contact=${encodeURIComponent(order.customer_email || '')}`;
 
@@ -312,6 +318,18 @@ export default function AdminOrderDetails() {
             {emailLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             <span>Email Invoice</span>
           </button>
+
+          {/* PayPal refund */}
+          {canRefund && (
+            <button
+              type="button"
+              onClick={openRefundModal}
+              className="admin-btn-secondary inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <Undo2 className="w-4 h-4 text-rose-600" />
+              <span>Refund</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -484,190 +502,116 @@ export default function AdminOrderDetails() {
         {/* RIGHT COLUMN: FULFILLMENT & QUICK ACTIONS */}
         <div className="flex flex-col gap-6 w-full text-left">
 
-          {isDelivered ? (
-            /* Order Delivered & Locked State */
-            <div className="bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-3xl p-6 shadow-xs flex flex-col gap-4.5 transition-colors">
-              <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-sm">
-                  <CheckCircle2 className="w-6 h-6" />
-                </div>
-                <div className="flex flex-col">
-                  <h4 className="font-extrabold text-base text-emerald-950 dark:text-emerald-200">
-                    Order Delivered & Completed
-                  </h4>
-                  <span className="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold">
-                    {order.delivered_at ? `Delivered on ${new Date(order.delivered_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}` : 'Delivered successfully'}
-                  </span>
-                </div>
-              </div>
-
-              <p className="text-xs text-emerald-900 dark:text-emerald-300/90 leading-relaxed font-medium bg-white/60 dark:bg-black/20 p-4 rounded-2xl border border-emerald-200/60 dark:border-emerald-800/40">
-                🔒 <strong>Status Finalized:</strong> This order is marked as delivered and complete. The fulfillment workflow is permanently locked to protect customer transaction records and invoice integrity.
-              </p>
-
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-black/20 border border-emerald-200/60 dark:border-emerald-800/40 text-xs">
-                <span className="font-bold text-gray-700 dark:text-[#C9BED4]">Order Fulfillment State:</span>
-                <span className="font-extrabold text-emerald-700 dark:text-emerald-300 uppercase text-[10px] bg-emerald-100 dark:bg-emerald-900/50 px-3 py-1 rounded-full border border-emerald-300 dark:border-emerald-800">
-                  Delivered (Locked)
-                </span>
-              </div>
-
-              {/* Direct Customer WhatsApp Concierge */}
-              <a
-                href={`https://wa.me/${formatPhoneForWhatsApp(order.customer_phone)}?text=Hello%20${encodeURIComponent(order.customer_name || 'Valued Customer')}%2C%20thank%20you%20for%20shopping%20with%20Dansolam%20Beauty%20Home!%20Your%20order%20%23${order.order_number}%20has%20been%20delivered.`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full text-center inline-flex items-center justify-center gap-2 px-4 py-3 bg-[#25D366] hover:bg-[#20ba59] text-white rounded-full text-xs font-extrabold transition-all cursor-pointer shadow-xs btn-spring mt-1"
-              >
-                <MessageCircle className="w-4 h-4 fill-white text-white" />
-                <span>Message Customer on WhatsApp</span>
-              </a>
-            </div>
-          ) : (
-            <>
-              {/* Quick Action Chips */}
-              <div className="bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-3xl p-6 shadow-xs flex flex-col gap-3.5 transition-colors">
-                <h3 className="font-extrabold text-xs uppercase tracking-wider text-[#5D3E85] dark:text-[#EC268F] border-b border-[#EADBEE] dark:border-white/10 pb-2 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4" />
-                  1-Click Fulfillment Status
-                </h3>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    disabled={updateLoading || order.payment_status === 'paid'}
-                    onClick={() => handleQuickStatusUpdate(order.order_status === 'pending_payment' ? 'paid' : order.order_status, 'paid')}
-                    className="px-3 py-2 rounded-2xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-[11px] font-extrabold border border-emerald-200 dark:border-emerald-800/50 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
-                  >
-                    <CheckCircle className="w-3.5 h-3.5" />
-                    Confirm Payment
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={updateLoading || order.order_status === 'processing'}
-                    onClick={() => handleQuickStatusUpdate('processing')}
-                    className="px-3 py-2 rounded-2xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/40 dark:hover:bg-purple-900/60 text-[#5D3E85] dark:text-[#EC268F] text-[11px] font-extrabold border border-purple-200 dark:border-purple-800/50 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
-                  >
-                    <Clock className="w-3.5 h-3.5" />
-                    Mark Processing
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={updateLoading || order.order_status === 'packed'}
-                    onClick={() => handleQuickStatusUpdate('packed')}
-                    className="px-3 py-2 rounded-2xl bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/60 text-indigo-800 dark:text-indigo-300 text-[11px] font-extrabold border border-indigo-200 dark:border-indigo-800/50 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
-                  >
-                    <Package className="w-3.5 h-3.5" />
-                    Mark Packed
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={updateLoading || order.order_status === 'ready_for_pickup'}
-                    onClick={() => handleQuickStatusUpdate('ready_for_pickup')}
-                    className="px-3 py-2 rounded-2xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 dark:hover:bg-amber-900/60 text-amber-800 dark:text-amber-300 text-[11px] font-extrabold border border-amber-200 dark:border-amber-800/50 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
-                  >
-                    <MapPin className="w-3.5 h-3.5" />
-                    Ready for Pickup
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={updateLoading || order.order_status === 'shipped'}
-                    onClick={() => handleQuickStatusUpdate('shipped')}
-                    className="px-3 py-2 rounded-2xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 text-blue-800 dark:text-blue-300 text-[11px] font-extrabold border border-blue-200 dark:border-blue-800/50 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
-                  >
-                    <Truck className="w-3.5 h-3.5" />
-                    Mark Shipped
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={updateLoading}
-                    onClick={() => handleQuickStatusUpdate('delivered', 'paid')}
-                    className="px-3 py-2 rounded-2xl bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-[11px] font-extrabold border border-emerald-200 dark:border-emerald-800/50 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    Mark Delivered
-                  </button>
-                </div>
-              </div>
-
-              {/* Detailed Status Selector Form */}
-              <div className="bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-3xl p-6 shadow-xs flex flex-col gap-5 transition-colors">
-                <h3 className="font-extrabold text-xs uppercase tracking-wider text-[#5D3E85] dark:text-[#EC268F] border-b border-[#EADBEE] dark:border-white/10 pb-2">
-                  Update Status & Dispatch Email
-                </h3>
-
-                <form onSubmit={handleUpdateSubmit} className="flex flex-col gap-4">
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-extrabold uppercase">Payment Status</label>
-                    <SearchableSelect
-                      value={paymentStatus}
-                      onChange={e => setPaymentStatus(e.target.value)}
-                      className="px-3.5 py-2.5 rounded-2xl border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs font-bold bg-white dark:bg-[#231B30] text-[#221B2B] dark:text-[#F3EFF6]"
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="paid">Paid (Confirm Payment)</option>
-                      <option value="failed">Failed</option>
-                    </SearchableSelect>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-[10px] text-gray-500 dark:text-[#9B8EA9] font-extrabold uppercase">Order Fulfillment Status</label>
-                    <SearchableSelect
-                      value={orderStatus}
-                      onChange={e => setOrderStatus(e.target.value)}
-                      className="px-3.5 py-2.5 rounded-2xl border border-gray-200 dark:border-white/15 focus:outline-none focus:border-[#5D3E85] dark:focus:border-[#EC268F] text-xs font-bold bg-white dark:bg-[#231B30] text-[#221B2B] dark:text-[#F3EFF6]"
-                    >
-                      <option value="pending_payment">Pending Payment</option>
-                      <option value="paid">Paid / Awaiting Packing</option>
-                      <option value="processing">Processing / Packing</option>
-                      <option value="packed">Packed</option>
-                      <option value="ready_for_pickup">Ready for Store Pickup</option>
-                      <option value="shipped">Shipped / Dispatched</option>
-                      <option value="delivered">Delivered Successfully</option>
-                      <option value="cancelled">Cancelled</option>
-                    </SearchableSelect>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={updateLoading}
-                    className="w-full py-3 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-xs font-extrabold rounded-full flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer btn-spring disabled:opacity-60"
-                  >
-                    {updateLoading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        <span>Updating & Sending Email...</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle className="w-4 h-4" />
-                        <span>Save & Notify Customer</span>
-                      </>
-                    )}
-                  </button>
-                </form>
-
-                {/* WhatsApp direct customer messaging */}
-                <a
-                  href={`https://wa.me/${formatPhoneForWhatsApp(order.customer_phone)}?text=Hello%20${encodeURIComponent(order.customer_name || 'Valued Customer')}%2C%20this%20is%20Dansolam%20Beauty%20Home%20regarding%20your%20order%20%23${order.order_number}.`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full text-center inline-flex items-center justify-center gap-2 px-4 py-2.5 border border-[#25D366]/40 hover:bg-[#25D366]/10 rounded-full text-xs font-extrabold text-[#25D366] transition-all cursor-pointer"
-                >
-                  <MessageCircle className="w-4 h-4 fill-[#25D366]" />
-                  <span>Contact Customer via WhatsApp</span>
-                </a>
-              </div>
-            </>
-          )}
+          <OrderStatusPanel
+            order={order}
+            saving={updateLoading}
+            onSave={(payload) => {
+              setUpdateLoading(true);
+              updateStatusMutation.mutate(payload);
+            }}
+            whatsappHref={`https://wa.me/${formatPhoneForWhatsApp(order.customer_phone)}?text=Hello%20${encodeURIComponent(order.customer_name || 'Valued Customer')}%2C%20this%20is%20Dansolam%20Beauty%20Home%20regarding%20your%20order%20%23${order.order_number}.`}
+          />
         </div>
 
       </div>
+
+      {/* PAYPAL REFUND MODAL */}
+      {showRefundModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 md:p-6" role="dialog" aria-modal="true" aria-labelledby="refund-title">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl flex flex-col gap-5 border border-gray-100">
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+              <h3 id="refund-title" className="font-bold text-gray-900 text-lg">Refund PayPal payment</h3>
+              <button type="button" onClick={() => setShowRefundModal(false)} aria-label="Close" className="text-gray-400 hover:text-gray-600 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <dl className="bg-gray-50 border border-gray-150 rounded-xl p-3.5 text-sm text-gray-700 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5">
+              <dt>Order</dt>
+              <dd className="text-right font-semibold text-gray-900">#{order.order_number}</dd>
+              <dt>Order total</dt>
+              <dd className="text-right font-semibold text-gray-900">{currencySymbol}{parseFloat(order.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</dd>
+              {paypalCapture && (
+                <>
+                  <dt>Captured by PayPal</dt>
+                  <dd className="text-right">{paypalCapture.currency} {parseFloat(paypalCapture.amount).toFixed(2)}</dd>
+                </>
+              )}
+              {paypalRefunds.length > 0 && (
+                <>
+                  <dt>Already refunded</dt>
+                  <dd className="text-right">{paypalCapture?.currency} {refundedSoFar.toFixed(2)}</dd>
+                </>
+              )}
+              <dt>Customer</dt>
+              <dd className="text-right truncate">{order.customer_name}</dd>
+            </dl>
+
+            {paypalRefunds.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <h4 className="font-bold text-gray-900 text-sm">Earlier refunds</h4>
+                <ul className="flex flex-col gap-1 text-xs text-gray-600">
+                  {paypalRefunds.map((r, i) => (
+                    <li key={r.id || i} className="flex justify-between gap-3">
+                      <span>{r.at ? new Date(r.at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' }) : '—'}{r.note ? ` · ${r.note}` : ''}</span>
+                      <span className="font-semibold text-gray-900 shrink-0">{paypalCapture?.currency} {parseFloat(r.amount).toFixed(2)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <form onSubmit={handleExecutePaypalRefund} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <label htmlFor="refund-amount" className="text-[10px] text-gray-500 font-bold uppercase">Refund amount ({currencySymbol})</label>
+                <input
+                  id="refund-amount"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  max={order.total_amount}
+                  value={refundAmount}
+                  onChange={e => setRefundAmount(e.target.value)}
+                  placeholder="Full remaining balance"
+                  className="px-3.5 py-2 rounded-xl border border-gray-200 text-sm bg-white text-gray-900"
+                />
+                <span className="text-xs text-gray-500">Leave blank to refund everything not yet refunded, or enter a smaller amount for a partial refund.</span>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label htmlFor="refund-note" className="text-[10px] text-gray-500 font-bold uppercase">Reason / note to payer</label>
+                <input
+                  id="refund-note"
+                  type="text"
+                  maxLength={255}
+                  value={refundNote}
+                  onChange={e => setRefundNote(e.target.value)}
+                  placeholder="Reason for refund..."
+                  className="px-3.5 py-2 rounded-xl border border-gray-200 text-sm bg-white"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2.5 border-t border-gray-100 pt-4 mt-1">
+                <button type="button" onClick={() => setShowRefundModal(false)} className="admin-btn-secondary cursor-pointer">
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={refundLoading}
+                  className="bg-red-600 text-white inline-flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {refundLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Refunding…
+                    </>
+                  ) : 'Refund via PayPal'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
