@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import {
   Landmark, ShoppingCart, Clock, AlertTriangle, ArrowRight, TrendingUp,
   DollarSign, ListOrdered, MoreVertical, Award, ArrowUpRight, Monitor,
-  ReceiptText, PackageCheck, WalletCards, Plus, Sparkles, MessageSquare,
+  ReceiptText, PackageCheck, WalletCards, Plus, MessageSquare,
   Calendar, Check, ShieldCheck, Heart, Star, ExternalLink, Package, Users
 } from 'lucide-react';
 import { apiFetch } from '../../hooks/useAuth';

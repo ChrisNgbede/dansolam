@@ -203,7 +203,7 @@ export default function Cart() {
                 to="/shop"
                 className="px-3.5 py-1.5 rounded-full bg-gray-50 dark:bg-gray-700/50 hover:bg-[#5D3E85]/10 hover:text-[#5D3E85] text-gray-650 dark:text-gray-300 text-xs font-medium border border-gray-200 dark:border-gray-600 transition-all duration-200"
               >
-                ✨ All Products
+                All Products
               </Link>
               <Link
                 to="/shop"
@@ -379,7 +379,7 @@ export default function Cart() {
           {crossSellProducts.length > 0 && (
             <div className="border-t border-[#EADBEE] dark:border-white/10 pt-8 mt-6 w-full text-left">
               <h3 className="font-extrabold text-base text-[#221B2B] dark:text-[#F3EFF6] mb-4 flex items-center gap-2">
-                <span>✨</span> Complete Your Routine
+                Complete Your Routine
               </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {crossSellProducts.map((prod) => (
@@ -588,7 +588,7 @@ function CartProductCard({ product, currencySymbol, addItem, allowOverselling })
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <span className="text-gray-300 dark:text-gray-600 text-2xl font-serif">✨</span>
+          <span className="text-gray-300 dark:text-gray-600 text-2xl font-serif" aria-hidden="true">🌿</span>
         )}
         {isSale && (
           <span className="absolute top-2.5 left-2.5 bg-red-500 text-white text-[8px] font-bold px-2 py-0.5 rounded-full  tracking-wider">

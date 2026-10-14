@@ -558,7 +558,7 @@ export default function ProductDetails() {
                 </div>
               </div>
               <div className="bg-[#FAF7FC] dark:bg-[#1E1528] p-3.5 rounded-2xl border border-[#EADBEE] dark:border-white/10 text-xs text-[#5C5566] dark:text-[#C9BED4] flex items-center gap-2.5">
-                <span className="text-base">✨</span>
+                <span className="text-base" aria-hidden="true">🌿</span>
                 <div>
                   <strong className="block text-[#221B2B] dark:text-[#F3EFF6]">100% Organic Purity</strong>
                   <span className="text-[11px] text-[#5C5566] dark:text-[#9B8EA9]">Zero steroids · Certified botanical oils</span>
@@ -769,7 +769,7 @@ export default function ProductDetails() {
                     : 'border-transparent text-gray-400 hover:text-gray-650 dark:hover:text-white'
                     }`}
                 >
-                  ✨ Creams & Soaps
+                  Creams & Soaps
                 </button>
                 <button
                   type="button"

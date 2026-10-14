@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { toast as systemToast } from '../ui/ToastProvider';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Home, ShoppingBag, Search, ShoppingCart, Heart, User, MessageCircle, Menu, X, Gift, Mail, ArrowRight, ArrowLeft, FileText, BookOpen, LayoutDashboard, Trash2, ArrowUpRight, Banknote, ShieldCheck, Truck, Megaphone, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Sun, Moon, Phone, Star, Sparkles, Layers, Tag, ExternalLink } from 'lucide-react';
+import { Home, ShoppingBag, Search, ShoppingCart, Heart, User, MessageCircle, Menu, X, Gift, Mail, ArrowRight, ArrowLeft, FileText, BookOpen, LayoutDashboard, Trash2, ArrowUpRight, Banknote, ShieldCheck, Truck, Megaphone, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Sun, Moon, Phone, Star, Leaf, Layers, Tag, ExternalLink } from 'lucide-react';
 import { useCartStore } from '../../store/cartStore';
 import { useWishlistStore } from '../../store/wishlistStore';
 import SocialIcon from '../ui/SocialIcon';
@@ -162,7 +162,7 @@ function AnimatedAnnouncementBar({ text, settings = {} }) {
     try {
       navigator.clipboard.writeText(couponCode);
       setCopiedCode(couponCode);
-      systemToast.success(`Coupon code "${couponCode}" copied to clipboard! ✨`);
+      systemToast.success(`Coupon code "${couponCode}" copied to clipboard!`);
       setTimeout(() => setCopiedCode(null), 3000);
     } catch (err) {
       systemToast.success(`Coupon code: ${couponCode}`);
@@ -579,7 +579,7 @@ export default function StorefrontLayout() {
     opening_hours: 'Monday–Saturday: 9:00 AM - 6:00 PM',
     opening_hours_note: 'Closed on Sundays',
     announcement_show: 'true',
-    announcement_text: '✨ Free delivery on orders above £500! | 🌿 100% Organic Skincare, Whitening Soaps & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF your first beauty order',
+    announcement_text: '🚚 Free delivery on orders above £500! | 🌿 100% Organic Skincare, Whitening Soaps & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF your first beauty order',
     promo_popup_show: 'false',
     promo_popup_title: 'Welcome to Dansolam',
     promo_popup_body: 'Save 10% off your first beauty purchase.',
@@ -740,7 +740,7 @@ export default function StorefrontLayout() {
       {/* 0. Top Bar Announcement */}
       {announcementActive && (
         <AnimatedAnnouncementBar
-          text={settings.announcement_text || '✨ Free delivery on orders above £500! | 🌿 100% Organic Skincare, Whitening Soaps & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF your first beauty order'}
+          text={settings.announcement_text || '🚚 Free delivery on orders above £500! | 🌿 100% Organic Skincare, Whitening Soaps & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF your first beauty order'}
           settings={settings}
         />
       )}
@@ -888,7 +888,7 @@ export default function StorefrontLayout() {
 
                 <div className="flex min-w-0 flex-col gap-3 border-l border-gray-100 dark:border-white/10 pl-8 h-full justify-start">
                   <span className="font-sans font-extrabold text-xs  tracking-wider text-gray-950 dark:text-white border-b border-gray-200 dark:border-white/10 pb-2.5 flex items-center gap-1.5">
-                    ✨ Featured Offers
+                    Featured Offers
                   </span>
                   <MegaMenuAdSlideshow ads={settings.mega_menu_ads} />
                 </div>
@@ -1330,7 +1330,7 @@ export default function StorefrontLayout() {
                   }`}
                 >
                   <span className="flex items-center gap-3">
-                    <Sparkles className="w-4 h-4 opacity-75" />
+                    <Leaf className="w-4 h-4 opacity-75" />
                     About
                   </span>
                   <ArrowRight className={`w-3.5 h-3.5 ${isActive('/pages/about-us') ? 'text-white dark:text-[#17101F]' : 'opacity-30'}`} />
@@ -1901,7 +1901,7 @@ export default function StorefrontLayout() {
                         onClick={() => setShowSearchModal(false)}
                         className="px-4 py-2 bg-gray-50 dark:bg-white/5 hover:bg-[#5D3E85]/10 dark:hover:bg-[#EC268F]/10 hover:text-[#5D3E85] dark:hover:text-[#EC268F] border border-gray-100 dark:border-white/10 rounded-full text-xs text-gray-600 dark:text-[#C9BED4] transition-all font-semibold"
                       >
-                        ✨ About Dansolam
+                        About Dansolam
                       </Link>
                       <Link
                         to="/pages/faq"

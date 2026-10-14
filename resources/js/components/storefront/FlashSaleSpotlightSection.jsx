@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, ChevronLeft, ChevronRight, Zap, Clock, Sparkles, ShoppingBag } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, Zap, Clock, ShoppingBag } from 'lucide-react';
 import { useCartStore } from '../../store/cartStore';
 import { getCurrencySymbol } from '../../utils/currency';
 

@@ -116,7 +116,7 @@ export default function Reviews() {
     onSuccess: (data) => {
       if (data.success) {
         v.reset();
-        setSuccessMsg(data.message || 'Review submitted successfully! Thank you for sharing your experience. ✨');
+        setSuccessMsg(data.message || 'Review submitted successfully! Thank you for sharing your experience.');
         setCustomerName('');
         setReviewTitle('');
         setComment('');

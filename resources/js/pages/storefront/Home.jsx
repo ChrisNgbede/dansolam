@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ArrowRight, Star, Heart, Eye, Check, Truck, MessageCircle, ChevronLeft, ChevronRight, Sparkles, Leaf
+  ArrowRight, Star, Heart, Eye, Check, Truck, MessageCircle, ChevronLeft, ChevronRight, Leaf
 } from 'lucide-react';
 import { useCartStore } from '../../store/cartStore';
 import { useWishlistStore } from '../../store/wishlistStore';
@@ -456,7 +456,7 @@ export default function Home() {
       {(featuredLoading || featuredList.length > 0) && (
         <section className={`${SECTION_CLASS} ${band()}`}>
           <SectionHeader
-            eyebrow={<><Sparkles className="w-3.5 h-3.5 text-[#EC268F]" /><span>Best Sellers & Featured</span></>}
+            eyebrow={<><Leaf className="w-3.5 h-3.5 text-[#EC268F]" /><span>Best Sellers & Featured</span></>}
             title="Our Top Picks"
           >
             <Link to="/shop" className={OUTLINE_BTN_CLASS}>
@@ -530,7 +530,7 @@ export default function Home() {
             <div className="lg:col-span-6 flex flex-col gap-6 relative z-10 text-left">
               <div className="flex items-center justify-between gap-4">
                 <span className={EYEBROW_CLASS}>
-                  <Sparkles className="w-3 h-3 text-[#EC268F]" />
+                  <Leaf className="w-3 h-3 text-[#EC268F]" />
                   <span>Skincare Tips</span>
                 </span>
 

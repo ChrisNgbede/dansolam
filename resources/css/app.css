@@ -2471,7 +2471,7 @@ html.admin-dark {
 /* ---- Buttons: every text button (pages and modals) ----------------------
    "Text button" = a button whose content is text and icons only. Buttons that
    hold blocks (report tiles, upload drop zones, chart bars) keep their layout. */
-html body .admin-shell main :is(button, a.admin-btn-primary, a.admin-btn-secondary, a[class*="px-"][class*="py-"]):not(:has(div, p, img, h3, h4, ul, table)):not([data-icon-btn]):not(.adm-hatch):not([aria-haspopup="listbox"]):not(#adm-x) {
+html body .admin-shell main :is(button, a.admin-btn-primary, a.admin-btn-secondary, a[class*="px-"][class*="py-"]):not(:has(div, p, img, h3, h4, ul, table, .block)):not([data-icon-btn]):not(.adm-hatch):not([aria-haspopup="listbox"]):not(#adm-x) {
   min-height: var(--adm-ctl-h) !important;
   padding: 0 var(--adm-ctl-px) !important;
   font-size: var(--adm-ctl-fs) !important;
@@ -2485,7 +2485,7 @@ html body .admin-shell main :is(button, a.admin-btn-primary, a.admin-btn-seconda
   transition: background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease, transform .1s ease !important;
 }
 /* Small buttons: inside table rows, chip/filter rows and compact toolbars. */
-html body .admin-shell main :is(button, a[class*="px-"][class*="py-"]):not(:has(div, p, img, h3, h4, ul, table)):not([data-icon-btn]):not(.adm-hatch):is(
+html body .admin-shell main :is(button, a[class*="px-"][class*="py-"]):not(:has(div, p, img, h3, h4, ul, table, .block)):not([data-icon-btn]):not(.adm-hatch):is(
   td *, [class~="py-0.5"], [class~="py-1"], [class~="py-1.5"], [class~="text-[9px]"], [class~="text-[10px]"], [class~="text-[11px]"], [class~="h-7"], [class~="h-8"]
 ):not(.admin-btn-primary):not(.admin-btn-secondary):not([aria-haspopup="listbox"]):not(#adm-x) {
   min-height: var(--adm-ctl-h-sm) !important;
@@ -2532,12 +2532,12 @@ html.admin-dark body .admin-shell main :is(.admin-btn-primary, button.bg-primary
 
 /* Secondary / neutral: white surface with the field border. This replaces the
    older grey-filled buttons, which looked like disabled ones. */
-html body .admin-shell main :is(.admin-btn-secondary, button.bg-white, a.bg-white[class*="px-"], button[class*="bg-gray-100"], button[class*="bg-gray-50"], button.border-gray-200, button.border-gray-300):not(:has(div, p, img, h3, h4, ul, table)):not([aria-haspopup="listbox"]):not(#adm-x) {
+html body .admin-shell main :is(.admin-btn-secondary, button.bg-white, a.bg-white[class*="px-"], button[class*="bg-gray-100"], button[class*="bg-gray-50"], button.border-gray-200, button.border-gray-300):not(:has(div, p, img, h3, h4, ul, table, .block)):not([aria-haspopup="listbox"]):not(#adm-x) {
   background: var(--adm-surface) !important;
   color: var(--adm-text-2) !important;
   border: 1px solid var(--adm-field-border) !important;
 }
-html body .admin-shell main :is(.admin-btn-secondary, button.bg-white, a.bg-white[class*="px-"], button[class*="bg-gray-100"], button[class*="bg-gray-50"], button.border-gray-200, button.border-gray-300):not(:has(div, p, img, h3, h4, ul, table)):not([aria-haspopup="listbox"]):hover:not(:disabled):not(#adm-x) {
+html body .admin-shell main :is(.admin-btn-secondary, button.bg-white, a.bg-white[class*="px-"], button[class*="bg-gray-100"], button[class*="bg-gray-50"], button.border-gray-200, button.border-gray-300):not(:has(div, p, img, h3, h4, ul, table, .block)):not([aria-haspopup="listbox"]):hover:not(:disabled):not(#adm-x) {
   background: var(--adm-secondary-hover) !important;
   border-color: var(--adm-field-hover) !important;
   color: var(--adm-text) !important;
@@ -2737,8 +2737,8 @@ html body .admin-shell main :is(h1, h2):not(:is(.text-2xl, .text-3xl, [class*="m
 /* ---- Page header ---------------------------------------------------------------
    Title block on the left, actions on the right; when they don't fit, the
    actions move to the next line instead of squeezing the title. */
-html body .admin-shell main :is(div, header):has(> div > :is(h1, h2):is(.text-2xl, .text-3xl, [class*="md:text-3xl"])):not(#adm-x) { flex-wrap: wrap; row-gap: 1rem; column-gap: 1.5rem; }
-html body .admin-shell main :is(div, header):has(> div > :is(h1, h2):is(.text-2xl, .text-3xl, [class*="md:text-3xl"])) > div:has(> :is(h1, h2)):not(#adm-x) { flex: 1 1 auto; min-width: min(100%, 24rem); }
+html body .admin-shell main :is(div, header):has(> div > :is(h1, h2):is(.text-2xl, .text-3xl, [class*="md:text-3xl"])):not(#adm-x) { flex-wrap: wrap; row-gap: 1rem; column-gap: 1.5rem; align-items: flex-start !important; }
+html body .admin-shell main :is(div, header):has(> div > :is(h1, h2):is(.text-2xl, .text-3xl, [class*="md:text-3xl"])) > div:has(> :is(h1, h2)):not(#adm-x) { flex: 1 1 0; min-width: min(100%, 28rem); }
 html body .admin-shell main :is(div, header):has(> div > :is(h1, h2):is(.text-2xl, .text-3xl, [class*="md:text-3xl"])) > div:not(:has(> :is(h1, h2))):not(#adm-x) { flex-wrap: wrap; gap: .5rem; }
 
 /* ---- Cards ------------------------------------------------------------------ */
@@ -2785,5 +2785,22 @@ html body .admin-shell .admin-search:focus:not(#adm-x) {
 }
 html.admin-dark body .admin-shell .admin-search:focus:not(#adm-x) { border-color: var(--adm-focus) !important; }
 /* Toolbars: a search box never shrinks below 14rem; its row wraps instead. */
-html body .admin-shell main :is(div, label):has(> input[placeholder^="Search"]):not(#adm-x) { min-width: min(100%, 14rem); flex: 1 1 14rem; }
+html body .admin-shell main :is(div, label):has(> input[placeholder^="Search"]):not(#adm-x) { min-width: min(100%, 14rem); flex-grow: 1; }
 html body .admin-shell main div:has(> :is(div, label) > input[placeholder^="Search"]):not(#adm-x) { flex-wrap: wrap; row-gap: .75rem; }
+/* Small number boxes (page jump, quantities): no spinner arrows. */
+html body .admin-shell main input[type="number"]:is([class~="w-12"], [class~="w-14"], [class~="w-16"]):not(#adm-x) { appearance: textfield; -moz-appearance: textfield; }
+html body .admin-shell main input[type="number"]:is([class~="w-12"], [class~="w-14"], [class~="w-16"])::-webkit-inner-spin-button,
+html body .admin-shell main input[type="number"]:is([class~="w-12"], [class~="w-14"], [class~="w-16"])::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+/* Labels beside their field (filter rows) sit on the same line, no gap below. */
+html body .admin-shell main [class~="flex"]:not([class~="flex-col"]) > label:not(#adm-x) { margin-bottom: 0 !important; }
+/* Buttons laid out as cards (a title line and a description line) keep a block
+   layout; an older rule turned every plain button into a one-line pill. */
+html body .admin-shell main button:has(> .block):not(#adm-x) {
+  display: block !important;
+  padding: .75rem .875rem !important;
+  border-radius: 16px !important;
+  white-space: normal !important;
+  text-align: left !important;
+  min-height: 0 !important;
+  height: auto !important;
+}

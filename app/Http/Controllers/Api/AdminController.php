@@ -1296,7 +1296,7 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Subscriber added to audience successfully! ✨',
+            'message' => 'Subscriber added to audience successfully!',
             'data' => [
                 'id' => $id,
                 'email' => $email,
@@ -1382,7 +1382,7 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Campaign saved successfully! ✨',
+            'message' => 'Campaign saved successfully!',
             'data' => $campaign
         ]);
     }
@@ -1566,7 +1566,7 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Test preview email pushed to {$recipientEmail}! ✨"
+            'message' => "Test preview email pushed to {$recipientEmail}!"
         ]);
     }
 

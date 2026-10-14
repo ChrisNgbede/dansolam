@@ -97,7 +97,7 @@ export default function Shop() {
           setSearchQuery(cleanedText);
           updateUrlParams({ search: cleanedText });
           setTypeaheadOpen(true);
-          systemToast.success(`Voice result: "${cleanedText}" ✨`);
+          systemToast.success(`Voice result: "${cleanedText}"`);
         }
         setIsListening(false);
       };
@@ -608,7 +608,7 @@ export default function Shop() {
                 : 'bg-white dark:bg-[#1E1528] border-[#EADBEE] dark:border-white/10 text-gray-700 dark:text-[#C9BED4] hover:text-[#5D3E85] dark:hover:text-[#EC268F] hover:border-[#5D3E85]/30 shadow-xs'
                 }`}
             >
-              ✨ All Products
+              All Products
             </button>
             {categories.slice(0, 5).map((cat) => (
               <button

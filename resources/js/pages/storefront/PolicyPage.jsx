@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, Search, ChevronDown, ChevronUp, Ruler, Heart, HelpCircle, CheckCircle, Info, ShieldCheck, MessageCircle, Sparkles, Sun, Moon, Droplets, Shield, ArrowRight, Zap, Flame, Eye, Star } from 'lucide-react';
+import { ArrowLeft, Search, ChevronDown, ChevronUp, Ruler, Heart, HelpCircle, CheckCircle, Info, ShieldCheck, MessageCircle, Sun, Moon, Droplets, Shield, ArrowRight, Zap, Flame, Eye, Star } from 'lucide-react';
 import FaqSection from '../../components/storefront/FaqSection';
 import About from './About';
 import { cmsPageQuery } from '../../utils/pageQueries';
@@ -169,7 +169,7 @@ export default function PolicyPage() {
                       {page?.title}
                     </h1>
                     <div className="flex flex-wrap items-center gap-3 md:gap-4 text-[11px] text-white/70 mt-1 pt-3 border-t border-white/10 w-full font-medium">
-                      <span>✨ Official Dansolam Policy</span>
+                      <span>Official Dansolam Policy</span>
                       <span>•</span>
                       <span>Verified 100% Organic & Secure Standard</span>
                       <span>•</span>

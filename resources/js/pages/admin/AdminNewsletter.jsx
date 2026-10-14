@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CalendarDays, ChevronLeft, ChevronRight, Download, Mail, Search, Trash2,
-  TrendingUp, Users, Send, Plus, Sparkles, Eye, CheckCircle, AlertCircle,
+  TrendingUp, Users, Send, Plus, LayoutTemplate, Eye, CheckCircle, AlertCircle,
   FileText, ArrowRight, RefreshCw, Loader2, Play, ExternalLink, ShieldCheck,
   Tag, Clock, Check
 } from 'lucide-react';
@@ -34,7 +34,7 @@ export default function AdminNewsletter() {
   // ─── TAB 3: CAMPAIGN COMPOSER STATE ───
   const [editingCampaignId, setEditingCampaignId] = useState(null);
   const [campaignTitle, setCampaignTitle] = useState('August Glow Routine & Organic Arrivals');
-  const [campaignSubject, setCampaignSubject] = useState('✨ Glow Naturally: The 5-Day Organic Routine + Exclusive VIP Code');
+  const [campaignSubject, setCampaignSubject] = useState('Glow Naturally: The 5-Day Organic Routine + Exclusive VIP Code');
   const [campaignPreview, setCampaignPreview] = useState('Discover handcrafted botanical soaps and restorative oils.');
   const [campaignTemplate, setCampaignTemplate] = useState('new_arrival');
   const [campaignBanner, setCampaignBanner] = useState('https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?q=80&w=800');
@@ -198,7 +198,7 @@ export default function AdminNewsletter() {
     setCampaignTemplate(templateKey);
     if (templateKey === 'new_arrival') {
       setCampaignTitle('New Season Organic Skincare Arrivals');
-      setCampaignSubject('✨ Unveiling Our Latest Handcrafted Skincare Drops');
+      setCampaignSubject('Unveiling Our Latest Handcrafted Skincare Drops');
       setCampaignPreview('Explore gentle herbal polishes, whitening soaps, and night elixirs.');
       setCampaignBanner('https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?q=80&w=800');
       setCampaignContent(
@@ -305,14 +305,9 @@ export default function AdminNewsletter() {
       {/* ─── 1. PAGE HEADER & THREE-WAY TAB SWITCHER ─── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 dark:border-white/10 pb-6 text-left">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h2 className="font-sans font-extrabold text-2xl md:text-3xl text-gray-900 dark:text-white leading-tight">
-              Newsletter & Campaign Studio
-            </h2>
-            <span className="px-3 py-1 text-[11px] font-black uppercase tracking-wider rounded-full bg-[#5D3E85] text-white shadow-xs">
-              Direct Marketing
-            </span>
-          </div>
+          <h2 className="font-sans font-extrabold text-2xl md:text-3xl text-gray-900 dark:text-white leading-tight">
+            Newsletter & Campaign Studio
+          </h2>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-semibold">
             Manage subscriber audience, create luxury email broadcasts, and push newsletter campaigns end-to-end.
           </p>
@@ -723,15 +718,15 @@ export default function AdminNewsletter() {
       {/* ─── TAB 3: CAMPAIGN PUSH & BROADCAST STUDIO (COMPOSER) ─── */}
       {/* ───────────────────────────────────────────────────────────── */}
       {activeTab === 'composer' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in text-left">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 animate-fade-in text-left">
           
           {/* LEFT 7 COLS: FORM COMPOSER */}
-          <div className="lg:col-span-7 flex flex-col gap-6">
+          <div className="xl:col-span-7 flex flex-col gap-6">
             
             {/* Quick Templates Selector */}
             <div className="bg-white dark:bg-[#1E1528] border-2 border-gray-200 dark:border-white/15 rounded-3xl p-6 shadow-sm flex flex-col gap-3">
               <div className="flex items-center gap-2 text-[#5D3E85] dark:text-[#EC268F]">
-                <Sparkles className="w-4 h-4" />
+                <LayoutTemplate className="w-4 h-4" />
                 <span className="text-[10px] font-black uppercase tracking-wider">Quick Skincare Campaign Templates</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
@@ -744,7 +739,7 @@ export default function AdminNewsletter() {
                       : 'border-gray-200 hover:bg-gray-50 dark:hover:bg-white/5'
                   }`}
                 >
-                  <span className="text-xs font-black text-gray-900 dark:text-white block">✨ New Season Drops</span>
+                  <span className="text-xs font-black text-gray-900 dark:text-white block">🌿 New Season Drops</span>
                   <span className="text-[10px] text-gray-500 mt-0.5 block">Showcase latest organic arrivals.</span>
                 </button>
 
@@ -806,7 +801,7 @@ export default function AdminNewsletter() {
                     required
                     value={campaignSubject}
                     onChange={e => setCampaignSubject(e.target.value)}
-                    placeholder="e.g. ✨ The 5-Day Organic Routine for Glowing Skin"
+                    placeholder="e.g. The 5-Day Organic Routine for Glowing Skin"
                     className="px-3.5 py-2.5 border border-gray-300 rounded-xl text-xs bg-white text-gray-900 focus:outline-none focus:border-[#5D3E85]"
                   />
                 </div>
@@ -972,7 +967,7 @@ export default function AdminNewsletter() {
           </div>
 
           {/* RIGHT 5 COLS: LIVE EMAIL PREVIEW */}
-          <div className="lg:col-span-5 flex flex-col gap-3">
+          <div className="xl:col-span-5 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 font-bold text-xs">
                 <Eye className="w-4 h-4 text-[#EC268F]" />
@@ -991,7 +986,7 @@ export default function AdminNewsletter() {
                   <span>Now</span>
                 </div>
                 <div className="font-bold text-gray-900 truncate">
-                  Subject: {campaignSubject || '✨ Exclusive Organic Skincare'}
+                  Subject: {campaignSubject || 'Exclusive Organic Skincare'}
                 </div>
                 {campaignPreview && (
                   <div className="text-gray-500 text-[10px] truncate">

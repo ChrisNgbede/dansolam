@@ -1,10 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Check, Smartphone, ShieldCheck, Gift, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Smartphone, ShieldCheck, Gift, Leaf } from 'lucide-react';
 import FaqSection from '../../components/storefront/FaqSection';
 import SEO from '../../components/seo/SEO';
 
-const HIGHLIGHT_ICONS = [Smartphone, ShieldCheck, Gift, Sparkles];
+const HIGHLIGHT_ICONS = [Smartphone, ShieldCheck, Gift, Leaf];
 
 /**
  * About page. Every piece of copy and imagery comes from the CMS page record
@@ -57,7 +57,7 @@ export default function About({ page, settings, isAdmin }) {
           <span aria-hidden="true" className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#5D3E85] via-[#EC268F] to-[#E5C158]" />
           <div className="flex items-center gap-3">
             <span className="grid place-items-center w-10 h-10 rounded-2xl bg-gradient-to-br from-[#5D3E85] to-[#EC268F] text-white shadow-md">
-              <Sparkles className="w-5 h-5" />
+              <Leaf className="w-5 h-5" />
             </span>
             <div>
               <span className="block text-[11px] font-extrabold tracking-widest  text-[#5D3E85] dark:text-[#EC268F]">Our story</span>

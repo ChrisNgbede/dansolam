@@ -1254,7 +1254,7 @@ export default function AdminProducts() {
                       value={tagIcon}
                       onChange={e => setTagIcon(e.target.value)}
                       className="px-3 py-1.5 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white text-gray-800"
-                      placeholder="e.g., 🔥 or ✨"
+                      placeholder="e.g., 🔥 or 🌿"
                     />
                   </div>
 

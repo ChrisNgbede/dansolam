@@ -120,7 +120,7 @@ export function formatProductName(rawName = '') {
 
 // Product tag icons are meant to be emoji, but older tags store a word ("leaf").
 // Show the emoji for the words we know and nothing for other plain words.
-const TAG_ICON_WORDS = { leaf: '🌿', fire: '🔥', star: '⭐', crown: '👑', sparkles: '✨', heart: '❤️', gift: '🎁', new: '🆕', sun: '☀️', drop: '💧' };
+const TAG_ICON_WORDS = { leaf: '🌿', fire: '🔥', star: '⭐', crown: '👑', sparkles: '⭐', heart: '❤️', gift: '🎁', new: '🆕', sun: '☀️', drop: '💧' };
 
 export function tagIconGlyph(icon = '') {
   const value = String(icon || '').trim();

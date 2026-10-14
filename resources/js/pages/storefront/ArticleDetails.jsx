@@ -90,7 +90,7 @@ export default function ArticleDetails() {
         document.body.removeChild(tempInput);
       }
       setCopied(true);
-      systemToast.success('Article link copied to clipboard! ✨');
+      systemToast.success('Article link copied to clipboard!');
       setTimeout(() => setCopied(false), 3000);
     } catch (err) {
       systemToast.error('Could not copy link.');
@@ -331,7 +331,7 @@ export default function ArticleDetails() {
 
             {/* CTA */}
             <div className="bg-[#FAF7FC] dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-3xl p-6 text-center flex flex-col gap-3 shadow-3xs text-left">
-              <span className="text-2xl">✨</span>
+              <span className="text-2xl" aria-hidden="true">🛍️</span>
               <h4 className="font-extrabold text-sm text-[#221B2B] dark:text-[#F3EFF6]">Explore Our Shop Page</h4>
               <p className="text-[10px] text-gray-500 dark:text-[#9B8EA9] leading-relaxed">
                 Discover our organic skin products, soothing treatments, and luxury sets.

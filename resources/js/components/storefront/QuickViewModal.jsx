@@ -90,7 +90,7 @@ export default function QuickViewModal({ product, isOpen, onClose }) {
     }
 
     setIsAdded(true);
-    systemToast.success(`${product.name} added to bag! ✨`);
+    systemToast.success(`${product.name} added to bag!`);
     setTimeout(() => setIsAdded(false), 2000);
   };
 

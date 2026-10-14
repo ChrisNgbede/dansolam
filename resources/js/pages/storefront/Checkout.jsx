@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { toast as systemToast } from '../../components/ui/ToastProvider';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, CreditCard, Landmark, CheckCircle, Loader2, Banknote, User, Lock, Mail, Phone, ShieldCheck, LogIn, UserPlus, Check, Sparkles, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CreditCard, Landmark, CheckCircle, Loader2, Banknote, User, Lock, Mail, Phone, ShieldCheck, LogIn, UserPlus, Check, AlertCircle } from 'lucide-react';
 import { useCartStore, shippingChargeFor, shippingUnitsCovered } from '../../store/cartStore';
 import { useAuth } from '../../hooks/useAuth';
 import SEO from '../../components/seo/SEO';
