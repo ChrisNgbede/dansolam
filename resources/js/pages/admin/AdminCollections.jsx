@@ -587,9 +587,6 @@ export default function AdminCollections() {
             <h2 className="font-sans font-extrabold text-2xl md:text-3xl text-gray-900 dark:text-white leading-tight">
               Collections & Concerns Studio
             </h2>
-            <span className="px-3 py-1 text-[11px] font-black uppercase tracking-wider rounded-full bg-[#5D3E85] text-white shadow-xs">
-              Storefront Layouts
-            </span>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-semibold">
             Manage catalog collections, storefront "Shop by Concern" showcases, and mega menu promos.
@@ -1210,7 +1207,7 @@ export default function AdminCollections() {
                             title="Click to toggle visibility in navigation mega menu"
                           >
                             <span className={`w-2 h-2 rounded-full ${col.is_published && col.show_in_mega_menu !== false ? 'bg-amber-300 animate-ping' : 'bg-gray-400'}`} />
-                            {col.is_published && col.show_in_mega_menu !== false ? 'IN MEGA MENU' : 'HIDDEN FROM MENU'}
+                            {col.is_published && col.show_in_mega_menu !== false ? 'In mega menu' : 'Hidden from menu'}
                           </button>
                         </div>
                       </div>

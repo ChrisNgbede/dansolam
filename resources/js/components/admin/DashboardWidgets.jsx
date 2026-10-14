@@ -244,7 +244,7 @@ export function RecentOrders({ orders = [], symbol = '£' }) {
       });
   }, [orders, query, sort, status]);
 
-  const control = 'h-11 rounded-full! border border-[var(--adm-field-border)] bg-[var(--adm-surface)] text-[13px] text-[var(--adm-text-2)]';
+  const control = 'border border-[var(--adm-field-border)] bg-[var(--adm-surface)] text-[var(--adm-text-2)]';
   return (
     <Panel
       title="Recent orders"

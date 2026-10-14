@@ -4,7 +4,8 @@ import { useEffect } from 'react';
  * Accessible names across the admin without editing every screen:
  *  - form fields with no label get one from the visible label beside them (or the
  *    placeholder), so screen readers announce what each field is for;
- *  - icon-only buttons and links get a name from their tooltip or their icon.
+ *  - icon-only buttons and links get a name from their tooltip or their icon, and a
+ *    data-icon-btn attribute that the admin CSS sizes them by.
  * Existing names are never changed. Runs on admin pages and admin modals.
  */
 
@@ -47,6 +48,9 @@ function labelFor(field) {
 }
 
 function nameControl(el) {
+  // CSS cannot see text nodes, so mark icon-only buttons for the size rules.
+  const iconOnly = !text(el) && !!el.querySelector('svg') && !el.querySelector('img');
+  if (iconOnly !== el.hasAttribute('data-icon-btn')) el.toggleAttribute('data-icon-btn', iconOnly);
   if (hasName(el) || text(el)) return;
   const svg = el.querySelector('svg[class*="lucide-"]');
   // An icon can carry several names (lucide-trash2 lucide-trash-2); use the first we know.
@@ -72,7 +76,7 @@ export default function AdminA11y() {
     const run = () => { frame = 0; scan(document.body); };
     run();
     const observer = new MutationObserver(() => { if (!frame) frame = requestAnimationFrame(run); });
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
     return () => { observer.disconnect(); if (frame) cancelAnimationFrame(frame); };
   }, []);
   return null;

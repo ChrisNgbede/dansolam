@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2, Plus, Trash2, Upload, X, Image as ImageIcon, Weight
 import { apiFetch } from '../../hooks/useAuth';
 import RichTextEditor from '../../components/ui/RichTextEditor';
 import SearchableSelect from '../../components/ui/SearchableSelect';
+import { tagIconGlyph } from '../../utils/productDisplay';
 
 export default function AdminProductForm() {
   const currencySymbol = getCurrencySymbol();
@@ -324,11 +325,21 @@ export default function AdminProductForm() {
             </label>
             
             <div 
+              role="button"
+              tabIndex={0}
+              aria-haspopup="true"
+              aria-expanded={catDropdownOpen}
+              aria-label={`Categories: ${selectedCategoryIds.length} selected`}
               onClick={() => setCatDropdownOpen(!catDropdownOpen)}
-              className="min-h-[38px] p-1.5 rounded-lg border border-gray-200 focus-within:border-primary bg-white flex flex-wrap gap-1.5 items-center cursor-pointer shadow-xs transition-all hover:border-gray-300"
+              onKeyDown={(e) => {
+                if (e.target !== e.currentTarget) return;
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setCatDropdownOpen(!catDropdownOpen); }
+                if (e.key === 'Escape') setCatDropdownOpen(false);
+              }}
+              className="adm-field-box min-h-10 px-2 py-1.5 flex flex-wrap gap-1.5 items-center cursor-pointer"
             >
               {selectedCategoryIds.length === 0 ? (
-                <span className="text-xs text-gray-400 px-2 py-0.5 select-none">Select categories...</span>
+                <span className="text-sm text-gray-400 px-1.5 select-none">Select categories...</span>
               ) : (
                 selectedCategoryIds.map(catId => {
                   const cat = categories.find(c => c.id === catId);
@@ -346,6 +357,7 @@ export default function AdminProductForm() {
                           e.stopPropagation();
                           setSelectedCategoryIds(selectedCategoryIds.filter(id => id !== cat.id));
                         }}
+                        aria-label={`Remove ${cat.name}`}
                         className="text-amber-700 hover:text-amber-950 p-0.5 rounded-full hover:bg-amber-200/50 cursor-pointer transition-colors"
                       >
                         <X className="w-3 h-3" />
@@ -553,7 +565,7 @@ export default function AdminProductForm() {
                         }}
                         className="sr-only"
                       />
-                      {t.icon && <span>{t.icon}</span>}
+                      {tagIconGlyph(t.icon) && <span aria-hidden="true">{tagIconGlyph(t.icon)}</span>}
                       {t.image_url && <img loading="lazy" decoding="async" src={t.image_url} alt="" className="w-3.5 h-3.5 object-cover rounded-full" />}
                       <span>{t.label_text || t.name}</span>
                     </label>

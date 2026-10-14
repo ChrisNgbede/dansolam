@@ -111,10 +111,10 @@ export default function ImageUploadField({
   return (
     <div className="flex flex-col gap-1 w-full">
       {/* Label */}
-      <label className="text-[10px] text-gray-550 font-bold uppercase flex items-center justify-between">
-        <span>{label}{required && <span className="text-red-400 ml-0.5">*</span>}</span>
-        {hint && <span className="text-[8px] text-gray-405 font-medium normal-case">{hint}</span>}
+      <label className="text-[10px] text-gray-550 font-bold uppercase">
+        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
       </label>
+      {hint && <p className="-mt-0.5 text-xs text-gray-500 leading-snug">{hint}</p>}
 
       {previewSrc ? (
         /* ── PREVIEW STATE ── */

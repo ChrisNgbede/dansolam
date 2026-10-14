@@ -10,6 +10,7 @@ import { useTableState } from '../../hooks/useTableState';
 import TablePaginationControls from '../../components/ui/TablePaginationControls';
 import BarcodePrintModal from '../../components/admin/BarcodePrintModal';
 import SearchableSelect from '../../components/ui/SearchableSelect';
+import { tagIconGlyph } from '../../utils/productDisplay';
 
 export default function AdminProducts() {
   const currencySymbol = getCurrencySymbol();
@@ -621,16 +622,16 @@ export default function AdminProducts() {
               setBarcodeProducts(products);
               setShowBarcodeModal(true);
             }}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-semibold rounded-lg border border-violet-200 shadow-sm transition-all cursor-pointer"
+            className="admin-btn-secondary inline-flex items-center gap-1.5 cursor-pointer"
           >
-            <ScanBarcode className="w-4 h-4 text-violet-500" />
+            <ScanBarcode className="w-4 h-4 text-violet-600" />
             Print Barcodes
           </button>
           <button
             onClick={() => setShowFlashSaleModal(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-705 text-xs font-semibold rounded-lg border border-red-200 shadow-sm transition-all cursor-pointer"
+            className="admin-btn-secondary inline-flex items-center gap-1.5 cursor-pointer"
           >
-            <Zap className="w-4 h-4 text-red-550 animate-pulse" />
+            <Zap className="w-4 h-4 text-red-600" />
             Configure Flash Sale
           </button>
           <Link
@@ -803,7 +804,7 @@ export default function AdminProducts() {
                                   style={{ backgroundColor: t.bg_color, color: t.text_color }}
                                   className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[8px] font-bold uppercase shrink-0"
                                 >
-                                  {t.icon && <span>{t.icon}</span>}
+                                  {tagIconGlyph(t.icon) && <span aria-hidden="true">{tagIconGlyph(t.icon)}</span>}
                                   {t.image_url && <img loading="lazy" decoding="async" src={t.image_url} alt="" className="w-2.5 h-2.5 object-cover rounded-full" />}
                                   <span>{t.label_text || t.name}</span>
                                 </span>
@@ -1354,7 +1355,7 @@ export default function AdminProducts() {
                             style={{ backgroundColor: t.bg_color, color: t.text_color }}
                             className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase"
                           >
-                            {t.icon && <span>{t.icon}</span>}
+                            {tagIconGlyph(t.icon) && <span aria-hidden="true">{tagIconGlyph(t.icon)}</span>}
                             {t.image_url && <img loading="lazy" decoding="async" src={t.image_url} alt="" className="w-3.5 h-3.5 object-cover rounded-full" />}
                             <span>{t.label_text || t.name}</span>
                           </span>

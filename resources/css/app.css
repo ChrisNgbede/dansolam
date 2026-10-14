@@ -2400,10 +2400,10 @@ html.admin-dark .adm-card { box-shadow: none; }
 
 /* Icon-only buttons keep their size: an older rule gives every admin button pill
    padding, which squeezed small icon buttons' icons to a few pixels. */
-html .admin-shell main button:has(> svg:only-child):not(#adm-x),
-html .admin-shell [role="dialog"] button:has(> svg:only-child):not(#adm-x) { padding: .45rem !important; }
-html .admin-shell main button:has(> svg:only-child):is([class*="w-7"], [class*="w-8"], [class*="w-9"], [class*="w-10"], [class*="w-11"], [class*="w-12"]):not(#adm-x) { padding: 0 !important; }
-html .admin-shell main button:has(> svg:only-child) > svg { flex-shrink: 0; }
+html .admin-shell main button[data-icon-btn]:not(#adm-x),
+html .admin-shell [role="dialog"] button[data-icon-btn]:not(#adm-x) { padding: .45rem !important; }
+html .admin-shell main button[data-icon-btn]:is([class*="w-7"], [class*="w-8"], [class*="w-9"], [class*="w-10"], [class*="w-11"], [class*="w-12"]):not(#adm-x) { padding: 0 !important; }
+html .admin-shell main button[data-icon-btn] > svg { flex-shrink: 0; }
 html .admin-shell main button.adm-round:not(#adm-x) {
   padding: 0 !important;
   border: 1px solid var(--adm-border) !important;
@@ -2433,3 +2433,357 @@ html.admin-dark :is([role="dialog"], .fixed.inset-0) button[aria-haspopup="listb
   border: 1px solid var(--adm-field-border) !important;
   color: var(--adm-text) !important;
 }
+
+/* ===========================================================================
+   ADMIN COMPONENT SYSTEM — one size, type and state scale for every control.
+   Older layers above set conflicting paddings, radii and fills with !important;
+   these rules carry an ID-level :not(#adm-x) so they reliably win.
+
+   Spacing: 4px grid (4 8 12 16 20 24 32).  Radius: controls pill, fields 12px,
+   cards 22px, nested cards 14px.  Type: body 14, control 13, small control 12,
+   label 13/600, section title 17/700, page title 24-32/800.
+   Sizes: button 40 (small 32), icon button 32 (header/toolbar 40), field 40
+   (44 and 16px text on phones, so iOS does not zoom on focus).
+   States: hover = one step darker, active = pressed, focus-visible = 2px ring,
+   disabled = 55% opacity and not-allowed cursor (exempt from contrast rules).
+   =========================================================================== */
+:root {
+  --adm-ctl-h: 2.5rem;       /* 40px */
+  --adm-ctl-h-sm: 2rem;      /* 32px */
+  --adm-ctl-px: 1.125rem;    /* 18px */
+  --adm-ctl-px-sm: .75rem;   /* 12px */
+  --adm-ctl-fs: .8125rem;    /* 13px */
+  --adm-ctl-fs-sm: .75rem;   /* 12px */
+  --adm-field-fs: .875rem;   /* 14px */
+  --adm-field-radius: 12px;
+  --adm-field-hover: #6B6178;
+  --adm-secondary-hover: #EFEAF6;
+  --adm-danger: #B91C1C;
+  --adm-danger-hover: #991B1B;
+}
+html.admin-dark {
+  --adm-field-hover: #B3A9C2;
+  --adm-secondary-hover: #2A2133;
+  --adm-danger: #DC2626;
+  --adm-danger-hover: #B91C1C;
+}
+
+/* ---- Buttons: every text button (pages and modals) ----------------------
+   "Text button" = a button whose content is text and icons only. Buttons that
+   hold blocks (report tiles, upload drop zones, chart bars) keep their layout. */
+html body .admin-shell main :is(button, a.admin-btn-primary, a.admin-btn-secondary, a[class*="px-"][class*="py-"]):not(:has(div, p, img, h3, h4, ul, table)):not([data-icon-btn]):not(.adm-hatch):not([aria-haspopup="listbox"]):not(#adm-x) {
+  min-height: var(--adm-ctl-h) !important;
+  padding: 0 var(--adm-ctl-px) !important;
+  font-size: var(--adm-ctl-fs) !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  border-radius: 9999px !important;
+  white-space: nowrap;
+  gap: .5rem;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease, transform .1s ease !important;
+}
+/* Small buttons: inside table rows, chip/filter rows and compact toolbars. */
+html body .admin-shell main :is(button, a[class*="px-"][class*="py-"]):not(:has(div, p, img, h3, h4, ul, table)):not([data-icon-btn]):not(.adm-hatch):is(
+  td *, [class~="py-0.5"], [class~="py-1"], [class~="py-1.5"], [class~="text-[9px]"], [class~="text-[10px]"], [class~="text-[11px]"], [class~="h-7"], [class~="h-8"]
+):not(.admin-btn-primary):not(.admin-btn-secondary):not([aria-haspopup="listbox"]):not(#adm-x) {
+  min-height: var(--adm-ctl-h-sm) !important;
+  padding: 0 var(--adm-ctl-px-sm) !important;
+  font-size: var(--adm-ctl-fs-sm) !important;
+}
+/* Text-link buttons (no fill, no border: "#FQ-…" order links, "Clear", "Change")
+   read as links, not pills. */
+html body .admin-shell main button:is([class*="hover:underline"], [class~="underline"], [class~="p-0"]):not([data-icon-btn]):not(#adm-x) {
+  min-height: 0 !important;
+  padding: 0 !important;
+  border-radius: 4px !important;
+  background: transparent !important;
+  white-space: nowrap;
+}
+/* Pressed and disabled states for every button. */
+html body .admin-shell main :is(button, [role="button"], a.admin-btn-primary, a.admin-btn-secondary):active:not(:disabled):not(#adm-x) { transform: scale(.97) !important; }
+html body .admin-shell main :is(button, [role="button"]):hover:not(#adm-x) { transform: none; }
+html body .admin-shell main :is(button, input, select, textarea):disabled:not(#adm-x),
+html body .admin-shell main [aria-disabled="true"]:not(#adm-x) {
+  opacity: .55 !important;
+  cursor: not-allowed !important;
+  box-shadow: none !important;
+}
+
+/* Primary: brand plum fill. Covers the helper class and the older ad-hoc
+   primaries (bg-primary, bg-[#5D3E85], submit buttons). */
+html body .admin-shell main :is(.admin-btn-primary, button.bg-primary, a.bg-primary[class*="px-"], button[class~="bg-[#5D3E85]"], a[class~="bg-[#5D3E85]"][class*="px-"], button[type="submit"]:not([class*="bg-"]), button.btn-gradient-primary):not(#adm-x) {
+  background: var(--adm-primary) !important;
+  color: #fff !important;
+  border: 1px solid var(--adm-primary) !important;
+}
+html body .admin-shell main :is(.admin-btn-primary, button.bg-primary, a.bg-primary[class*="px-"], button[class~="bg-[#5D3E85]"], a[class~="bg-[#5D3E85]"][class*="px-"], button[type="submit"]:not([class*="bg-"]), button.btn-gradient-primary):hover:not(:disabled):not(#adm-x) {
+  background: var(--adm-primary-hover) !important;
+  border-color: var(--adm-primary-hover) !important;
+}
+html body .admin-shell main :is(.admin-btn-primary, button.bg-primary, a.bg-primary[class*="px-"], button[class~="bg-[#5D3E85]"], a[class~="bg-[#5D3E85]"][class*="px-"], button[type="submit"]:not([class*="bg-"]), button.btn-gradient-primary):not(#adm-x) * { color: inherit !important; }
+html.admin-dark body .admin-shell main :is(.admin-btn-primary, button.bg-primary, a.bg-primary[class*="px-"], button[class~="bg-[#5D3E85]"], a[class~="bg-[#5D3E85]"][class*="px-"], button[type="submit"]:not([class*="bg-"])):not(#adm-x) {
+  background: #7A4DB3 !important; border-color: #7A4DB3 !important;
+}
+html.admin-dark body .admin-shell main :is(.admin-btn-primary, button.bg-primary, a.bg-primary[class*="px-"], button[class~="bg-[#5D3E85]"], a[class~="bg-[#5D3E85]"][class*="px-"], button[type="submit"]:not([class*="bg-"])):hover:not(:disabled):not(#adm-x) {
+  background: #6A3FA0 !important; border-color: #6A3FA0 !important;
+}
+
+/* Secondary / neutral: white surface with the field border. This replaces the
+   older grey-filled buttons, which looked like disabled ones. */
+html body .admin-shell main :is(.admin-btn-secondary, button.bg-white, a.bg-white[class*="px-"], button[class*="bg-gray-100"], button[class*="bg-gray-50"], button.border-gray-200, button.border-gray-300):not(:has(div, p, img, h3, h4, ul, table)):not([aria-haspopup="listbox"]):not(#adm-x) {
+  background: var(--adm-surface) !important;
+  color: var(--adm-text-2) !important;
+  border: 1px solid var(--adm-field-border) !important;
+}
+html body .admin-shell main :is(.admin-btn-secondary, button.bg-white, a.bg-white[class*="px-"], button[class*="bg-gray-100"], button[class*="bg-gray-50"], button.border-gray-200, button.border-gray-300):not(:has(div, p, img, h3, h4, ul, table)):not([aria-haspopup="listbox"]):hover:not(:disabled):not(#adm-x) {
+  background: var(--adm-secondary-hover) !important;
+  border-color: var(--adm-field-hover) !important;
+  color: var(--adm-text) !important;
+}
+
+/* Danger: solid red buttons. */
+html body .admin-shell main button:is([class~="bg-red-600"], [class~="bg-rose-600"], [class~="bg-red-500"], [class~="bg-rose-500"]):not([data-icon-btn]):not(#adm-x) {
+  background: var(--adm-danger) !important; border: 1px solid var(--adm-danger) !important; color: #fff !important;
+}
+html body .admin-shell main button:is([class~="bg-red-600"], [class~="bg-rose-600"], [class~="bg-red-500"], [class~="bg-rose-500"]):not([data-icon-btn]):hover:not(:disabled):not(#adm-x) {
+  background: var(--adm-danger-hover) !important; border-color: var(--adm-danger-hover) !important;
+}
+
+/* Segmented controls (tab rows inside a tinted track): borderless items. */
+html body .admin-shell main :is([class*="bg-gray-100"], [class*="bg-gray-50"], [class*="bg-white/10"]):has(> button + button):not(:has(> button[data-icon-btn])):not(button):not(#adm-x) {
+  border-radius: 9999px !important;
+  padding: 4px !important;
+  gap: 4px !important;
+  background: var(--adm-surface-2) !important;
+  border: 1px solid var(--adm-border) !important;
+}
+html body .admin-shell main :is([class*="bg-gray-100"], [class*="bg-gray-50"], [class*="bg-white/10"]):has(> button + button):not(:has(> button[data-icon-btn])):not(button) > button:not(#adm-x) {
+  min-height: var(--adm-ctl-h-sm) !important;
+  padding: 0 .9rem !important;
+  border: 0 !important;
+}
+html body .admin-shell main :is([class*="bg-gray-100"], [class*="bg-gray-50"], [class*="bg-white/10"]):has(> button + button):not(:has(> button[data-icon-btn])):not(button) > button:not([class*="bg-white"]):not([class*="bg-primary"]):not([class*="bg-[#"]):not([class~="text-white"]):not(#adm-x) {
+  background: transparent !important;
+  color: var(--adm-muted) !important;
+}
+html body .admin-shell main :is([class*="bg-gray-100"], [class*="bg-gray-50"], [class*="bg-white/10"]):has(> button + button):not(:has(> button[data-icon-btn])):not(button) > button:not([class*="bg-white"]):not([class*="bg-primary"]):not([class*="bg-[#"]):not([class~="text-white"]):hover:not(#adm-x) {
+  color: var(--adm-text) !important;
+  background: color-mix(in srgb, var(--adm-surface) 60%, transparent) !important;
+}
+html body .admin-shell main :is([class*="bg-gray-100"], [class*="bg-gray-50"], [class*="bg-white/10"]):has(> button + button):not(:has(> button[data-icon-btn])):not(button) > button[class*="bg-white"]:not(#adm-x) {
+  background: var(--adm-surface) !important;
+  color: var(--adm-text) !important;
+  box-shadow: 0 1px 2px rgba(23, 16, 31, .08), 0 2px 8px -4px rgba(23, 16, 31, .2) !important;
+}
+
+/* ---- Icon-only buttons: 32px circles (40px in headers and toolbars) ------ */
+html body .admin-shell main :is(button, a)[data-icon-btn]:not([class~="p-0"]):not([class*="hover:underline"]):not(#adm-x) {
+  width: var(--adm-ctl-h-sm) !important;
+  height: var(--adm-ctl-h-sm) !important;
+  min-width: var(--adm-ctl-h-sm) !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  border-radius: 9999px !important;
+  flex-shrink: 0;
+  transition: background-color .15s ease, color .15s ease, transform .1s ease !important;
+}
+html body .admin-shell main :is(button, a)[data-icon-btn]:is(.adm-round, [class*="w-10"], [class*="w-11"], [class*="w-12"], [class*="h-10"], [class*="h-11"]):not([class~="p-0"]):not(#adm-x) {
+  width: var(--adm-ctl-h) !important; height: var(--adm-ctl-h) !important; min-width: var(--adm-ctl-h) !important;
+}
+html body .admin-shell main :is(button, a)[data-icon-btn]:not([class~="p-0"]) > svg:not(#adm-x) { width: 1rem !important; height: 1rem !important; }
+/* One look for every icon button: no fill or ring, muted icon, tinted circle on
+   hover. Meaningful colours stay (delete red, WhatsApp green, featured amber);
+   solid buttons with white icons keep their fill. */
+html body .admin-shell main :is(button, a)[data-icon-btn]:not([class~="text-white"]):not(.adm-round):not([class~="p-0"]):not(#adm-x) {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: var(--adm-muted) !important;
+}
+html body .admin-shell main :is(button, a)[data-icon-btn]:not([class~="text-white"]):not(.adm-round):not([class~="p-0"]):hover:not(:disabled):not(#adm-x) {
+  background: var(--adm-surface-2) !important;
+  color: var(--adm-text) !important;
+}
+html body .admin-shell main :is(button, a)[data-icon-btn]:is([class*="text-red"], [class*="text-rose"]):not([class~="text-white"]):not(#adm-x) { color: var(--adm-danger) !important; }
+html body .admin-shell main :is(button, a)[data-icon-btn]:is([class*="text-red"], [class*="text-rose"], [class*="hover:text-red"], [class*="hover:text-rose"]):not([class~="text-white"]):hover:not(:disabled):not(#adm-x) { color: var(--adm-danger) !important; background: color-mix(in srgb, var(--adm-danger) 10%, transparent) !important; }
+html body .admin-shell main :is(button, a)[data-icon-btn]:is([class*="text-green"], [class*="text-emerald"]):not([class~="text-white"]):not(#adm-x) { color: #047857 !important; }
+html.admin-dark body .admin-shell main :is(button, a)[data-icon-btn]:is([class*="text-green"], [class*="text-emerald"]):not([class~="text-white"]):not(#adm-x) { color: #6EE7B7 !important; }
+html body .admin-shell main :is(button, a)[data-icon-btn]:is([class*="text-amber"], [class*="text-yellow"]):not([class~="text-white"]):not(#adm-x) { color: #A15C07 !important; }
+html.admin-dark body .admin-shell main :is(button, a)[data-icon-btn]:is([class*="text-amber"], [class*="text-yellow"]):not([class~="text-white"]):not(#adm-x) { color: #FCD34D !important; }
+/* Remove buttons inside chips stay chip-sized. */
+html body .admin-shell main span > button[data-icon-btn]:not(#adm-x) {
+  width: 1.25rem !important; height: 1.25rem !important; min-width: 1.25rem !important; color: inherit !important;
+}
+html body .admin-shell main span > button[data-icon-btn] > svg:not(#adm-x) { width: .75rem !important; height: .75rem !important; }
+/* Rich text editor toolbar: square-rounded toggles, as editors conventionally are. */
+html body .admin-shell main :is(.rich-editor-toolbar, [data-editor-toolbar]) button:not(#adm-x),
+html body .admin-shell main div:has(+ .rich-editor) button[data-icon-btn]:not(#adm-x) { border-radius: 8px !important; }
+
+/* ---- Form fields ---------------------------------------------------------- */
+html body .admin-shell main :is(input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not([type="color"]), select):not([data-plain-input]):not(#adm-x),
+html body .admin-shell main button[aria-haspopup="listbox"]:not(#adm-x) {
+  height: var(--adm-ctl-h) !important;
+  min-height: var(--adm-ctl-h) !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  font-size: var(--adm-field-fs) !important;
+  font-weight: 500 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  border-radius: var(--adm-field-radius) !important;
+  border: 1px solid var(--adm-field-border) !important;
+  background-color: var(--adm-surface) !important;
+  color: var(--adm-text) !important;
+  box-shadow: none !important;
+  transition: border-color .15s ease, box-shadow .15s ease !important;
+  min-width: 0;
+}
+html body .admin-shell main textarea:not([data-plain-input]):not(#adm-x),
+html body .admin-shell main :is(.rich-editor, [contenteditable="true"]):not(#adm-x) {
+  font-size: var(--adm-field-fs) !important;
+  line-height: 1.55 !important;
+  border-radius: var(--adm-field-radius) !important;
+  border: 1px solid var(--adm-field-border) !important;
+  background-color: var(--adm-surface) !important;
+  color: var(--adm-text) !important;
+  padding: .625rem .875rem !important;
+}
+html body .admin-shell main button[aria-haspopup="listbox"]:not(#adm-x) { justify-content: space-between !important; text-align: left !important; gap: .5rem; }
+/* Custom pickers (chips + dropdown) share the field look. */
+html body .admin-shell main .adm-field-box:not(#adm-x) {
+  border: 1px solid var(--adm-field-border);
+  border-radius: var(--adm-field-radius);
+  background: var(--adm-surface);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+html body .admin-shell main .adm-field-box:hover:not(#adm-x) { border-color: var(--adm-field-hover); }
+html body .admin-shell main .adm-field-box:is(:focus-visible, :focus-within):not(#adm-x) {
+  outline: none;
+  border-color: var(--adm-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-accent) 30%, transparent);
+}
+/* Default inline padding 14px; fields with a leading or trailing icon keep their space. */
+html body .admin-shell main :is(input, select, button[aria-haspopup="listbox"]):not([type="checkbox"]):not([type="radio"]):not([class*="pl-"]):not([class*="px-"]):not([data-plain-input]):not(#adm-x) { padding-left: .875rem !important; }
+html body .admin-shell main :is(input, select, button[aria-haspopup="listbox"]):not([type="checkbox"]):not([type="radio"]):not([class*="pr-"]):not([class*="px-"]):not([data-plain-input]):not(#adm-x) { padding-right: .875rem !important; }
+html body .admin-shell main :is(input, select, button[aria-haspopup="listbox"])[class*="px-"]:not([type="checkbox"]):not([type="radio"]):not([class*="pl-"]):not([class*="pr-"]):not([data-plain-input]):not(#adm-x) { padding-left: .875rem !important; padding-right: .875rem !important; }
+html body .admin-shell main select:not(#adm-x) { padding-right: 2.25rem !important; }
+/* Tiny inline fields (page jump, qty steppers) stay compact. */
+html body .admin-shell main input:is([class~="w-12"], [class~="w-14"], [class~="w-16"]):not(#adm-x) { height: var(--adm-ctl-h-sm) !important; min-height: 0 !important; padding: 0 .5rem !important; text-align: center; font-size: var(--adm-ctl-fs-sm) !important; border-radius: 10px !important; }
+/* States */
+html body .admin-shell main :is(input, select, textarea, button[aria-haspopup="listbox"], .rich-editor):not([type="checkbox"]):not([type="radio"]):not([data-plain-input]):hover:not(:disabled):not(:focus):not(#adm-x) { border-color: var(--adm-field-hover) !important; }
+html body .admin-shell main :is(input, select, textarea, button[aria-haspopup="listbox"], .rich-editor):not([type="checkbox"]):not([type="radio"]):not([data-plain-input]):is(:focus, :focus-within):not(#adm-x):not(#adm-y) {
+  outline: none !important;
+  border-color: var(--adm-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-accent) 30%, transparent) !important;
+}
+html.admin-dark body .admin-shell main :is(input, select, textarea, button[aria-haspopup="listbox"], .rich-editor):not([type="checkbox"]):not([type="radio"]):not([data-plain-input]):is(:focus, :focus-within):not(#adm-x):not(#adm-y) { border-color: var(--adm-focus) !important; }
+html body .admin-shell main :is(input, select, textarea)[aria-invalid="true"]:not(#adm-x) { border-color: var(--adm-danger) !important; }
+html body .admin-shell main :is(input, select, textarea):disabled:not(#adm-x) { background-color: var(--adm-surface-2) !important; color: var(--adm-muted) !important; }
+html body .admin-shell main :is(input, select, textarea):read-only:not(select):not([type="checkbox"]):not([type="radio"]):not(#adm-x) { background-color: var(--adm-surface-2) !important; }
+/* Checkboxes and radios: 16px, brand accent, pointer, focus ring. */
+html body .admin-shell main :is(input[type="checkbox"], input[type="radio"]):not(#adm-x) { width: 1rem !important; height: 1rem !important; cursor: pointer; accent-color: var(--adm-primary); }
+html.admin-dark body .admin-shell main :is(input[type="checkbox"], input[type="radio"]):not(#adm-x) { accent-color: #C4A4F0; }
+html body .admin-shell main :is(input[type="checkbox"], input[type="radio"]):focus-visible:not(#adm-x) { outline: 2px solid var(--adm-focus) !important; outline-offset: 2px !important; }
+
+/* ---- Labels and helper text ------------------------------------------------ */
+/* Nothing in the admin renders below 11px. */
+html body .admin-shell main :is([class~="text-[7px]"], [class~="text-[8px]"], [class~="text-[9px]"], [class~="text-[10px]"]):not(#adm-x) { font-size: .6875rem !important; }
+html body .admin-shell main label:not(:has(input, select, textarea)):not([class*="sr-only"]):not(#adm-x) {
+  font-size: .8125rem !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  color: var(--adm-text-2) !important;
+}
+/* A label sitting directly above its field gets a consistent 6px gap. */
+html body .admin-shell main label:not(:has(input, select, textarea)):is(.block, [class~="block"]):not(#adm-x),
+html body .admin-shell main label:not(:has(input, select, textarea)):has(+ :is(input, select, textarea, div, button)):not([class*="inline"]):not([class*="flex"]):not(#adm-x) { display: block; margin-bottom: .375rem !important; }
+/* Labels that wrap a checkbox/radio: body-size text. */
+html body .admin-shell main label:has(> input[type="checkbox"], > input[type="radio"]):not(#adm-x) { font-size: .8125rem !important; letter-spacing: 0 !important; text-transform: none !important; color: var(--adm-text-2) !important; cursor: pointer; }
+
+/* ---- Headings --------------------------------------------------------------- */
+html body .admin-shell main h3:not(#adm-x) {
+  font-size: 1.0625rem !important;   /* 17px */
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  letter-spacing: -0.01em !important;
+  text-transform: none !important;
+  color: var(--adm-text) !important;
+  font-family: var(--font-sans) !important;
+}
+html body .admin-shell main h4:not(#adm-x) {
+  font-size: .9375rem !important;    /* 15px */
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  color: var(--adm-text) !important;
+  font-family: var(--font-sans) !important;
+}
+html body .admin-shell main :is(h1, h2):not(:is(.text-2xl, .text-3xl, [class*="md:text-3xl"])):not(#adm-x) {
+  font-family: var(--font-sans) !important;
+  font-size: 1.25rem !important;     /* 20px: in-page section titles */
+  font-weight: 800 !important;
+  letter-spacing: -0.015em !important;
+  color: var(--adm-text) !important;
+}
+
+/* ---- Page header ---------------------------------------------------------------
+   Title block on the left, actions on the right; when they don't fit, the
+   actions move to the next line instead of squeezing the title. */
+html body .admin-shell main :is(div, header):has(> div > :is(h1, h2):is(.text-2xl, .text-3xl, [class*="md:text-3xl"])):not(#adm-x) { flex-wrap: wrap; row-gap: 1rem; column-gap: 1.5rem; }
+html body .admin-shell main :is(div, header):has(> div > :is(h1, h2):is(.text-2xl, .text-3xl, [class*="md:text-3xl"])) > div:has(> :is(h1, h2)):not(#adm-x) { flex: 1 1 auto; min-width: min(100%, 24rem); }
+html body .admin-shell main :is(div, header):has(> div > :is(h1, h2):is(.text-2xl, .text-3xl, [class*="md:text-3xl"])) > div:not(:has(> :is(h1, h2))):not(#adm-x) { flex-wrap: wrap; gap: .5rem; }
+
+/* ---- Cards ------------------------------------------------------------------ */
+/* Cards nested in a card use a smaller radius so corners stay concentric. */
+html body .admin-shell main :is([class*="rounded-[22px]"], .adm-card, [class*="rounded-2xl"], [class*="rounded-3xl"]) :is(.bg-white, [class*="bg-gray-50"], [class*="bg-[var(--adm-surface-2)]"]):is([class*="rounded-xl"], [class*="rounded-2xl"], [class*="rounded-3xl"]):not(button):not(a):not(input):not(#adm-x) {
+  border-radius: 14px !important;
+  box-shadow: none !important;
+}
+/* Card padding on the 4px grid: 16px on phones, 20px tablets, 24px desktops. */
+html body .admin-shell main :is(.bg-white, .adm-card):is([class~="p-4"], [class~="p-5"], [class~="p-6"], [class~="p-7"], [class~="p-8"]):not(button):not(a):not(#adm-x) { padding: 1rem !important; }
+@media (min-width: 768px) {
+  html body .admin-shell main :is(.bg-white, .adm-card):is([class~="p-4"], [class~="p-5"], [class~="p-6"], [class~="p-7"], [class~="p-8"]):not(button):not(a):not(#adm-x) { padding: 1.25rem !important; }
+}
+@media (min-width: 1200px) {
+  html body .admin-shell main :is(.bg-white, .adm-card):is([class~="p-5"], [class~="p-6"], [class~="p-7"], [class~="p-8"]):not(button):not(a):not(#adm-x) { padding: 1.5rem !important; }
+}
+
+/* ---- Phones: bigger touch targets, 16px field text (no iOS zoom) ---------- */
+@media (max-width: 767px) {
+  :root { --adm-ctl-h: 2.75rem; --adm-field-fs: 1rem; }
+  html body .admin-shell main :is(button, a)[data-icon-btn]:not([class~="p-0"]):not(#adm-x) { width: 2.25rem !important; height: 2.25rem !important; min-width: 2.25rem !important; }
+}
+
+/* Respect "reduce motion": no pulsing, pinging or sliding in the admin. */
+@media (prefers-reduced-motion: reduce) {
+  html body .admin-shell *, html body .admin-shell *::before, html body .admin-shell *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+/* Delete icons are always the outline bin (some screens filled it solid). */
+html body .admin-shell main :is(svg.lucide-trash, svg.lucide-trash-2, svg.lucide-trash2):not(#adm-x) { fill: none !important; }
+/* Dark mode: neutral grey fills and borders use the plum-tinted theme surfaces,
+   not the older slate greys. */
+html.admin-dark body .admin-shell main :is([class~="bg-gray-50"], [class~="bg-gray-55"], [class~="bg-gray-100"], [class~="bg-gray-50/50"], [class~="bg-gray-50/60"], [class~="bg-gray-50/80"], [class~="bg-slate-50"]):not(button):not(#adm-x) { background-color: var(--adm-surface-2) !important; }
+html.admin-dark body .admin-shell main :is([class~="border-gray-100"], [class~="border-gray-150"], [class~="border-gray-200"], [class~="border-gray-250"], [class~="border-gray-300"]):not(input):not(select):not(textarea):not(button):not(#adm-x) { border-color: var(--adm-border) !important; }
+/* Header search: same focus glow as every other field. */
+html body .admin-shell .admin-search:focus:not(#adm-x) {
+  outline: none !important;
+  border-color: var(--adm-primary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--adm-accent) 30%, transparent) !important;
+}
+html.admin-dark body .admin-shell .admin-search:focus:not(#adm-x) { border-color: var(--adm-focus) !important; }
+/* Toolbars: a search box never shrinks below 14rem; its row wraps instead. */
+html body .admin-shell main :is(div, label):has(> input[placeholder^="Search"]):not(#adm-x) { min-width: min(100%, 14rem); flex: 1 1 14rem; }
+html body .admin-shell main div:has(> :is(div, label) > input[placeholder^="Search"]):not(#adm-x) { flex-wrap: wrap; row-gap: .75rem; }

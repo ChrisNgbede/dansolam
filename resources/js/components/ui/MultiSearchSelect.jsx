@@ -33,7 +33,7 @@ export default function MultiSearchSelect({ options = [], value = [], onChange, 
   return (
     <div ref={boxRef} className="relative">
       <div
-        className="min-h-[38px] w-full rounded-lg border border-[var(--adm-field-border)] bg-[var(--adm-surface)] px-2 py-1.5 flex flex-wrap items-center gap-1.5 cursor-text"
+        className="adm-field-box min-h-10 w-full px-2 py-1.5 flex flex-wrap items-center gap-1.5 cursor-text"
         onClick={() => { setOpen(true); inputRef.current?.focus(); }}
       >
         {value.map((v) => {
