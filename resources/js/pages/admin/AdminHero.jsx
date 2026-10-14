@@ -114,85 +114,137 @@ export default function AdminHero() {
     saveMutation.mutate({ ...form, sort_order: Number(form.sort_order) || 0 });
   };
 
+  const visibleCount = slides.filter((s) => s.is_active).length;
+
   return (
     <div className="space-y-6 pb-12">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-primary mb-1">
             <ImageIcon className="w-4 h-4" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.18em]">CMS / Hero</span>
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em]">CMS / Hero</span>
           </div>
           <h1 className="font-serif text-3xl font-bold text-gray-900">Homepage Hero</h1>
-          <p className="text-xs text-gray-450 mt-1">Manage every slide, message, action and overlay displayed in the storefront hero.</p>
+          <p className="text-sm text-gray-500 mt-1">Manage every slide, message, action and overlay displayed in the storefront hero.</p>
         </div>
-        <button onClick={openCreate} className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary text-white rounded-full text-xs font-bold shadow-md cursor-pointer">
+        <button onClick={openCreate} className="admin-btn-primary inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full text-xs font-bold cursor-pointer">
           <Plus className="w-4 h-4" /> New Hero Slide
         </button>
       </div>
 
+      {slides.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="adm-stat-chip"><strong>{slides.length}</strong> {slides.length === 1 ? 'slide' : 'slides'}</span>
+          <span className="adm-stat-chip adm-stat-chip--ok"><Eye className="w-3.5 h-3.5" /><strong>{visibleCount}</strong> visible</span>
+          {slides.length - visibleCount > 0 && (
+            <span className="adm-stat-chip"><EyeOff className="w-3.5 h-3.5" /><strong>{slides.length - visibleCount}</strong> hidden</span>
+          )}
+          <span className="text-gray-500 ml-1">Slides play in display order, lowest first.</span>
+        </div>
+      )}
+
       {isLoading ? (
-        <div className="bg-white rounded-3xl border border-gray-100 p-12 text-center text-sm text-gray-400">Loading hero slides…</div>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5" aria-busy="true">
+          {[0, 1].map((i) => (
+            <div key={i} className="bg-white rounded-3xl overflow-hidden">
+              <div className="aspect-[16/8] adm-skeleton" />
+              <div className="p-5 space-y-2"><div className="h-3 w-3/4 rounded adm-skeleton" /><div className="h-3 w-1/3 rounded adm-skeleton" /></div>
+            </div>
+          ))}
+        </div>
       ) : slides.length === 0 ? (
         <div className="bg-white rounded-3xl border border-dashed border-gray-200 p-14 text-center">
           <ImageIcon className="w-10 h-10 mx-auto text-gray-300 mb-3" />
           <h2 className="font-serif text-xl font-bold text-gray-800">No hero slides yet</h2>
-          <p className="text-xs text-gray-400 mt-1 mb-5">Create the first storefront campaign slide.</p>
-          <button onClick={openCreate} className="px-5 py-2.5 bg-primary text-white rounded-full text-xs font-bold cursor-pointer">Create Slide</button>
+          <p className="text-sm text-gray-500 mt-1 mb-5">Create the first storefront campaign slide.</p>
+          <button onClick={openCreate} className="admin-btn-primary px-5 py-2.5 rounded-full text-xs font-bold cursor-pointer">Create Slide</button>
         </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          {slides.map((slide) => (
-            <article key={slide.id} className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-xs">
-              <div className="relative aspect-[16/7] bg-gray-100 overflow-hidden">
-                <img loading="lazy" decoding="async" src={slide.image_url} alt={slide.title} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-                <div className="flex items-center gap-2 absolute top-4 right-4">
-                  <span className={`px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider ${slide.layout_mode === 'full' ? 'bg-[#5D3E85] text-white shadow-xs' : 'bg-white/90 text-[#221B2B] backdrop-blur-md'}`}>
-                    {slide.layout_mode === 'full' ? 'Full Bleed' : 'Default Split'}
-                  </span>
-                  <span className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase ${slide.is_active ? 'bg-emerald-500 text-white' : 'bg-gray-800/80 text-white'}`}>
-                    {slide.is_active ? 'Visible' : 'Hidden'}
-                  </span>
-                </div>
-                <div className="absolute left-5 right-5 bottom-5 text-white">
-                  <p className="text-[9px] uppercase tracking-widest opacity-75">{slide.eyebrow}</p>
-                  <h2 className="font-serif text-2xl font-bold leading-tight">{slide.title} <span className="text-amber-300">{slide.accent_title}</span></h2>
-                </div>
-              </div>
-              <div className="p-5 flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-500 truncate">{slide.subtitle || 'No description supplied'}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <p className="text-[10px] font-bold text-gray-400">Display order: {slide.sort_order}</p>
-                    <span className="text-gray-300 text-[10px]">•</span>
-                    <p className="text-[10px] font-semibold text-primary">{slide.layout_mode === 'full' ? 'Fill entire hero section' : 'Section split layout'}</p>
+          {slides.map((slide, index) => {
+            const confirming = confirmingDeleteId === slide.id;
+            const full = slide.layout_mode === 'full';
+            return (
+              <article key={slide.id} className={`adm-slide bg-white rounded-3xl overflow-hidden ${slide.is_active ? '' : 'adm-slide--hidden'}`}>
+                <div className="adm-media relative aspect-[16/8] bg-gray-100 overflow-hidden">
+                  <img loading="lazy" decoding="async" src={slide.image_url} alt="" className="adm-slide-img w-full h-full object-cover" />
+                  <div className="adm-media-scrim absolute inset-0" />
+
+                  <div className="absolute top-4 left-4 right-4 flex items-start justify-between gap-2">
+                    <span className="adm-media-chip adm-media-chip--order" title={`Display order ${slide.sort_order}`}>
+                      Slide {index + 1}
+                    </span>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <span className="adm-media-chip">{full ? 'Full bleed' : 'Split layout'}</span>
+                      <span className={`adm-media-chip ${slide.is_active ? 'adm-media-chip--live' : 'adm-media-chip--off'}`}>
+                        <span className="adm-media-dot" aria-hidden="true" />
+                        {slide.is_active ? 'Visible' : 'Hidden'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="absolute left-5 right-5 bottom-5">
+                    {slide.show_eyebrow !== false && slide.eyebrow && <p className="adm-media-eyebrow">{slide.eyebrow}</p>}
+                    <h3 className="adm-media-title">
+                      {slide.title} {slide.accent_title && <span className="adm-media-accent">{slide.accent_title}</span>}
+                    </h3>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <button onClick={() => openEdit(slide)} className="p-2.5 rounded-full border border-gray-200 text-gray-600 hover:text-primary cursor-pointer" title="Edit slide"><Edit3 className="w-4 h-4" /></button>
-                  <button
-                    onClick={() => duplicateMutation.mutate(slide.id)}
-                    disabled={duplicateMutation.isPending}
-                    className="p-2.5 rounded-full border border-gray-200 text-gray-600 hover:text-primary hover:border-primary/30 disabled:opacity-50 cursor-pointer"
-                    title="Duplicate slide"
-                  ><Copy className="w-4 h-4" /></button>
-                  <button
-                    onClick={() => {
-                      if (confirmingDeleteId === slide.id) {
-                        deleteMutation.mutate(slide.id);
-                        setConfirmingDeleteId(null);
-                      } else {
-                        setConfirmingDeleteId(slide.id);
-                        systemToast.info('Click delete again to confirm removal.');
-                      }
-                    }}
-                    className={`p-2.5 rounded-full border cursor-pointer ${confirmingDeleteId === slide.id ? 'bg-red-500 border-red-500 text-white' : 'border-red-100 text-red-500 hover:bg-red-50'}`}
-                    title={confirmingDeleteId === slide.id ? 'Click again to confirm' : 'Delete slide'}
-                  ><Trash2 className="w-4 h-4" /></button>
+
+                <div className="p-5 space-y-4">
+                  <p className={`text-sm leading-relaxed line-clamp-2 ${slide.subtitle ? 'text-gray-600' : 'text-gray-400 italic'}`}>
+                    {slide.subtitle || 'No description yet.'}
+                  </p>
+
+                  <dl className="adm-slide-meta">
+                    <div><dt>Order</dt><dd>{slide.sort_order}</dd></div>
+                    <div><dt>Layout</dt><dd>{full ? 'Fills the hero' : 'Text left, image right'}</dd></div>
+                    {slide.primary_cta_label && (
+                      <div className="min-w-0"><dt>Button</dt><dd className="truncate" title={slide.link_url}>{slide.primary_cta_label} → {slide.link_url || '/'}</dd></div>
+                    )}
+                    {(slide.gallery || []).length > 0 && <div><dt>Ring</dt><dd>{slide.gallery.length} images</dd></div>}
+                  </dl>
+
+                  <div className="flex items-center justify-between gap-3 pt-4 border-t border-gray-100">
+                    {confirming ? (
+                      <div className="flex flex-wrap items-center gap-2 w-full" role="alert">
+                        <span className="text-sm font-semibold text-gray-800 mr-auto">Delete this slide? This can't be undone.</span>
+                        <button type="button" onClick={() => setConfirmingDeleteId(null)} className="admin-btn-secondary px-4 py-2 rounded-full text-xs font-bold cursor-pointer">Keep</button>
+                        <button
+                          type="button"
+                          onClick={() => { deleteMutation.mutate(slide.id); setConfirmingDeleteId(null); }}
+                          className="bg-red-600 text-white px-4 py-2 rounded-full text-xs font-bold cursor-pointer"
+                        >Delete</button>
+                      </div>
+                    ) : (
+                      <>
+                        <button type="button" onClick={() => openEdit(slide)} className="admin-btn-secondary inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold cursor-pointer">
+                          <Edit3 className="w-4 h-4" /> Edit slide
+                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => duplicateMutation.mutate(slide.id)}
+                            disabled={duplicateMutation.isPending}
+                            className="text-gray-600 cursor-pointer"
+                            title="Duplicate slide"
+                            aria-label={`Duplicate slide ${index + 1}`}
+                          ><Copy className="w-4 h-4" /></button>
+                          <button
+                            type="button"
+                            onClick={() => setConfirmingDeleteId(slide.id)}
+                            className="text-red-600 cursor-pointer"
+                            title="Delete slide"
+                            aria-label={`Delete slide ${index + 1}`}
+                          ><Trash2 className="w-4 h-4" /></button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       )}
 

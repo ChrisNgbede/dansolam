@@ -2804,3 +2804,104 @@ html body .admin-shell main button:has(> .block):not(#adm-x) {
   min-height: 0 !important;
   height: auto !important;
 }
+
+/* ===========================================================================
+   CMS lists (Hero slides, Pages, FAQs)
+   Text over photos is always white on a strong scrim: the admin heading rules
+   would otherwise colour it dark. Selectors carry :not(#adm-x) to sit at the
+   same weight as the admin layer above.
+   =========================================================================== */
+html body .admin-shell main .adm-media-scrim:not(#adm-x) {
+  background: linear-gradient(to top, rgba(14, 8, 20, .88) 0%, rgba(14, 8, 20, .55) 38%, rgba(14, 8, 20, .08) 72%, rgba(14, 8, 20, .25) 100%);
+}
+html body .admin-shell main .adm-media-title:not(#adm-x) {
+  color: #fff !important;
+  font-family: var(--font-sans) !important;
+  font-size: clamp(1.25rem, 1rem + .9vw, 1.6rem) !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  letter-spacing: -0.015em !important;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, .35);
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+html body .admin-shell main .adm-media-accent:not(#adm-x) { color: #F2D57A !important; }
+html body .admin-shell main .adm-media-eyebrow:not(#adm-x) {
+  color: rgba(255, 255, 255, .85) !important;
+  font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; margin-bottom: .4rem;
+}
+
+/* Chips on the photo: solid enough to read on any image. */
+.adm-media-chip {
+  display: inline-flex; align-items: center; gap: .4rem;
+  height: 26px; padding: 0 .7rem; border-radius: 999px;
+  font-size: 11px; font-weight: 700; letter-spacing: .02em;
+  color: #17101F; background: rgba(255, 255, 255, .92);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
+  backdrop-filter: blur(6px);
+}
+.adm-media-chip--order { background: rgba(23, 16, 31, .72); color: #fff; }
+.adm-media-chip--live { background: #047857; color: #fff; }
+.adm-media-chip--off { background: rgba(23, 16, 31, .78); color: #fff; }
+.adm-media-dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+.adm-media-chip--live .adm-media-dot { background: #A7F3D0; box-shadow: 0 0 0 3px rgba(167, 243, 208, .35); }
+
+.adm-slide { transition: transform .25s ease, box-shadow .25s ease; }
+.adm-slide-img { transition: transform .6s cubic-bezier(.22, 1, .36, 1), filter .3s ease; }
+.adm-slide:hover .adm-slide-img { transform: scale(1.04); }
+.adm-slide--hidden .adm-slide-img { filter: grayscale(.85) brightness(.85); }
+
+/* Slide facts: label above value. */
+.adm-slide-meta { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; }
+.adm-slide-meta dt { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--adm-muted); }
+.adm-slide-meta dd { font-size: 13px; font-weight: 600; color: var(--adm-text-2); margin-top: 2px; }
+
+/* Summary chips above a list. */
+.adm-stat-chip {
+  display: inline-flex; align-items: center; gap: .35rem;
+  padding: .3rem .75rem; border-radius: 999px;
+  background: var(--adm-surface); border: 1px solid var(--adm-border); color: var(--adm-text-2);
+}
+.adm-stat-chip strong { color: var(--adm-text); }
+.adm-stat-chip--ok { color: #047857; }
+html.admin-dark .adm-stat-chip--ok { color: #6EE7B7; }
+
+/* Loading placeholders. */
+.adm-skeleton { background: linear-gradient(90deg, var(--adm-surface-2) 25%, color-mix(in srgb, var(--adm-surface-2) 55%, var(--adm-surface)) 50%, var(--adm-surface-2) 75%); background-size: 200% 100%; animation: adm-shimmer 1.4s ease-in-out infinite; }
+@keyframes adm-shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Tab counts. */
+.adm-count { min-width: 1.4rem; padding: 0 .4rem; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.4rem; text-align: center; background: color-mix(in srgb, var(--adm-muted) 16%, transparent); color: var(--adm-text-2); }
+.adm-count--on { background: var(--adm-primary); color: #fff; }
+html.admin-dark .adm-count--on { background: var(--adm-accent); }
+
+/* Page cards. */
+.adm-lift { transition: transform .2s ease, box-shadow .2s ease; }
+.adm-lift:hover { transform: translateY(-2px); }
+html body .admin-shell main .adm-lift:hover:not(#adm-x) { box-shadow: 0 2px 4px rgba(23, 16, 31, .05), 0 20px 40px -24px rgba(93, 62, 133, .45) !important; }
+.adm-tile { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; flex-shrink: 0; border-radius: 14px; color: var(--adm-primary); background: color-mix(in srgb, var(--adm-primary) 10%, var(--adm-surface)); }
+html.admin-dark .adm-tile { color: #C4A4F0; background: color-mix(in srgb, #C4A4F0 12%, var(--adm-surface)); }
+.adm-pill { flex-shrink: 0; padding: .15rem .55rem; border-radius: 999px; font-size: 11px; font-weight: 700; color: var(--adm-text-2); border: 1px solid var(--adm-border); }
+
+/* FAQ accordion rows. */
+.adm-faq { transition: background-color .2s ease; }
+.adm-faq-list > .adm-faq + .adm-faq { border-top: 1px solid var(--adm-border); }
+.adm-faq-preview { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.adm-faq:hover, .adm-faq--open { background: color-mix(in srgb, var(--adm-surface-2) 70%, transparent); }
+.adm-faq-num {
+  display: grid; place-items: center; width: 2rem; height: 2rem; flex-shrink: 0; margin-top: -2px;
+  border-radius: 999px; font-size: 13px; font-weight: 800;
+  color: var(--adm-primary); background: color-mix(in srgb, var(--adm-primary) 10%, var(--adm-surface));
+}
+html.admin-dark .adm-faq-num { color: #C4A4F0; background: color-mix(in srgb, #C4A4F0 14%, var(--adm-surface)); }
+.adm-faq-q::-webkit-details-marker { display: none; }
+.adm-faq-q { border-radius: 10px; }
+.adm-faq-chevron { transition: transform .2s ease; }
+details[open] > .adm-faq-q .adm-faq-chevron { transform: rotate(180deg); }
+.adm-faq-answer { font-size: 14px; line-height: 1.65; }
+html.admin-dark .adm-faq-answer { color: var(--adm-text-2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-slide, .adm-slide-img, .adm-lift, .adm-faq-chevron { transition: none; }
+  .adm-slide:hover .adm-slide-img, .adm-lift:hover { transform: none; }
+  .adm-skeleton { animation: none; }
+}
