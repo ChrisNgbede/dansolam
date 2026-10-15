@@ -22,8 +22,9 @@ function quantityText(m) {
   switch (m.quantity_condition || 'between') {
     case 'lt': return v == null ? null : `Fewer than ${items(v)}`;
     case 'lte': return v == null ? null : `Up to ${items(v)}`;
-    case 'gt': return v == null ? null : `More than ${items(v)}`;
-    case 'gte': return v == null ? null : `${items(v)} or more`;
+    // "More than 0" / "1 or more" is every order, so there is nothing to say.
+    case 'gt': return v == null || v < 1 ? null : `More than ${items(v)}`;
+    case 'gte': return v == null || v <= 1 ? null : `${items(v)} or more`;
     case 'eq': return v == null ? null : `Exactly ${items(v)}`;
     default: {
       const min = m.min_quantity == null ? null : Number(m.min_quantity);
