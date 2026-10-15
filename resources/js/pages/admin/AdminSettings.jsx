@@ -26,7 +26,6 @@ const CURRENCIES = [
 ];
 
 export default function AdminSettings() {
-  const currencySymbol = getCurrencySymbol();
   const queryClient = useQueryClient();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1139,7 +1138,7 @@ export default function AdminSettings() {
                   <div className="flex items-center gap-2">
                     <span style={{ color: announcementAccentColor }}>📢</span>
                     <span className="truncate max-w-xs sm:max-w-md">
-                      {announcementText.split('|')[0]?.trim() || `🚚 Free delivery on orders above ${currencySymbol}100,000!`}
+                      {announcementText.split('|')[0]?.trim() || '🌿 100% Organic Skincare, Whitening Soaps & Discoloration Oils'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1176,7 +1175,7 @@ export default function AdminSettings() {
                   value={announcementText}
                   onChange={e => setAnnouncementText(e.target.value)}
                   className="px-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-primary text-xs bg-white font-medium"
-                  placeholder={`🚚 Free delivery on orders above ${currencySymbol}100,000! | 🌿 100% Organic Skincare & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF`}
+                  placeholder="🌿 100% Organic Skincare & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF"
                   disabled={!announcementShow}
                 />
                 <span className="text-[10px] text-gray-400">

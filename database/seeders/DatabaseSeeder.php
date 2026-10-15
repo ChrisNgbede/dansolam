@@ -113,7 +113,7 @@ class DatabaseSeeder extends Seeder
             'flutterwave_key_secret' => 'flw_secret_mock123456789',
             'cod_enabled' => 'true',
             'announcement_show' => 'true',
-            'announcement_text' => '🚚 Free delivery on orders above £500! | 🌿 100% Organic Skincare, Whitening Soaps & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF your first beauty order',
+            'announcement_text' => '🌿 100% Organic Skincare, Whitening Soaps & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF your first beauty order',
             'promo_popup_show' => 'true',
             'promo_popup_title' => 'Welcome to Dansolam Beauty Home',
             'promo_popup_body' => '<p>Subscribe to our newsletter for <strong>exclusive skincare offers</strong> and beauty tips!</p>',

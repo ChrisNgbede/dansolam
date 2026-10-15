@@ -579,7 +579,7 @@ export default function StorefrontLayout() {
     opening_hours: 'Monday–Saturday: 9:00 AM - 6:00 PM',
     opening_hours_note: 'Closed on Sundays',
     announcement_show: 'true',
-    announcement_text: '🚚 Free delivery on orders above £500! | 🌿 100% Organic Skincare, Whitening Soaps & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF your first beauty order',
+    announcement_text: '🌿 100% Organic Skincare, Whitening Soaps & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF your first beauty order',
     promo_popup_show: 'false',
     promo_popup_title: 'Welcome to Dansolam',
     promo_popup_body: 'Save 10% off your first beauty purchase.',
@@ -740,7 +740,7 @@ export default function StorefrontLayout() {
       {/* 0. Top Bar Announcement */}
       {announcementActive && (
         <AnimatedAnnouncementBar
-          text={settings.announcement_text || '🚚 Free delivery on orders above £500! | 🌿 100% Organic Skincare, Whitening Soaps & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF your first beauty order'}
+          text={settings.announcement_text || '🌿 100% Organic Skincare, Whitening Soaps & Discoloration Oils | 🎁 Use coupon code WELCOME10 for 10% OFF your first beauty order'}
           settings={settings}
         />
       )}

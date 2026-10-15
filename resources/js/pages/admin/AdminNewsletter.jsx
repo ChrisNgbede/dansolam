@@ -222,7 +222,7 @@ export default function AdminNewsletter() {
       setCampaignPreview('Use coupon code WEEKEND15 before Sunday midnight.');
       setCampaignBanner('https://images.unsplash.com/photo-1620916566398-39f1143ab7be?q=80&w=800');
       setCampaignContent(
-        "Exclusive VIP Offer,\n\nThis weekend only, claim 15% OFF our bestselling whitening polish soaps, discoloration body creams, and glow oils.\n\nEnter code WEEKEND15 at checkout. Free delivery on orders over £500."
+        "Exclusive VIP Offer,\n\nThis weekend only, claim 15% OFF our bestselling whitening polish soaps, discoloration body creams, and glow oils.\n\nEnter code WEEKEND15 at checkout."
       );
       setCampaignCtaText('Claim Weekend Discount');
       setCampaignCtaUrl('http://dansolam.test/shop');
