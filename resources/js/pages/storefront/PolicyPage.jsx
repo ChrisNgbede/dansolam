@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, Search, ChevronDown, ChevronUp, Ruler, Heart, HelpCircle, CheckCircle, Info, ShieldCheck, MessageCircle, Sun, Moon, Droplets, Shield, ArrowRight, Zap, Flame, Eye, Star } from 'lucide-react';
 import FaqSection from '../../components/storefront/FaqSection';
+import ShippingRatesContent from '../../components/storefront/ShippingRatesContent';
 import About from './About';
 import { cmsPageQuery } from '../../utils/pageQueries';
 import { getAdminToken } from '../../components/auth/RequireAdminAuth';
@@ -35,6 +36,8 @@ export default function PolicyPage() {
 
   const isAboutPage = slug === 'about-us' || slug === 'about';
   const isFaqPage = slug === 'faq';
+  // Built from the live shipping configuration, not from the CMS page text.
+  const isShippingPage = slug === 'shipping-delivery';
 
   if (isLoading || (isFaqPage && isFaqsLoading)) {
     return (
@@ -46,7 +49,7 @@ export default function PolicyPage() {
     );
   }
 
-  if (isError) {
+  if (isError && !isShippingPage) {
     return (
       <div className="max-w-md mx-auto text-center py-24 px-6 flex flex-col items-center gap-4">
         <Info className="w-9 h-9 text-[#EC268F]" aria-hidden="true" />
@@ -59,7 +62,7 @@ export default function PolicyPage() {
     );
   }
 
-  if (!page && !isAboutPage) {
+  if (!page && !isAboutPage && !isShippingPage) {
     return (
       <div className="max-w-md mx-auto text-center py-24 px-6 flex flex-col items-center gap-4">
         <span className="text-4xl">📄</span>
@@ -166,15 +169,15 @@ export default function PolicyPage() {
                       {slug === 'privacy-policy' ? '🔒 Data Protection & Security' : slug === 'terms-conditions' ? '📜 Official Terms of Service' : slug === 'shipping-delivery' ? '🚚 Shipping & Delivery' : '🛡️ SHOP Policy'}
                     </span>
                     <h1 className="font-extrabold text-2xl sm:text-4xl text-white tracking-tight leading-tight">
-                      {page?.title}
+                      {page?.title || (isShippingPage ? 'Shipping & Delivery' : '')}
                     </h1>
-                    <div className="flex flex-wrap items-center gap-3 md:gap-4 text-[11px] text-white/70 mt-1 pt-3 border-t border-white/10 w-full font-medium">
+                    {!isShippingPage && <div className="flex flex-wrap items-center gap-3 md:gap-4 text-[11px] text-white/70 mt-1 pt-3 border-t border-white/10 w-full font-medium">
                       <span>Official Dansolam Policy</span>
                       <span>•</span>
                       <span>Verified 100% Organic & Secure Standard</span>
                       <span>•</span>
                       <span>SHOP Care Center</span>
-                    </div>
+                    </div>}
                   </div>
                 </div>
 
@@ -183,10 +186,14 @@ export default function PolicyPage() {
                   {/* Top Gradient accent border line */}
                   <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#5D3E85] via-[#EC268F] to-[#5D3E85]" />
 
-                  <div
-                    className="policy-prose-content prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-[#C9BED4] leading-relaxed font-sans"
-                    dangerouslySetInnerHTML={{ __html: page?.content || '' }}
-                  />
+                  {isShippingPage ? (
+                    <ShippingRatesContent settings={settings} />
+                  ) : (
+                    <div
+                      className="policy-prose-content prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-[#C9BED4] leading-relaxed font-sans"
+                      dangerouslySetInnerHTML={{ __html: page?.content || '' }}
+                    />
+                  )}
 
                   {/* AGENT Support Banner at Bottom */}
                   <div className="mt-12 pt-8 border-t border-gray-100 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-6 bg-[#FAF7FC] dark:bg-white/5 p-6 sm:p-8 rounded-3xl border border-[#5D3E85]/15 dark:border-white/10">

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { toast as systemToast } from '../../components/ui/ToastProvider';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Mail, Phone, MapPin, Clock, Send, MessageSquare, CheckCircle2, Map, Compass, ArrowLeft } from 'lucide-react';
+import { Mail, Phone, Clock, Send, MessageSquare, CheckCircle2, ArrowLeft } from 'lucide-react';
 import SEO from '../../components/seo/SEO';
 import FaqSection from '../../components/storefront/FaqSection';
 import SocialIcon from '../../components/ui/SocialIcon';
@@ -124,17 +124,6 @@ export default function ContactUs() {
               <h3 className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6] text-xl border-b border-gray-100 dark:border-white/10 pb-4">Contact Details</h3>
 
               <div className="flex flex-col gap-6">
-                {settings.store_address && (
-                <div className="flex gap-4">
-                  <div className="w-10 h-10 rounded-full bg-[#5D3E85]/10 dark:bg-[#EC268F]/20 flex items-center justify-center text-[#5D3E85] dark:text-[#EC268F] shrink-0 font-bold">
-                    <MapPin className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-[9px] text-gray-400 dark:text-[#9B8EA9] font-bold  tracking-wider block">Address</span>
-                    <span className="text-xs text-gray-700 dark:text-[#C9BED4] font-semibold block mt-0.5">{settings.store_address}</span>
-                  </div>
-                </div>
-                )}
 
                 {(settings.support_email || settings.contact_email) && (
                 <div className="flex gap-3">
@@ -301,38 +290,6 @@ export default function ContactUs() {
           />
         </section>
 
-        {/* Map — only when an address is set in Admin → Settings */}
-        {settings.store_address && (
-        <section className="max-w-5xl mx-auto w-full px-0 sm:px-6 pb-16">
-          <div className="bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-3xl p-4 shadow-xs overflow-hidden h-[380px] relative group text-center">
-            <iframe
-              src={`https://maps.google.com/maps?q=${encodeURIComponent(settings.store_address)}&t=&z=14&ie=UTF8&iwloc=&output=embed`}
-              className="w-full h-full rounded-2xl border-0 relative z-10"
-              allowFullScreen=""
-              loading="lazy" decoding="async"
-              referrerPolicy="no-referrer-when-downgrade"
-              title="Dansolam Location Map"
-            />
-            <div className="absolute inset-0 bg-white dark:bg-[#17101F] flex flex-col items-center justify-center gap-3 p-6 text-[#221B2B] dark:text-[#F3EFF6]">
-              <div className="w-12 h-12 rounded-full bg-[#5D3E85]/10 dark:bg-[#EC268F]/20 flex items-center justify-center text-[#5D3E85] dark:text-[#EC268F]">
-                <Map className="w-5 h-5" />
-              </div>
-              <h4 className="font-extrabold text-[#221B2B] dark:text-[#F3EFF6] text-base">Dansolam</h4>
-              <p className="text-xs text-gray-500 dark:text-[#9B8EA9] max-w-xs leading-relaxed font-medium">
-                {settings.store_address}. Locate us on Google Maps for step-by-step directions.
-              </p>
-              <a
-                href={`https://maps.google.com/?q=${encodeURIComponent(settings.store_address)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-2 px-6 py-3 bg-[#5D3E85] hover:bg-[#EC268F] text-white text-[10px] font-extrabold tracking-wider rounded-full shadow-md transition-all btn-spring"
-              >
-                Open in Google Maps
-              </a>
-            </div>
-          </div>
-        </section>
-        )}
       </div>
     </div>
   );

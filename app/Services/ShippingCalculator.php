@@ -249,6 +249,28 @@ class ShippingCalculator
         return $this->activeMethods()->map(fn (ShippingRate $rate) => $rate->only([
             'id', 'name', 'zone', 'min_quantity', 'max_quantity', 'rate', 'description', 'is_default', 'is_pickup', 'sort_order', 'is_active',
             'target_match', 'quantity_basis', 'quantity_condition', 'quantity_value', 'overrides_others', 'charge_per_item',
-        ]) + ['target_product_ids' => $this->targetProductIds($rate)])->values();
+        ]) + [
+            'target_product_ids' => $this->targetProductIds($rate),
+            'applies_to' => $this->targetNames($rate),
+        ])->values();
+    }
+
+    /**
+     * Names of the products and categories a method targets, for the shipping page.
+     *
+     * @return array{products: array<string>, categories: array<string>}|null
+     */
+    private function targetNames(ShippingRate $method): ?array
+    {
+        $productIds = array_map('intval', array_filter((array) ($method->product_ids ?? [])));
+        $categoryIds = array_map('intval', array_filter((array) ($method->category_ids ?? [])));
+        if (!$productIds && !$categoryIds) {
+            return null;
+        }
+
+        return [
+            'products' => $productIds ? \App\Models\Product::whereIn('id', $productIds)->orderBy('name')->pluck('name')->all() : [],
+            'categories' => $categoryIds ? Category::whereIn('id', $categoryIds)->orderBy('name')->pluck('name')->all() : [],
+        ];
     }
 }

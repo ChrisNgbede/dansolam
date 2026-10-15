@@ -84,7 +84,7 @@ function RouteFallback() {
   useRouteLoading();
   return (
     <div className="min-h-[100dvh] grid place-items-center" role="status" aria-label="Loading">
-      <span className="w-8 h-8 rounded-full border-2 border-[#5D3E85]/20 border-t-[#EC268F] animate-spin" />
+      <span className="page-spinner" aria-hidden="true" />
     </div>
   );
 }

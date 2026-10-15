@@ -72,7 +72,9 @@ export default function HeroSliderSection({ banners = [], settings = {}, isLoadi
 
   if (isLoading && slides.length === 0) {
     return (
-      <section aria-hidden="true" className={`relative w-full overflow-hidden bg-gradient-to-br from-[#5D3E85] via-[#4A2B68] to-[#2A1740] ${placeholderHeight}`} />
+      <section role="status" aria-label="Loading" className={`relative w-full overflow-hidden bg-[#F6F5F7] dark:bg-[#141216] grid place-items-center ${placeholderHeight}`}>
+        <span className="page-spinner" aria-hidden="true" />
+      </section>
     );
   }
 

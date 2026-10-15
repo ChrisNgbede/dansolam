@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { toast as systemToast } from '../ui/ToastProvider';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Home, ShoppingBag, Search, ShoppingCart, Heart, User, MessageCircle, Menu, X, Gift, Mail, ArrowRight, ArrowLeft, FileText, BookOpen, LayoutDashboard, Trash2, ArrowUpRight, Banknote, ShieldCheck, Truck, Megaphone, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Sun, Moon, Phone, Star, Leaf, Layers, Tag, ExternalLink } from 'lucide-react';
+import { Home, ShoppingBag, Search, ShoppingCart, Heart, User, MessageCircle, Menu, X, Gift, Mail, ArrowRight, ArrowLeft, FileText, BookOpen, LayoutDashboard, Trash2, ArrowUpRight, ShieldCheck, Truck, Megaphone, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Sun, Moon, Phone, Star, Leaf, Layers, Tag, ExternalLink } from 'lucide-react';
 import { useCartStore } from '../../store/cartStore';
 import { useWishlistStore } from '../../store/wishlistStore';
 import SocialIcon from '../ui/SocialIcon';
@@ -14,7 +14,7 @@ import { triggerCartAnimation } from '../../utils/cartAnimation';
 import useScrollReveal from '../../hooks/useScrollReveal';
 import CategoryMarquee from '../storefront/CategoryMarquee';
 import { QuickViewProvider } from '../storefront/QuickViewProvider';
-import { PaystackLogo, StripeLogo, PayPalLogo, FlutterwaveLogo, VisaLogo, MastercardLogo } from '../storefront/PaymentGatewayLogos';
+import { PayPalLogo, VisaLogo, MastercardLogo } from '../storefront/PaymentGatewayLogos';
 import { useLiveValidation } from '../../hooks/useLiveValidation';
 import { FieldMessage, PasswordStrength } from '../../components/ui/FieldMessage';
 import * as rules from '../../utils/validators';
@@ -1476,11 +1476,6 @@ export default function StorefrontLayout() {
                 <span className="font-bold text-[#221B2B] dark:text-[#F3EFF6]">
                   {ecommerce.name || 'Dansolam Beauty Home'}
                 </span>
-                {settings.store_address && (
-                  <span className="text-[10px] text-gray-400 truncate">
-                    📍 {settings.store_address}
-                  </span>
-                )}
               </div>
 
               {socialLinks.length > 0 && (
@@ -1542,30 +1537,26 @@ export default function StorefrontLayout() {
             <p className="text-[11px] text-[#6B6274] mt-1 text-left">© {new Date().getFullYear()} {ecommerce.name}. All Rights Reserved.</p>
           </div>
 
-          {/* Column 2: Go To Links displaying all navbar links */}
+          {/* Column 2: the same links as the navbar, in the same order */}
           <div>
             <h5 className="font-sans font-bold text-[#F3EFF6] mb-4 text-xs tracking-wider ">Go To Links</h5>
             <ul className="flex flex-col gap-2.5 text-xs text-[#C9BED4]">
               <li><Link to="/" className="hover:text-[#EC268F] transition-colors">Home</Link></li>
-              <li><Link to="/shop" className="hover:text-[#EC268F] transition-colors">Shop All Products</Link></li>
-              <li><Link to="/pages/about-us" className="hover:text-[#EC268F] transition-colors">About Us</Link></li>
-              {settings?.show_gallery_page !== 'false' && (
-                <li><Link to="/gallery" className="hover:text-[#EC268F] transition-colors">Gallery</Link></li>
-              )}
-              {settings?.show_blog_page !== 'false' && (
-                <li><Link to="/blog" className="hover:text-[#EC268F] transition-colors">Blog & Articles</Link></li>
-              )}
-              <li><Link to="/reviews" className="hover:text-[#EC268F] transition-colors">Client Reviews</Link></li>
+              <li><Link to="/shop" className="hover:text-[#EC268F] transition-colors">Shop</Link></li>
+              <li><Link to="/reviews" className="hover:text-[#EC268F] transition-colors">Reviews</Link></li>
+              <li><Link to="/pages/about-us" className="hover:text-[#EC268F] transition-colors">About</Link></li>
               <li><Link to="/order-tracking" className="hover:text-[#EC268F] transition-colors">Track Order</Link></li>
-              <li><Link to="/contact" className="hover:text-[#EC268F] transition-colors">Contact Us</Link></li>
+              {settings?.show_blog_page !== 'false' && (
+                <li><Link to="/blog" className="hover:text-[#EC268F] transition-colors">Blog</Link></li>
+              )}
+              <li><Link to="/contact" className="hover:text-[#EC268F] transition-colors">Contact</Link></li>
             </ul>
           </div>
 
-          {/* Column 3: Get In Touch with address, hours & admin managed social media icons */}
+          {/* Column 3: Get In Touch with hours & admin managed social media icons */}
           <div>
             <h5 className="font-sans font-bold text-[#F3EFF6] mb-4 text-xs tracking-wider ">Get In Touch</h5>
             <ul className="flex flex-col gap-2.5 text-xs text-[#C9BED4] leading-relaxed">
-              {settings.store_address && <li>📍 {settings.store_address}</li>}
               <li>🕒 Hours: {settings.opening_hours || 'Monday–Saturday: 9:00 AM - 6:00 PM'}</li>
               <li>🚚 Rapid Doorstep Dispatch</li>
             </ul>
@@ -1607,18 +1598,10 @@ export default function StorefrontLayout() {
         </div>
 
         {/* Brand Assurances Bar */}
-        <div className="max-w-7xl mx-auto border-t border-white/10 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#9B8EA9]">
-          <div className="flex flex-wrap gap-4 items-center">
-            <Link to="/pages/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link>
-            <span className="opacity-35">|</span>
-            <Link to="/pages/terms-conditions" className="hover:text-white transition-colors">Terms of Service</Link>
-            <span className="opacity-35">|</span>
-            <Link to="/pages/shipping-delivery" className="hover:text-white transition-colors">Shipping & Returns</Link>
-          </div>
-
+        <div className="max-w-7xl mx-auto border-t border-white/10 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-center gap-4 text-xs text-[#9B8EA9]">
           {/* Payment Trust Assurances Icons */}
           <div className="flex flex-wrap items-center gap-3 select-none">
-            <span className="text-[10px] font-bold text-[#F3EFF6] tracking-wider ">SECURE CARDS & GLOBAL PAYMENTS:</span>
+            <span className="text-[10px] font-bold text-[#F3EFF6] tracking-wider ">WE ACCEPT</span>
 
             <div className="flex flex-wrap items-center gap-2">
               {/* VISA Badge */}
@@ -1631,25 +1614,9 @@ export default function StorefrontLayout() {
                 <MastercardLogo className="h-4 w-auto" />
               </div>
 
-              {/* PAYSTACK Badge */}
-              <div className="h-7 px-3 bg-white dark:bg-white/95 rounded-md border border-white/20 flex items-center justify-center shadow-3xs" title="Paystack">
-                <PaystackLogo className="h-4 w-auto" />
-              </div>
-
-              {/* STRIPE Badge */}
-              <div className="h-7 px-3 bg-white dark:bg-white/95 rounded-md border border-white/20 flex items-center justify-center shadow-3xs" title="Stripe">
-                <StripeLogo className="h-3.5 w-auto" />
-              </div>
-
               {/* PAYPAL Badge */}
               <div className="h-7 px-3 bg-white dark:bg-white/95 rounded-md border border-white/20 flex items-center justify-center shadow-3xs" title="PayPal">
                 <PayPalLogo className="h-3.5 w-auto" />
-              </div>
-
-              {/* COD Badge */}
-              <div className="h-7 px-2.5 bg-white/10 rounded-md border border-white/15 flex items-center justify-center backdrop-blur-xs gap-1" title="Cash on Delivery">
-                <Banknote className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-[9px] font-bold text-white tracking-wider">COD</span>
               </div>
             </div>
           </div>

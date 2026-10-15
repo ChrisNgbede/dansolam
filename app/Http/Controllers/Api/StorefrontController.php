@@ -69,6 +69,8 @@ class StorefrontController extends Controller
                 unset($settings[$key]);
             }
         }
+        // No physical address is shown anywhere on the storefront.
+        unset($settings['store_address']);
 
         // Auto-expire flash sale campaign if countdown end time has passed
         if (!empty($settings['flash_sale_end_time'])) {

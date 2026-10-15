@@ -45,6 +45,18 @@
         })();
     </script>
 
+    <!-- Loading state: neutral background and a visible spinner until the app has rendered. -->
+    <style>
+        html { background: #FFFFFF; }
+        html.dark { background: #121114; }
+        .boot-loader { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; background: #FFFFFF; }
+        html.dark .boot-loader { background: #121114; }
+        .page-spinner { display: block; width: 40px; height: 40px; border-radius: 50%; border: 3px solid rgba(0, 0, 0, .12); border-top-color: #EC268F; animation: page-spin .8s linear infinite; }
+        html.dark .page-spinner { border-color: rgba(255, 255, 255, .18); border-top-color: #EC268F; }
+        @keyframes page-spin { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { .page-spinner { animation-duration: 2.4s; } }
+    </style>
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -74,7 +86,7 @@
 <body class="bg-white dark:bg-[#17101F] text-[#221B2B] dark:text-[#F3EFF6] font-sans antialiased selection:bg-[#EC268F] selection:text-white overflow-x-hidden transition-colors duration-300">
     
     <!-- React Mount Node -->
-    <div id="root"></div>
+    <div id="root"><div class="boot-loader" role="status" aria-label="Loading"><span class="page-spinner"></span></div></div>
 
     <!-- PWA Service Worker Registration -->
     <script>
