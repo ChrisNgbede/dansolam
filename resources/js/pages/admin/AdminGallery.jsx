@@ -190,6 +190,7 @@ export default function AdminGallery() {
 
   const handleBulkFileChange = (e) => {
     const files = Array.from(e.target.files);
+    e.target.value = ''; // so the same files can be chosen again
     setBulkFiles(prev => [...prev, ...files]);
   };
 

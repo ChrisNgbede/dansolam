@@ -140,6 +140,7 @@ export default function AdminProductForm() {
 
         if (prod.variants && prod.variants.length > 0) {
           setVariants(prod.variants.map(v => ({
+            id: v.id,
             size: v.size,
             color: v.color,
             stock_quantity: v.stock_quantity,

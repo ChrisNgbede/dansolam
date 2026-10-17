@@ -58,6 +58,7 @@ export default function AdminProducts() {
 
   const handleCatImageUpload = (e) => {
     const file = e.target.files?.[0];
+    e.target.value = ''; // so the same file can be chosen again
     if (!file) return;
     setCatImageUploading(true);
     const formData = new FormData();
@@ -529,7 +530,7 @@ export default function AdminProducts() {
   const updateSettingsMutation = useMutation({
     mutationFn: (payload) => {
       return apiFetch('/api/admin/settings', {
-        method: 'POST',
+        method: 'PUT',
         body: JSON.stringify(payload)
       }).then(res => res.json());
     },

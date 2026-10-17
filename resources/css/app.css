@@ -16,6 +16,7 @@
     --font-fraunces: 'Fraunces', 'Playfair Display', Georgia, serif;
     --font-instrument: 'Fraunces', 'Playfair Display', Georgia, serif;
     --font-outfit: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+    --font-rounded: 'Nunito', 'Manrope', ui-rounded, ui-sans-serif, system-ui, sans-serif;
     
     /* Dansolam Beauty Home Signature Brand Palette */
     /* Half-step greys used throughout the UI. Without these, classes such as
@@ -356,8 +357,8 @@ a).bg-primary:hover{
 }
 /* Headings carry their own size/weight via Tailwind utilities on each component;
    only the shared optical tracking lives here. */
-.storefront-shell main :is(h1, h2),
-.luxury-storefront :is(h1, h2) {
+.storefront-shell main h1,
+.luxury-storefront h1 {
   letter-spacing: -.045em;
 }
 /* Page containers should meet the shared footer without duplicate bottom padding. */
@@ -2484,6 +2485,16 @@ html body .admin-shell main :is(button, a.admin-btn-primary, a.admin-btn-seconda
   gap: .5rem;
   transition: background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease, transform .1s ease !important;
 }
+/* Links styled as buttons centre their label like real buttons (a plain block link
+   put the text at the top edge of the 40px pill). */
+html body .admin-shell main :is(a.admin-btn-primary, a.admin-btn-secondary, a[class*="px-"][class*="py-"]):not(:has(div, p, img, h3, h4, ul, table, .block)):not([data-icon-btn]):not(.hidden):not(#adm-x) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+html body .admin-shell main :is(a.admin-btn-primary, a.admin-btn-secondary, a[class*="px-"][class*="py-"]):is(.w-full, .flex):not(:has(div, p, img, h3, h4, ul, table, .block)):not([data-icon-btn]):not(.hidden):not(#adm-x) {
+  display: flex;
+}
 /* Small buttons: inside table rows, chip/filter rows and compact toolbars. */
 html body .admin-shell main :is(button, a[class*="px-"][class*="py-"]):not(:has(div, p, img, h3, h4, ul, table, .block)):not([data-icon-btn]):not(.adm-hatch):is(
   td *, [class~="py-0.5"], [class~="py-1"], [class~="py-1.5"], [class~="text-[9px]"], [class~="text-[10px]"], [class~="text-[11px]"], [class~="h-7"], [class~="h-8"]
@@ -2905,3 +2916,18 @@ html.admin-dark .adm-faq-answer { color: var(--adm-text-2); }
   .adm-slide:hover .adm-slide-img, .adm-lift:hover { transform: none; }
   .adm-skeleton { animation: none; }
 }
+
+/* ==========================================================================
+   STOREFRONT SUBHEADINGS: one rounded face (Nunito) for every section, card and
+   panel heading. Page titles (h1) and body text keep their own fonts.
+   ========================================================================== */
+.storefront-shell :is(h2, h3, h4, h5, h6),
+.storefront-shell .policy-prose-content :is(h2, h3) {
+  font-family: var(--font-rounded);
+  letter-spacing: -.01em;
+  font-style: normal;
+}
+.storefront-shell :is(h2) { font-weight: 800; }
+.storefront-shell :is(h3, h4, h5, h6) { font-weight: 700; }
+/* Former serif section titles were set light; give them the same weight as the rest. */
+.storefront-shell :is(h2, h3).font-serif { font-weight: 800; }

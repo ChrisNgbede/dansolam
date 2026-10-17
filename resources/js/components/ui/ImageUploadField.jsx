@@ -71,7 +71,11 @@ export default function ImageUploadField({
         body: formData,
       });
 
-      const data = await res.json();
+      // An oversized file can be rejected by the web server with an HTML page, not JSON.
+      const data = await res.json().catch(() => ({
+        success: false,
+        message: res.status === 413 ? 'This image is too large for the server. Try a smaller file.' : `Upload failed (error ${res.status}).`,
+      }));
       setUploading(false);
 
       if (data.success) {

@@ -91,7 +91,7 @@ export default function AdminArticles() {
     defaultPageSize: 10,
     defaultSortField: 'title',
     defaultSortOrder: 'asc',
-    searchKeys: ['title', 'slug', 'seo_title', 'status']
+    searchKeys: ['title', 'slug', 'meta_title', 'status']
   });
 
   const commentsTable = useTableState({
@@ -289,8 +289,8 @@ export default function AdminArticles() {
     setSlug(art.slug);
     setCoverImageUrl(art.cover_image_url || '');
     setContent(art.content || '');
-    setSeoTitle(art.seo_title || '');
-    setSeoDescription(art.seo_description || '');
+    setSeoTitle(art.meta_title || '');
+    setSeoDescription(art.meta_description || '');
     setStatus(art.status || 'published');
     setBlogCategoryId(art.blog_category_id || '');
     setSelectedTagIds(art.tags ? art.tags.map(t => t.id) : []);
@@ -306,10 +306,10 @@ export default function AdminArticles() {
     const payload = {
       title,
       slug,
-      cover_image_url: coverImageUrl || null,
+      image_path: coverImageUrl || null,
       content,
-      seo_title: seoTitle || null,
-      seo_description: seoDescription || null,
+      meta_title: seoTitle || null,
+      meta_description: seoDescription || null,
       status,
       blog_category_id: blogCategoryId ? parseInt(blogCategoryId) : null,
       tag_ids: selectedTagIds
@@ -327,10 +327,10 @@ export default function AdminArticles() {
     const payload = {
       title,
       slug,
-      cover_image_url: coverImageUrl || null,
+      image_path: coverImageUrl || null,
       content,
-      seo_title: seoTitle || null,
-      seo_description: seoDescription || null,
+      meta_title: seoTitle || null,
+      meta_description: seoDescription || null,
       status,
       blog_category_id: blogCategoryId ? parseInt(blogCategoryId) : null,
       tag_ids: selectedTagIds

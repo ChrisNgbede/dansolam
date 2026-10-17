@@ -1434,7 +1434,7 @@ class StorefrontController extends Controller
             });
         }
 
-        $order = $query->with(['items.product', 'items.variant'])
+        $order = $query->with(['items.product.images' => fn ($q) => $q->limit(1), 'items.variant'])
             ->first();
 
         if (!$order) {

@@ -123,6 +123,7 @@ export default function AdminBrands() {
 
   const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
+    e.target.value = ''; // so the same file can be chosen again
     if (!file) return;
     
     setUploading(true);

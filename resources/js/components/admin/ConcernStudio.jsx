@@ -316,6 +316,8 @@ export default function ConcernStudio({ settingsRes, categories, collections, pr
     onSuccess: (data, { state }) => {
       if (data.success) {
         setSaved(state);
+        // The Collections screen reads its own copy of the settings; refresh both.
+        queryClient.invalidateQueries({ queryKey: ['settings-admin-collections'] });
         queryClient.invalidateQueries({ queryKey: ['settings'] });
       }
     },

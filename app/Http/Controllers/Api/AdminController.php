@@ -788,6 +788,14 @@ class AdminController extends Controller
             'is_fragile' => 'boolean',
             'tag_ids' => 'nullable|array',
             'tag_ids.*' => 'exists:product_tags,id',
+            'images' => 'nullable|array',
+            'images.*' => 'string|max:2048',
+            'variants' => 'nullable|array',
+            'variants.*.id' => 'nullable|integer',
+            'variants.*.size' => 'nullable|string|max:100',
+            'variants.*.color' => 'nullable|string|max:100',
+            'variants.*.price' => 'nullable|numeric|min:0',
+            'variants.*.stock_quantity' => 'nullable|integer|min:0',
         ]);
 
         $sku = $request->sku;
@@ -829,8 +837,14 @@ class AdminController extends Controller
             'is_fragile' => $request->is_fragile ?? false,
         ]);
 
-        // If simple product, update single variant stock
-        if (!$product->has_variants) {
+        if ($request->has('images')) {
+            $this->syncProductImages($product, (array) $request->images);
+        }
+
+        if ($product->has_variants && is_array($request->variants)) {
+            $this->syncProductVariants($product, $request->variants);
+        } elseif (!$product->has_variants) {
+            // Simple product: its single variant mirrors the product's stock.
             $variant = ProductVariant::where('product_id', $product->id)->first();
             if ($variant) {
                 $variant->stock_quantity = $product->stock_quantity;
@@ -852,6 +866,98 @@ class AdminController extends Controller
             'message' => 'Product updated successfully',
             'data' => $product->load(['variants', 'images', 'tags'])
         ]);
+    }
+
+    /**
+     * Make the product's images exactly the given list, in order (first = main).
+     * Rows for images that stay keep their id and colour; removed ones are deleted.
+     */
+    private function syncProductImages(Product $product, array $urls): void
+    {
+        $base = rtrim(url('/'), '/');
+        $urls = collect($urls)
+            ->filter(fn ($url) => is_string($url) && trim($url) !== '')
+            // Store same-site files as paths so they survive a domain or http/https change.
+            ->map(fn ($url) => str_starts_with($url, $base . '/') ? substr($url, strlen($base)) : trim($url))
+            ->unique()
+            ->values();
+
+        DB::transaction(function () use ($product, $urls) {
+            $existing = $product->images()->get();
+            $existing->reject(fn ($img) => $urls->contains($img->image_url))->each->delete();
+
+            foreach ($urls as $idx => $url) {
+                $row = $existing->firstWhere('image_url', $url);
+                if ($row) {
+                    $row->update(['sort_order' => $idx]);
+                } else {
+                    ProductImage::create(['product_id' => $product->id, 'image_url' => $url, 'sort_order' => $idx]);
+                }
+            }
+
+            // Variants that showed the old main image (or none) follow the new main image.
+            $oldMain = $existing->sortBy('sort_order')->first()?->image_url;
+            $newMain = $urls->first();
+            if ($newMain && $newMain !== $oldMain) {
+                ProductVariant::where('product_id', $product->id)
+                    ->where(fn ($q) => $q->whereNull('image_url')->orWhere('image_url', $oldMain))
+                    ->update(['image_url' => $newMain]);
+            }
+        });
+    }
+
+    /**
+     * Save edited size/colour variants: update by id, add new ones, and retire removed
+     * ones. A removed variant that orders, purchases or stock logs refer to is kept
+     * with zero stock so that history stays intact; otherwise it is deleted.
+     */
+    private function syncProductVariants(Product $product, array $rows): void
+    {
+        DB::transaction(function () use ($product, $rows) {
+            $existing = ProductVariant::where('product_id', $product->id)->get()->keyBy('id');
+            $kept = [];
+
+            foreach ($rows as $row) {
+                $size = trim((string) ($row['size'] ?? '')) ?: 'One Size';
+                $color = trim((string) ($row['color'] ?? '')) ?: 'Standard';
+                $data = [
+                    'size' => $size,
+                    'color' => $color,
+                    'price' => ($row['price'] ?? '') === '' ? null : $row['price'],
+                    'stock_quantity' => (int) ($row['stock_quantity'] ?? 0),
+                ];
+
+                $variant = isset($row['id']) ? $existing->get((int) $row['id']) : null;
+                // Rows loaded before ids were sent: match on size and colour.
+                $variant ??= $existing->first(fn ($v) => !in_array($v->id, $kept, true) && $v->size === $size && $v->color === $color);
+
+                if ($variant) {
+                    $variant->update($data);
+                } else {
+                    $variant = ProductVariant::create($data + [
+                        'product_id' => $product->id,
+                        'sku' => $product->sku . '-' . strtoupper(str_replace(' ', '', $size)) . '-' . strtoupper(str_replace(' ', '', $color)) . '-' . strtoupper(Str::random(3)),
+                        'low_stock_threshold' => 1,
+                        'image_url' => $product->images()->first()->image_url ?? null,
+                        'status' => 'active',
+                    ]);
+                }
+                $kept[] = $variant->id;
+            }
+
+            foreach ($existing->except($kept) as $variant) {
+                $referenced = DB::table('order_items')->where('product_variant_id', $variant->id)->exists()
+                    || DB::table('inventory_logs')->where('product_variant_id', $variant->id)->exists()
+                    || (\Illuminate\Support\Facades\Schema::hasTable('purchase_items') && DB::table('purchase_items')->where('product_variant_id', $variant->id)->exists());
+                if ($referenced) {
+                    $variant->update(['stock_quantity' => 0]);
+                } else {
+                    $variant->delete();
+                }
+            }
+
+            $product->update(['stock_quantity' => (int) ProductVariant::whereIn('id', $kept)->sum('stock_quantity')]);
+        });
     }
 
     /**
