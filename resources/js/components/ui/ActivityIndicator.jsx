@@ -25,7 +25,7 @@ let lastButtonAt = 0;
 
 const notify = () => listeners.forEach((fn) => fn(pending + routeLoads));
 
-const isOwnSpinner = (button) => !!button.querySelector('.animate-spin');
+const isOwnSpinner = (button) => !!button.querySelector('.animate-spin, .page-spinner');
 
 /** Wraps one user-started request: counts it and marks its button busy until it settles. */
 function track() {

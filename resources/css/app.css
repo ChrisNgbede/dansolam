@@ -2198,6 +2198,10 @@ img[data-skeleton="empty"]::before { content: ''; } /* suppresses alt rendering 
   animation: busy-spin 0.7s linear infinite;
 }
 [data-busy="icon"] { animation: busy-pulse 0.9s ease-in-out infinite; }
+/* One spinner at a time: a button that shows its own (it usually appears a moment
+   after the request starts) drops the automatic one. */
+[data-busy="text"]:has(.animate-spin, .page-spinner)::after { content: none; display: none; }
+[data-busy="icon"]:has(.animate-spin, .page-spinner) { animation: none; }
 @keyframes busy-spin { to { transform: rotate(360deg); } }
 @keyframes busy-pulse { 50% { opacity: 0.4; } }
 

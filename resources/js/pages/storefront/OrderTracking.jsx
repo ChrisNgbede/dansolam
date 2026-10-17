@@ -297,11 +297,10 @@ export default function OrderTracking() {
 
             <form onSubmit={handleTrackSubmit} noValidate className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-start">
               <div className="flex flex-col gap-1.5 sm:col-span-5">
-                <label htmlFor="track-order-number" className="text-xs text-gray-600 dark:text-[#C9BED4] font-semibold">
+                <label htmlFor={v.bind('orderNumber').id} className="text-xs text-gray-600 dark:text-[#C9BED4] font-semibold">
                   Order number <span className="text-[#EC268F]">*</span>
                 </label>
                 <input
-                  id="track-order-number"
                   {...v.bind('orderNumber')}
                   type="text"
                   placeholder="e.g. FQ-AB12CD-345"
@@ -312,11 +311,10 @@ export default function OrderTracking() {
                 <FieldMessage {...v.message('orderNumber')} />
               </div>
               <div className="flex flex-col gap-1.5 sm:col-span-4">
-                <label htmlFor="track-contact" className="text-xs text-gray-600 dark:text-[#C9BED4] font-semibold">
+                <label htmlFor={v.bind('contact').id} className="text-xs text-gray-600 dark:text-[#C9BED4] font-semibold">
                   Email or phone <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
                 <input
-                  id="track-contact"
                   {...v.bind('contact')}
                   type="text"
                   placeholder="e.g. fatima@example.com"
