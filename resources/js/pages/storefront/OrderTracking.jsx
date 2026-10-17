@@ -2,13 +2,28 @@ import { getCurrencySymbol } from '../../utils/currency';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Search, CreditCard, ShoppingBag, MessageCircle, Landmark, Check, CheckCircle2, Banknote, ShieldCheck, Receipt, ArrowLeft, Truck, Store } from 'lucide-react';
+import { Search, CreditCard, ShoppingBag, MessageCircle, Landmark, Check, CheckCircle2, Banknote, ShieldCheck, Receipt, ArrowLeft, Truck, Store, Package } from 'lucide-react';
 import SEO from '../../components/seo/SEO';
 import CheckoutStepper from '../../components/storefront/CheckoutStepper';
 import { useLiveValidation } from '../../hooks/useLiveValidation';
 import { FieldMessage } from '../../components/ui/FieldMessage';
 import * as rules from '../../utils/validators';
 import { needsPayment, payOrderUrl } from '../../utils/orderPayment';
+
+// Product photo for an order line; falls back to the product's initial if there is
+// no image or it fails to load.
+function ItemThumb({ src, name }) {
+  const [failed, setFailed] = useState(false);
+  const box = 'w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-xl overflow-hidden shrink-0 border border-[#F0E6F5] dark:border-white/10';
+  if (!src || failed) {
+    return (
+      <span className={`${box} bg-gradient-to-br from-[#F6EEF9] to-[#FCE7F3] dark:from-white/10 dark:to-white/5 flex items-center justify-center text-xl font-bold text-[#5D3E85] dark:text-[#F9A8D4]`} aria-hidden="true">
+        {String(name || '?').trim().charAt(0).toUpperCase()}
+      </span>
+    );
+  }
+  return <img src={src} alt="" loading="eager" decoding="async" onError={() => setFailed(true)} className={`${box} object-cover bg-[#FAF7FC] dark:bg-white/5`} />;
+}
 
 export default function OrderTracking() {
   const currencySymbol = getCurrencySymbol();
@@ -152,20 +167,50 @@ export default function OrderTracking() {
   const [paymentLabel, paymentClass] = PAYMENT_STATUS[order?.payment_status] || [humanise(order?.payment_status), PAYMENT_STATUS.refunded[1]];
   const address = order ? [order.delivery_address, order.delivery_city, order.delivery_state, order.delivery_postcode, order.delivery_country].filter(Boolean).join(', ') : '';
   const hasBankDetails = Boolean(settings.bank_name && settings.bank_account_number && settings.bank_account_name);
-  const card = 'bg-white dark:bg-[#1E1528] border border-[#EADBEE] dark:border-white/10 rounded-3xl shadow-sm';
+  const card = 'bg-white dark:bg-[#1E1528] border border-[#E4D6EE] dark:border-white/10 rounded-3xl shadow-[0_1px_2px_rgba(34,27,43,0.05),0_12px_32px_-16px_rgba(93,62,133,0.28)] dark:shadow-none';
   const Row = ({ label, children, strong }) => (
     <div className="flex items-start justify-between gap-4 py-2.5 border-b border-gray-100 dark:border-white/10 last:border-0">
       <dt className="text-xs text-gray-500 dark:text-[#9B8EA9] shrink-0">{label}</dt>
       <dd className={`text-right min-w-0 break-words ${strong ? 'text-base font-extrabold text-[#221B2B] dark:text-white' : 'text-sm font-semibold text-[#221B2B] dark:text-[#F3EFF6]'}`}>{children}</dd>
     </div>
   );
-  const PanelTitle = ({ icon: Icon, children }) => (
-    <h3 className="flex items-center gap-2.5 text-base text-[#221B2B] dark:text-[#F3EFF6] mb-2">
-      <span className="w-8 h-8 rounded-xl bg-[#5D3E85]/10 dark:bg-[#EC268F]/15 text-[#5D3E85] dark:text-[#F9A8D4] flex items-center justify-center shrink-0">
-        <Icon className="w-4 h-4" aria-hidden="true" />
-      </span>
-      {children}
-    </h3>
+  const Section = ({ icon: Icon, title, meta, children }) => (
+    <section className={`${card} overflow-hidden`}>
+      <header className="flex items-center justify-between gap-3 px-5 sm:px-6 py-4 border-b border-[#F0E6F5] dark:border-white/10 bg-[#FAF7FC] dark:bg-white/[0.03]">
+        <h3 className="flex items-center gap-2.5 text-base text-[#221B2B] dark:text-[#F3EFF6] min-w-0">
+          <span className="w-8 h-8 rounded-xl bg-[#5D3E85]/10 dark:bg-[#EC268F]/15 text-[#5D3E85] dark:text-[#F9A8D4] flex items-center justify-center shrink-0">
+            <Icon className="w-4 h-4" aria-hidden="true" />
+          </span>
+          <span className="truncate">{title}</span>
+        </h3>
+        {meta && <span className="text-xs font-semibold text-gray-500 dark:text-[#9B8EA9] shrink-0">{meta}</span>}
+      </header>
+      <div className="p-5 sm:p-6">{children}</div>
+    </section>
+  );
+  const itemCount = (order?.items || []).reduce((sum, i) => sum + Number(i.quantity || 0), 0);
+  // Customer care, shown beside an order or on its own before one is found.
+  const helpCard = (
+    <div className={`${card} p-5 sm:p-6 flex flex-col gap-4`}>
+      <div className="flex items-start gap-3">
+        <span className="w-10 h-10 rounded-2xl bg-[#5D3E85]/10 dark:bg-[#EC268F]/15 text-[#5D3E85] dark:text-[#F9A8D4] flex items-center justify-center shrink-0">
+          <ShieldCheck className="w-5 h-5" aria-hidden="true" />
+        </span>
+        <div>
+          <h3 className="text-base text-[#221B2B] dark:text-[#F3EFF6]">{order ? 'Questions about this order?' : 'Need help?'}</h3>
+          <p className="text-xs text-gray-500 dark:text-[#9B8EA9] mt-0.5 leading-relaxed">For returns, product questions or delivery issues, our customer care team is on WhatsApp.</p>
+        </div>
+      </div>
+      <a
+        href={order ? getWhatsAppInquiryLink() : `https://wa.me/${String(settings.whatsapp_number || '').replace(/[^0-9]/g, '')}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center justify-center gap-2 h-11 px-5 bg-[#25D366] hover:bg-[#1FB457] text-white text-sm font-bold rounded-full transition-colors shrink-0"
+      >
+        <MessageCircle className="w-4 h-4 fill-white" />
+        Chat on WhatsApp
+      </a>
+    </div>
   );
 
   return (
@@ -194,7 +239,7 @@ export default function OrderTracking() {
           </div>
         </section>
 
-        <section className="max-w-4xl mx-auto w-full flex flex-col gap-6 text-left">
+        <section className="max-w-6xl mx-auto w-full flex flex-col gap-6 text-left">
           {/* Checkout confirmations */}
           {paymentConfirmed && (
             <div className="rounded-3xl border border-emerald-200 dark:border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 p-5 sm:p-6 flex items-start gap-4 animate-scale-up">
@@ -306,151 +351,150 @@ export default function OrderTracking() {
 
           {order && (
             <div className="flex flex-col gap-6 animate-slide-in">
-              {/* Summary + progress */}
-              <div className={`${card} p-6 sm:p-8 flex flex-col gap-8`}>
+              {/* Order header: number, status and key facts */}
+              <div className={`${card} p-6 sm:p-8 flex flex-col gap-6`}>
                 <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-gray-500 dark:text-[#9B8EA9] font-semibold">Order</p>
-                    <h2 className="text-2xl text-[#221B2B] dark:text-white mt-0.5 break-all">{order.order_number}</h2>
-                    {order.created_at && <p className="text-xs text-gray-500 dark:text-[#9B8EA9] mt-1">Placed on {when(order.created_at)}</p>}
+                    <h2 className="text-2xl sm:text-3xl text-[#221B2B] dark:text-white mt-0.5 break-all">{order.order_number}</h2>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <span className="text-xs font-bold px-3 py-1.5 rounded-full bg-[#5D3E85]/10 text-[#5D3E85] dark:bg-[#EC268F]/15 dark:text-[#F9A8D4] border border-[#5D3E85]/15 dark:border-[#EC268F]/30">
                       {ORDER_STATUS_LABELS[order.order_status] || humanise(order.order_status)}
                     </span>
-                    <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${paymentClass}`}>{paymentLabel}</span>
+                    {/* "Awaiting payment" already says it; don't repeat it as a payment badge. */}
+                    {order.order_status !== 'pending_payment' && (
+                      <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${paymentClass}`}>{paymentLabel}</span>
+                    )}
                   </div>
                 </div>
+                <dl className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    ['Placed', when(order.created_at) || '—'],
+                    ['Items', String(itemCount)],
+                    ['Total', money(order.total_amount)],
+                    [isPickup ? 'Collection' : 'Delivery', isPickup ? 'Collect from us' : 'Home delivery'],
+                  ].map(([k, val]) => (
+                    <div key={k} className="rounded-2xl bg-[#FAF7FC] dark:bg-white/5 border border-[#F0E6F5] dark:border-white/10 px-4 py-3">
+                      <dt className="text-[11px] font-semibold text-gray-500 dark:text-[#9B8EA9]">{k}</dt>
+                      <dd className="text-sm sm:text-base font-bold text-[#221B2B] dark:text-white mt-0.5 truncate">{val}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
 
-                {stopped ? (
-                  <p className="text-sm text-gray-600 dark:text-[#C9BED4] bg-gray-50 dark:bg-white/5 rounded-2xl px-4 py-3">
-                    This order is {humanise(order.order_status).toLowerCase()}. Contact us if you have any questions.
-                  </p>
-                ) : (
-                  <ol className="flex flex-col sm:flex-row sm:items-start" aria-label="Order progress">
-                    {steps.map((step, idx) => {
-                      // The last step, once reached, is complete rather than "in progress".
-                      const finished = activeStepIdx === steps.length - 1;
-                      const done = idx < activeStepIdx || (finished && idx === activeStepIdx);
-                      const current = idx === activeStepIdx && !finished;
-                      const reached = done || current;
-                      return (
-                        <li key={step.label} className="relative flex sm:flex-col sm:items-center gap-3 sm:gap-2 sm:flex-1 pb-6 sm:pb-0 last:pb-0" aria-current={current ? 'step' : undefined}>
-                          {/* connector to the next step */}
-                          {idx < steps.length - 1 && (
-                            <span aria-hidden="true" className={`absolute left-[19px] top-10 bottom-0 w-0.5 sm:left-[calc(50%+24px)] sm:right-[calc(-50%+24px)] sm:top-[19px] sm:bottom-auto sm:w-auto sm:h-0.5 rounded-full ${done ? 'bg-[#5D3E85] dark:bg-[#EC268F]' : 'bg-gray-200 dark:bg-white/15'}`} />
-                          )}
-                          <span className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 border-2 transition-colors ${
-                            done ? 'bg-[#5D3E85] border-[#5D3E85] text-white dark:bg-[#EC268F] dark:border-[#EC268F]'
-                              : current ? 'bg-[#EC268F] border-[#EC268F] text-white ring-4 ring-[#EC268F]/20'
-                                : 'bg-white dark:bg-[#1E1528] border-gray-200 dark:border-white/20 text-gray-400 dark:text-[#9B8EA9]'
-                          }`}>
-                            {done ? <Check className="w-4 h-4" aria-hidden="true" /> : idx + 1}
-                          </span>
-                          <span className="flex flex-col sm:items-center sm:text-center pt-2 sm:pt-0">
-                            <span className={`text-sm font-semibold ${reached ? 'text-[#221B2B] dark:text-[#F3EFF6]' : 'text-gray-400 dark:text-[#9B8EA9]'}`}>{step.label}</span>
-                            {reached && step.date && <span className="text-[11px] text-gray-500 dark:text-[#9B8EA9]">{step.date}</span>}
-                          </span>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                {/* Main column */}
+                <div className="lg:col-span-2 flex flex-col gap-6 min-w-0">
+                  <Section icon={Package} title="Order progress" meta={ORDER_STATUS_LABELS[order.order_status] || humanise(order.order_status)}>
+                    {stopped ? (
+                      <p className="text-sm text-gray-600 dark:text-[#C9BED4] bg-gray-50 dark:bg-white/5 rounded-2xl px-4 py-3">
+                        This order is {humanise(order.order_status).toLowerCase()}. Contact us if you have any questions.
+                      </p>
+                    ) : (
+                      <ol className="flex flex-col sm:flex-row sm:items-start" aria-label="Order progress">
+                        {steps.map((step, idx) => {
+                          // The last step, once reached, is complete rather than "in progress".
+                          const finished = activeStepIdx === steps.length - 1;
+                          const done = idx < activeStepIdx || (finished && idx === activeStepIdx);
+                          const current = idx === activeStepIdx && !finished;
+                          const reached = done || current;
+                          return (
+                            <li key={step.label} className="relative flex sm:flex-col sm:items-center gap-3 sm:gap-2 sm:flex-1 pb-6 sm:pb-0 last:pb-0" aria-current={current ? 'step' : undefined}>
+                              {idx < steps.length - 1 && (
+                                <span aria-hidden="true" className={`absolute left-[19px] top-10 bottom-0 w-0.5 sm:left-[calc(50%+24px)] sm:right-[calc(-50%+24px)] sm:top-[19px] sm:bottom-auto sm:w-auto sm:h-0.5 rounded-full ${done ? 'bg-[#5D3E85] dark:bg-[#EC268F]' : 'bg-gray-200 dark:bg-white/15'}`} />
+                              )}
+                              <span className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 border-2 transition-colors ${
+                                done ? 'bg-[#5D3E85] border-[#5D3E85] text-white dark:bg-[#EC268F] dark:border-[#EC268F]'
+                                  : current ? 'bg-[#EC268F] border-[#EC268F] text-white ring-4 ring-[#EC268F]/20'
+                                    : 'bg-white dark:bg-[#1E1528] border-gray-200 dark:border-white/20 text-gray-400 dark:text-[#9B8EA9]'
+                              }`}>
+                                {done ? <Check className="w-4 h-4" aria-hidden="true" /> : idx + 1}
+                              </span>
+                              <span className="flex flex-col sm:items-center sm:text-center pt-2 sm:pt-0">
+                                <span className={`text-sm font-semibold ${reached ? 'text-[#221B2B] dark:text-[#F3EFF6]' : 'text-gray-400 dark:text-[#9B8EA9]'}`}>{step.label}</span>
+                                {reached && step.date && <span className="text-[11px] text-gray-500 dark:text-[#9B8EA9]">{step.date}</span>}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    )}
+                  </Section>
+
+                  <Section icon={ShoppingBag} title="Items in this order" meta={`${itemCount} item${itemCount === 1 ? '' : 's'}`}>
+                    <ul className="flex flex-col gap-3">
+                      {order.items?.map((item) => (
+                        <li key={item.id} className="flex items-center gap-4 p-3 sm:p-4 rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-white/[0.03] hover:border-[#D4C3E2] dark:hover:border-white/20 transition-colors">
+                          <ItemThumb src={item.variant?.image_url || item.product?.images?.[0]?.image_url} name={item.product_name} />
+                          <div className="flex-1 min-w-0">
+                            {item.product?.slug ? (
+                              <Link to={`/product/${item.product.slug}`} className="text-sm font-semibold text-[#221B2B] dark:text-[#F3EFF6] hover:text-[#EC268F] line-clamp-2">{item.product_name}</Link>
+                            ) : (
+                              <span className="text-sm font-semibold text-[#221B2B] dark:text-[#F3EFF6] line-clamp-2">{item.product_name}</span>
+                            )}
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                              {item.variant_label && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#5D3E85]/10 text-[#5D3E85] dark:bg-[#EC268F]/15 dark:text-[#F9A8D4]">{item.variant_label}</span>}
+                              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-[#C9BED4]">Qty {item.quantity}</span>
+                              <span className="text-[11px] text-gray-500 dark:text-[#9B8EA9]">{money(item.price)} each</span>
+                            </div>
+                          </div>
+                          <span className="text-sm sm:text-base font-bold text-[#221B2B] dark:text-white shrink-0">{money(item.price * item.quantity)}</span>
                         </li>
-                      );
-                    })}
-                  </ol>
-                )}
-              </div>
-
-              {/* Delivery + payment */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className={`${card} p-6`}>
-                  <PanelTitle icon={isPickup ? Store : Truck}>{isPickup ? 'Collection details' : 'Delivery details'}</PanelTitle>
-                  <dl>
-                    <Row label="Name">{order.customer_name}</Row>
-                    {order.customer_phone && <Row label="Phone">{order.customer_phone}</Row>}
-                    {order.customer_email && <Row label="Email">{order.customer_email}</Row>}
-                    <Row label="Method">{isPickup ? 'Collection' : 'Home delivery'}</Row>
-                    {!isPickup && address && <Row label="Address">{address}</Row>}
-                  </dl>
+                      ))}
+                    </ul>
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-white/10 text-sm">
+                      <span className="text-gray-500 dark:text-[#9B8EA9]">Items subtotal</span>
+                      <span className="font-bold text-[#221B2B] dark:text-white">{money(order.subtotal)}</span>
+                    </div>
+                  </Section>
                 </div>
 
-                <div className={`${card} p-6`}>
-                  <PanelTitle icon={Receipt}>Payment summary</PanelTitle>
-                  <dl>
-                    <Row label="Subtotal">{money(order.subtotal)}</Row>
-                    {Number(order.discount_amount) > 0 && <Row label={order.coupon_code ? `Discount (${order.coupon_code})` : 'Discount'}><span className="text-emerald-700 dark:text-emerald-300">−{money(order.discount_amount)}</span></Row>}
-                    <Row label="Shipping">{Number(order.delivery_fee) > 0 ? money(order.delivery_fee) : 'Free'}</Row>
-                    {Number(order.tax_amount) > 0 && <Row label="Tax">{money(order.tax_amount)}</Row>}
-                    <Row label="Total" strong>{money(order.total_amount)}</Row>
-                    <Row label="Paid with">{GATEWAY_LABELS[order.payment_method] || humanise(order.payment_method)}</Row>
-                  </dl>
+                {/* Side column */}
+                <div className="flex flex-col gap-6 min-w-0 lg:sticky lg:top-24">
+                  <Section icon={Receipt} title="Payment summary">
+                    <dl>
+                      <Row label="Subtotal">{money(order.subtotal)}</Row>
+                      {Number(order.discount_amount) > 0 && <Row label={order.coupon_code ? `Discount (${order.coupon_code})` : 'Discount'}><span className="text-emerald-700 dark:text-emerald-300">−{money(order.discount_amount)}</span></Row>}
+                      <Row label="Shipping">{Number(order.delivery_fee) > 0 ? money(order.delivery_fee) : 'Free'}</Row>
+                      {Number(order.tax_amount) > 0 && <Row label="Tax">{money(order.tax_amount)}</Row>}
+                      <Row label="Total" strong>{money(order.total_amount)}</Row>
+                      <Row label="Paid with">{GATEWAY_LABELS[order.payment_method] || humanise(order.payment_method)}</Row>
+                    </dl>
+                    {needsPayment(order) && (
+                      <div className="mt-4 rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-4 flex flex-col gap-3">
+                        <div>
+                          <p className="text-sm font-bold text-amber-900 dark:text-amber-200">Payment is still pending</p>
+                          <p className="text-xs text-amber-800/80 dark:text-amber-200/80 mt-0.5">We'll prepare your order once {money(order.total_amount)} has been paid.</p>
+                        </div>
+                        <Link
+                          to={payOrderUrl(order, activeQuery?.contact)}
+                          className="inline-flex items-center justify-center gap-2 h-11 px-5 bg-[#EC268F] hover:bg-[#C9166F] text-white text-sm font-bold rounded-full transition-colors"
+                        >
+                          <CreditCard className="w-4 h-4" />
+                          {order.payment_method === 'bank_transfer' ? 'How to pay' : 'Complete payment'}
+                        </Link>
+                      </div>
+                    )}
+                  </Section>
+
+                  <Section icon={isPickup ? Store : Truck} title={isPickup ? 'Collection details' : 'Delivery details'}>
+                    <dl>
+                      <Row label="Name">{order.customer_name}</Row>
+                      {order.customer_phone && <Row label="Phone">{order.customer_phone}</Row>}
+                      {order.customer_email && <Row label="Email">{order.customer_email}</Row>}
+                      <Row label="Method">{isPickup ? 'Collection' : 'Home delivery'}</Row>
+                      {!isPickup && address && <Row label="Address">{address}</Row>}
+                    </dl>
+                  </Section>
+
+                  {helpCard}
                 </div>
               </div>
-
-              {/* Items */}
-              <div className={`${card} p-6`}>
-                <PanelTitle icon={ShoppingBag}>Items in this order ({order.items?.length || 0})</PanelTitle>
-                <ul className="divide-y divide-gray-100 dark:divide-white/10">
-                  {order.items?.map((item) => {
-                    const img = item.variant?.image_url || item.product?.images?.[0]?.image_url;
-                    return (
-                      <li key={item.id} className="flex items-center gap-4 py-3.5">
-                        <span className="w-14 h-14 rounded-2xl bg-[#FAF7FC] dark:bg-white/5 border border-gray-100 dark:border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
-                          {img ? <img src={img} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" /> : <ShoppingBag className="w-5 h-5 text-gray-300" aria-hidden="true" />}
-                        </span>
-                        <span className="flex-1 min-w-0">
-                          {item.product?.slug ? (
-                            <Link to={`/product/${item.product.slug}`} className="block text-sm font-semibold text-[#221B2B] dark:text-[#F3EFF6] hover:text-[#EC268F] truncate">{item.product_name}</Link>
-                          ) : (
-                            <span className="block text-sm font-semibold text-[#221B2B] dark:text-[#F3EFF6] truncate">{item.product_name}</span>
-                          )}
-                          <span className="block text-xs text-gray-500 dark:text-[#9B8EA9] mt-0.5">
-                            {item.variant_label ? `${item.variant_label} · ` : ''}{item.quantity} × {money(item.price)}
-                          </span>
-                        </span>
-                        <span className="text-sm font-bold text-[#221B2B] dark:text-[#F3EFF6] shrink-0">{money(item.price * item.quantity)}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-
-              {needsPayment(order) && (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-3xl border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 px-5 py-4">
-                  <div>
-                    <p className="text-sm font-bold text-amber-900 dark:text-amber-200">Payment is still pending</p>
-                    <p className="text-xs text-amber-800/80 dark:text-amber-200/80 mt-0.5">We'll prepare your order once {money(order.total_amount)} has been paid.</p>
-                  </div>
-                  <Link
-                    to={payOrderUrl(order, activeQuery?.contact)}
-                    className="inline-flex items-center justify-center gap-2 h-11 px-5 bg-[#EC268F] hover:bg-[#C9166F] text-white text-sm font-bold rounded-full transition-colors shrink-0"
-                  >
-                    <CreditCard className="w-4 h-4" />
-                    {order.payment_method === 'bank_transfer' ? 'How to pay' : 'Complete payment'}
-                  </Link>
-                </div>
-              )}
             </div>
           )}
 
-          {/* Help */}
-          <div className={`${card} p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4`}>
-            <div className="flex items-start gap-3">
-              <span className="w-10 h-10 rounded-2xl bg-[#5D3E85]/10 dark:bg-[#EC268F]/15 text-[#5D3E85] dark:text-[#F9A8D4] flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-5 h-5" aria-hidden="true" />
-              </span>
-              <div>
-                <h3 className="text-base text-[#221B2B] dark:text-[#F3EFF6]">{order ? 'Questions about this order?' : 'Need help?'}</h3>
-                <p className="text-xs text-gray-500 dark:text-[#9B8EA9] mt-0.5 leading-relaxed">For returns, product questions or delivery issues, our customer care team is on WhatsApp.</p>
-              </div>
-            </div>
-            <a
-              href={order ? getWhatsAppInquiryLink() : `https://wa.me/${String(settings.whatsapp_number || '').replace(/[^0-9]/g, '')}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 h-11 px-5 bg-[#25D366] hover:bg-[#1FB457] text-white text-sm font-bold rounded-full transition-colors shrink-0"
-            >
-              <MessageCircle className="w-4 h-4 fill-white" />
-              Chat on WhatsApp
-            </a>
-          </div>
+          {!order && helpCard}
         </section>
       </div>
     </div>
