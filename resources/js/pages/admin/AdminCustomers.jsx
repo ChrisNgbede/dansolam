@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { toast as systemToast } from '../../components/ui/ToastProvider';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Eye, Users, X, Plus, Edit, Trash2, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
@@ -409,7 +410,7 @@ export default function AdminCustomers() {
 
             <div className="flex items-center gap-3 border-b border-gray-100 pb-3.5">
               <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-base shadow-sm">
-                {viewingCustomer.name[0]}
+                {(viewingCustomer.name || viewingCustomer.email || '?').trim().charAt(0).toUpperCase()}
               </div>
               <div>
                 <h3 className="font-serif font-bold text-gray-900 text-base">{viewingCustomer.name}</h3>
@@ -464,7 +465,7 @@ export default function AdminCustomers() {
                 </div>
 
                 <a
-                  href={`https://wa.me/${viewingCustomer.phone ? viewingCustomer.phone.replace(/[^0-9]/g, '') : ''}?text=Hello%20${encodeURIComponent(viewingCustomer.name)}%2C%20regarding%20your%20skincare%20profile%20at%20Dansolam...`}
+                  href={`https://wa.me/${viewingCustomer.phone ? viewingCustomer.phone.replace(/[^0-9]/g, '') : ''}?text=Hello%20${encodeURIComponent(viewingCustomer.name || '')}%2C%20regarding%20your%20skincare%20profile%20at%20Dansolam...`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full text-center inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[#25D366] text-white text-xs font-semibold rounded-lg shadow-sm hover:bg-[#20ba59] transition-colors"
@@ -507,13 +508,13 @@ export default function AdminCustomers() {
                                     #{o.order_number}
                                   </Link>
                                 </td>
-                                <td className="px-4 py-2 font-mono text-gray-455">{new Date(o.created_at).toLocaleDateString()}</td>
+                                <td className="px-4 py-2 font-mono text-gray-455">{o.created_at ? new Date(o.created_at).toLocaleDateString() : '—'}</td>
                                 <td className="px-4 py-2 font-bold text-gray-800">{currencySymbol}{parseFloat(o.total_amount).toLocaleString()}</td>
                                 <td className="px-4 py-2">
                                   <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
                                     o.payment_status === 'paid' ? 'bg-green-50 text-green-600' : 'bg-amber-50 text-amber-600'
                                   }`}>
-                                    {o.payment_status.toUpperCase()}
+                                    {String(o.payment_status || 'unknown').replace(/_/g, ' ').toUpperCase()}
                                   </span>
                                 </td>
                                 <td className="px-4 py-2">
@@ -521,7 +522,7 @@ export default function AdminCustomers() {
                                     o.order_status === 'delivered' ? 'bg-green-50 text-green-600' :
                                     o.order_status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-600'
                                   }`}>
-                                    {o.order_status.toUpperCase()}
+                                    {String(o.order_status || 'unknown').replace(/_/g, ' ').toUpperCase()}
                                   </span>
                                 </td>
                               </tr>
